@@ -16,13 +16,28 @@ namespace NivenRingworld
         private SurfaceStreamer surface;
         private Rect window=new Rect(30,80,370,570);
         private Vector2 scroll;
+        private Vector2 panelScroll;
+        internal float arrivalHeight=300;
         private bool visible=true,transferring;
         private int destination;
         private string status="Launch a craft, then start a ring expedition.";
         private float nextCapture;
         private const string WarpLock="NivenRingworld.Warp";
         private RingworldScenario State { get { return RingworldScenario.Instance; } }
-        internal bool Active { get { return State!=null&&State.Expedition; } }
+        internal bool Active
+        {
+            get
+            {
+                var v=FlightGlobals.ActiveVessel;
+                return State!=null&&State.Expedition&&(transferring||(v!=null&&State.Vessels.ContainsKey(v.id.ToString())));
+            }
+        }
+        internal bool Ready { get { return Active&&!transferring; } }
+        internal bool Owns(Vessel v)
+        {
+            VesselRecord r;
+            return Ready&&v!=null&&v.mainBody==Star&&State.Vessels.TryGetValue(v.id.ToString(),out r)&&r.Restored;
+        }
         internal DVec Position(Vessel v){return ConvertVector.Core(v.GetWorldPos3D()-Star.position);}
         internal DVec Velocity(Vessel v){return ConvertVector.Core(v.obt_velocity);}
         public void Start()
@@ -33,6 +48,7 @@ namespace NivenRingworld
                 Settings=Settings.Load();Star=FlightGlobals.Bodies.Find(b=>b.name=="Sun");
                 if(Star==null)throw new InvalidOperationException("This release requires the stock Sun.");
                 surface=new SurfaceStreamer(Settings);
+                StockIntegration.Install();
                 Debug.Log("[NivenRingworld] Flight controller ready; R="+Settings.Geometry.P.Radius);
             }
             catch(Exception e){Debug.LogException(e);status=e.Message;enabled=false;}
@@ -40,7 +56,8 @@ namespace NivenRingworld
         public void Update()
         {
             if(Input.GetKey(KeyCode.LeftAlt)&&Input.GetKeyDown(KeyCode.R))visible=!visible;
-            if(!Active||Settings==null)return;
+            AdoptNearbyActiveVessel();
+            if(!Active||Settings==null){InputLockManager.RemoveControlLock(WarpLock);return;}
             InputLockManager.SetControlLock(ControlTypes.TIMEWARP,WarpLock);
             if(TimeWarp.CurrentRateIndex!=0)TimeWarp.SetRate(0,true);
             var v=FlightGlobals.ActiveVessel;
@@ -53,6 +70,18 @@ namespace NivenRingworld
             var coord=Settings.Geometry.Coordinates(Position(v));
             surface.Light(Settings.Geometry.Daylight(coord.Along,Planetarium.GetUniversalTime()));
             if(Time.realtimeSinceStartup>nextCapture){Capture();nextCapture=Time.realtimeSinceStartup+1;}
+        }
+        private void AdoptNearbyActiveVessel()
+        {
+            var v=FlightGlobals.ActiveVessel;
+            if(State==null||!State.Expedition||v==null||v.mainBody!=Star||State.Vessels.ContainsKey(v.id.ToString()))return;
+            foreach(var other in FlightGlobals.VesselsLoaded)
+            {
+                VesselRecord r;
+                if(other==null||other==v||other.mainBody!=Star||!State.Vessels.TryGetValue(other.id.ToString(),out r)||!r.Restored)continue;
+                if((v.GetWorldPos3D()-other.GetWorldPos3D()).magnitude>250)continue;
+                string id=v.id.ToString();State.Vessels[id]=new VesselRecord{Id=id,Position=Position(v),Velocity=Velocity(v),Rotation=v.transform.rotation,Restored=true};return;
+            }
         }
         public void FixedUpdate()
         {
@@ -118,10 +147,10 @@ namespace NivenRingworld
         {
             var v=FlightGlobals.ActiveVessel;if(v==null||State==null||transferring)return;
             var l=Settings.Terrain.Landmarks[destination];
-            // Offset from the plinth and buildings; deploy 60m above the sampled floor.
+            // The site center is clear of buildings; allow time to establish a controlled descent.
             double along=l.Along,across=l.Across;
             var t=Settings.Terrain.Sample(along,across);
-            double height=Math.Max(t.Height,double.IsNegativeInfinity(t.WaterHeight)?t.Height:t.WaterHeight)+60;
+            double height=Math.Max(t.Height,double.IsNegativeInfinity(t.WaterHeight)?t.Height:t.WaterHeight)+arrivalHeight;
             DVec position=Settings.Geometry.Position(along,across,height);
             Quaternion rotation=Quaternion.FromToRotation(v.transform.up,ConvertVector.Unity(Settings.Geometry.Up(position)))*v.transform.rotation;
             StartCoroutine(Transfer(v,position,new DVec(),rotation,true));
@@ -143,14 +172,18 @@ namespace NivenRingworld
                 status="KSP did not finish switching to the Sun. Retry when unpacked.";transferring=false;yield break;
             }
             v.Landed=false;v.Splashed=false;v.landedAt="";
-            v.SetPosition(Star.position+ConvertVector.Ksp(position));
+            // Shift first: putting a float Transform billions of metres away loses hundreds of metres.
+            FloatingOrigin.SetOffset(Star.position+ConvertVector.Ksp(position));
             Krakensbane.ResetVelocityFrame(true);
-            v.SetWorldVelocity(ConvertVector.Ksp(velocity));v.SetRotation(rotation);
+            v.SetRotation(rotation,false);v.SetPosition(Star.position+ConvertVector.Ksp(position),true);
+            v.SetWorldVelocity(ConvertVector.Ksp(velocity));
+            v.DetachPatchedConicsSolver();
             v.IgnoreGForces(30);v.IgnoreSpeed(30);
             surface.Update(position,Star.position,true);
             Physics.SyncTransforms();
             State.Vessels[id].Restored=true;
             transferring=false;status="Ring frame active. Alt+R shows/hides this panel. Stock navball altitude is solar altitude.";
+            FlightCamera.SetMode(FlightCamera.Modes.FREE);
             Debug.Log("[NivenRingworld] Expedition entered at "+Settings.Geometry.Coordinates(position).Along);
         }
         private void CaptureBeforeTransfer(Vessel v)
@@ -171,10 +204,12 @@ namespace NivenRingworld
             foreach(var v in FlightGlobals.VesselsLoaded)
             {
                 if(v==null||v.packed||v.mainBody!=Star||!State.Vessels.ContainsKey(v.id.ToString()))continue;
+                v.ResetGroundContact();v.KillPermanentGroundContact();v.Landed=false;
                 v.ChangeWorldVelocity(ConvertVector.Ksp(Settings.Geometry.SpinVelocity(Position(v))));
+                v.AttachPatchedConicsSolver();
                 State.Vessels.Remove(v.id.ToString());
             }
-            State.Expedition=false;InputLockManager.RemoveControlLock(WarpLock);
+            State.Expedition=State.Vessels.Count>0;InputLockManager.RemoveControlLock(WarpLock);
             surface.Dispose();surface=new SurfaceStreamer(Settings);
             status="Returned to inertial flight with the ring's tangential velocity. This is far above solar escape speed.";
         }
@@ -197,6 +232,7 @@ namespace NivenRingworld
         }
         private void DrawWindow(int id)
         {
+            panelScroll=GUILayout.BeginScrollView(panelScroll,GUILayout.Height(Mathf.Max(240,Mathf.Min(610,Screen.height-150))));
             GUILayout.Label("RINGWORLD  /  1:10 scale");
             GUILayout.Label("Radius "+(Settings.Geometry.P.Radius/1000).ToString("N0")+" km   |   Width "+(Settings.Geometry.P.Width/1000).ToString("N0")+" km");
             var v=FlightGlobals.ActiveVessel;
@@ -213,12 +249,15 @@ namespace NivenRingworld
                 if(GUILayout.Toggle(destination==i,Settings.Terrain.Landmarks[i].Name))destination=i;
             GUILayout.EndScrollView();
             GUILayout.Label(Settings.Terrain.Landmarks[destination].Description);
+            GUILayout.Label("Arrival height: "+arrivalHeight.ToString("F0")+" m above ground / water");
+            arrivalHeight=GUILayout.HorizontalSlider(arrivalHeight,60,2000);
             GUI.enabled=!transferring&&v!=null&&State!=null;
-            if(GUILayout.Button(Active?"Relocate to selected site (60 m above ground)":"Begin expedition at selected site"))Visit();
+            if(GUILayout.Button(Active?"Relocate above selected site":"Begin expedition at selected site"))Visit();
             if(Active&&GUILayout.Button("Leave ring frame for spaceflight"))Leave();
             GUI.enabled=true;
             GUILayout.Label("Science: fit the RW-1 Surveyor, then use its part menu. Land with engines/legs; descent starts at rest.");
             GUILayout.Label(status);
+            GUILayout.EndScrollView();
             GUI.DragWindow(new Rect(0,0,10000,25));
         }
         public void OnDestroy()

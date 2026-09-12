@@ -6,3 +6,4 @@ local.settings.ps1
 *.user
 template_instance/
 template/
+.tools/

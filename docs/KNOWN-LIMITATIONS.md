@@ -6,7 +6,8 @@ This is version 0.1.0. The project is not a completed seamless Ringworld planet 
 
 - Expedition mode reinterprets opted-in vessels in a frame rotating with the ring. It does not globally replace KSP's celestial/orbital reference frames. The stock Sun remains the SOI.
 - Entry is an explicit relocation command. There is no validated seamless interplanetary approach, rendezvous, surface capture, or re-entry corridor.
-- Stock navball orientation, altimeter, map orbit, stock science situation, and landing/recovery rules remain solar. The ring panel provides the relevant surface height and velocity. Stock EVA walking orientation and wheel suspension semantics have not been certified.
+- The camera and local orientation vectors are adapted to the inward-facing floor. The stock altimeter, map orbit, science situation, and recovery rules remain solar. The ring panel provides surface height and velocity. Stock EVA walking orientation and all wheel suspension modes have not been certified.
+- A Harmony prefix bypasses the stock planetary landing-state calculation for expedition vessels. This avoids dereferencing the Sun's absent PQS terrain and prevents spherical anchoring. Physical contact with the ring is not a stock `LANDED` situation.
 - Physics warp and orbital warp are suppressed during an expedition. Long-range travel uses the destination relocations.
 - Air uses altitude-dependent isotropic drag. Water uses an approximate displacement model and drag. Neither is a full FlightIntegrator atmosphere/ocean implementation; stock lift, jet oxygen intake, parachute deployment, heating, swimming, pressure, and buoyancy by actual hull volume need adapters.
 - Only loaded, unpacked expedition vessels receive custom forces. Nearby separated stages/EVAs are adopted within 250 m. Arbitrary fleets, docking changes, active-vessel switching, debris at long range, and unloaded trajectories require more lifecycle work.

@@ -38,6 +38,17 @@ static class Program
             double across=(random.NextDouble()-.5)*p.Width;
             Near(t.Sample(-.001,across).Height,t.Sample(p.Circumference-.001,across).Height,.0001,"circumference seam");
         }
+        long catchments=(long)Math.Round(p.Circumference/131072);
+        double riverAlong=(12345.5)*p.Circumference/catchments;
+        for(int i=-50;i<50;i++)
+        {
+            double boundary=(i+.5)*131072;
+            var left=t.Sample(riverAlong,boundary-.001);var right=t.Sample(riverAlong,boundary+.001);
+            Near(left.Height,right.Height,.001,"catchment boundary continuity");
+            Near(left.WaterHeight,right.WaterHeight,.001,"catchment water continuity");
+        }
+        var waterSite=t.Landmarks.Find(l=>l.Id=="waterway");
+        Check(t.Sample(waterSite.Along,waterSite.Across).Wet,"waterway destination reaches a lake");
         // A stationary object becomes a freely falling trajectory inward in the inertial frame.
         var initial=g.Position(0,0,1000);var position=initial;var velocity=new DVec();double dt=.002;
         for(int i=0;i<5000;i++)

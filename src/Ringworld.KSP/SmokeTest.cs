@@ -20,6 +20,7 @@ namespace NivenRingworld
             DontDestroyOnLoad(gameObject);deadline=Time.realtimeSinceStartup+240;running=true;
             Debug.Log("[RingworldSmoke] MAIN MENU READY");
             yield return new WaitForSeconds(3);
+            foreach(var dialog in UnityEngine.Object.FindObjectsOfType<WhatsNewDialog>())HarmonyLib.AccessTools.Method(typeof(WhatsNewDialog),"Dismiss").Invoke(dialog,null);
             folder="RingworldSmoke-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
             Directory.CreateDirectory(Path.Combine(KSPUtil.ApplicationRootPath,"saves",folder));
             var root=ConfigNode.Load(Path.Combine(KSPUtil.ApplicationRootPath,"saves","training","C_Orbit101.sfs"));
@@ -40,15 +41,25 @@ namespace NivenRingworld
             Debug.Log("[RingworldSmoke] SCENARIO READY");
             // This harness tests an unpowered impact with a damage-immune fixture.
             CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;
+            RingworldFlight.Instance.arrivalHeight=60;
             RingworldFlight.Instance.Visit();
-            while(!RingworldFlight.Instance.Active||v.mainBody!=RingworldFlight.Instance.Star)yield return null;
+            while(!RingworldFlight.Instance.Ready||v.mainBody!=RingworldFlight.Instance.Star)yield return null;
+            FlightCamera.fetch.SetDistanceImmediate(100);FlightCamera.CamPitch=.2f;
             yield return new WaitForSeconds(2);
             var flight=RingworldFlight.Instance;var p=flight.Settings.Geometry.Coordinates(flight.Position(v));
             double first=p.Altitude;Debug.Log("[RingworldSmoke] ENTRY h="+first+" v="+v.obt_velocity.magnitude);
             yield return new WaitForSeconds(1);
             p=flight.Settings.Geometry.Coordinates(flight.Position(v));
             Debug.Log("[RingworldSmoke] DROP dh="+(p.Altitude-first)+" speed="+v.obt_velocity.magnitude);
-            yield return new WaitForSeconds(18);
+            // A fixture-only descent controller isolates contact stability from a destructive free fall.
+            for(int step=0;step<3000;step++)
+            {
+                bool contact=false;foreach(var part in v.parts)if(part.GroundContact){contact=true;break;}
+                if(contact){Debug.Log("[RingworldSmoke] CONTACT");break;}
+                v.SetWorldVelocity(ConvertVector.Ksp(flight.Settings.Geometry.Up(flight.Position(v))*-2));
+                yield return new WaitForFixedUpdate();
+            }
+            yield return new WaitForSeconds(12);
             p=flight.Settings.Geometry.Coordinates(flight.Position(v));var terrain=flight.Settings.Terrain.Sample(p.Along,p.Across);
             double agl=p.Altitude-terrain.Height;
             Debug.Log("[RingworldSmoke] SETTLED agl="+agl+" speed="+v.obt_velocity.magnitude+" parts="+v.parts.Count);
@@ -63,6 +74,13 @@ namespace NivenRingworld
             if(scanner.GetScienceCount()!=1){Fail("Survey was not collected");yield break;}
             var copy=new ConfigNode();scanner.OnSave(copy);scanner.OnLoad(copy);
             if(scanner.GetScienceCount()!=1){Fail("Survey failed persistence roundtrip");yield break;}
+            var before=flight.Position(v);
+            RingworldScenario.Instance.OnLoad(saved);
+            while(!flight.Owns(v))yield return null;
+            yield return new WaitForSeconds(3);
+            double restoredDrift=(flight.Position(v)-before).Length;
+            Debug.Log("[RingworldSmoke] RESTORE displacement="+restoredDrift);
+            if(restoredDrift>15){Fail("Saved ring coordinates did not restore");yield break;}
             Debug.Log("[RingworldSmoke] PASS");
             yield return new WaitForSeconds(2);running=false;Application.Quit();
         }

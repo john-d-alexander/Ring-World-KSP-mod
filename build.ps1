@@ -16,18 +16,28 @@ if ($LASTEXITCODE -ne 0) { throw 'Plugin build failed.' }
 $stage = Join-Path $taskRoot 'artifacts\NivenRingworld\GameData\NivenRingworld'
 New-Item -ItemType Directory -Path (Join-Path $stage 'Plugins') -Force | Out-Null
 Copy-Item -Path (Join-Path $taskRoot 'GameData\NivenRingworld\*') -Destination $stage -Recurse -Force
+$harmonyStage = Join-Path $taskRoot 'artifacts\NivenRingworld\GameData\000_Harmony'
+New-Item -ItemType Directory -Path $harmonyStage -Force | Out-Null
+Copy-Item -Path (Join-Path $taskRoot 'vendor\HarmonyKSP\GameData\000_Harmony\*') -Destination $harmonyStage -Force
 $compiled = Join-Path $taskRoot 'src\Ringworld.KSP\bin\Release\net472'
 foreach ($dll in @('NivenRingworld.dll','Ringworld.Core.dll')) { Copy-Item -LiteralPath (Join-Path $compiled $dll) -Destination (Join-Path $stage 'Plugins') -Force }
 if ($Install) {
     $target = Join-Path $gameRoot 'GameData\NivenRingworld'
     New-Item -ItemType Directory -Path $target -Force | Out-Null
     Copy-Item -Path (Join-Path $stage '*') -Destination $target -Recurse -Force
+    $harmonyTarget = Join-Path $gameRoot 'GameData\000_Harmony'
+    New-Item -ItemType Directory -Path $harmonyTarget -Force | Out-Null
+    Copy-Item -Path (Join-Path $harmonyStage '*') -Destination $harmonyTarget -Force
     Write-Host "Installed into $target"
 }
 if (-not $SmokeTest) {
-    foreach ($doc in @('README.md','LICENSE','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md')) {
+    foreach ($doc in @('README.md','LICENSE','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md')) {
         $source = Join-Path $taskRoot $doc
-        if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination (Join-Path $taskRoot 'artifacts\NivenRingworld') -Force }
+        if (Test-Path -LiteralPath $source) {
+            $docTarget = Join-Path (Join-Path $taskRoot 'artifacts\NivenRingworld') $doc
+            New-Item -ItemType Directory -Path (Split-Path -Parent $docTarget) -Force | Out-Null
+            Copy-Item -LiteralPath $source -Destination $docTarget -Force
+        }
     }
     Compress-Archive -Path (Join-Path $taskRoot 'artifacts\NivenRingworld\*') -DestinationPath (Join-Path $taskRoot 'artifacts\NivenRingworld-0.1.0.zip') -Force
 }
