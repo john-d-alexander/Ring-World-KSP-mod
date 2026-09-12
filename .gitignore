@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+.vs/
+artifacts/
+local.settings.ps1
+*.user
+template_instance/
+template/
