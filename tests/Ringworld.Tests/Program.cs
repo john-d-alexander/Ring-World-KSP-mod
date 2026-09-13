@@ -61,7 +61,9 @@ static class Program
         Near(g.Coordinates(position).Altitude,1000-.5*p.Gravity*100,0.01,"ten second drop");
         Check(g.AlongDistance(g.Coordinates(position).Along,0)<0,"drop deflects antispinward");
         Near(g.Density(p.AtmosphereHeight),0,0,"atmosphere cutoff");Check(g.Density(0)>g.Density(20000),"density falls with height");
-        Near(g.Daylight(0,0),g.Daylight(0,p.DaySeconds),1e-12,"day periodicity");Near(g.Daylight(0,p.DaySeconds/2),0,1e-12,"shadow night");
+        Near(g.Daylight(0,0),g.Daylight(0,p.DaySeconds),1e-12,"day periodicity");Near(g.Daylight(0,0),0,1e-12,"square centered on observer causes night");
+        Near(g.Daylight(0,p.DaySeconds/2),1,1e-12,"gap between squares causes day");
+        for(int i=0;i<20;i++)Near(g.Daylight(i*p.Circumference/20,0),0,1e-10,"all twenty shadow centers");
         foreach(var l in t.Landmarks)
         {
             if(l.Kind=="city"||l.Kind=="outpost"||l.Kind=="terminal"||l.Kind=="scrith")

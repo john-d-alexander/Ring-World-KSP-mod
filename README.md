@@ -61,6 +61,8 @@ dotnet run --project tests/Ringworld.Tests -c Release -- artifacts/preview
 
 This also exports an SVG terrain plan from the **actual C# terrain generator**. It is a diagnostic map, not an in-game screenshot.
 
+The game-level regression passed with a 49-part craft settling on the surface, science serialization, and saved-coordinate restoration. See [validation details](docs/VALIDATION.md), including the damage-immune test fixture and remaining limitations. `smoke-test.ps1` reruns this test in the isolated instance and restores the normal build afterward.
+
 ## Configuration and source
 
 `GameData/NivenRingworld/Settings.cfg` controls dimensions, seed, atmosphere, daylight period, and tile settings. Default collision coverage is a 7×7 grid of 1,024 m tiles, each subdivided 32×32. Do not change geometry or seed in a save containing ring expeditions; the coordinate save format does not migrate worlds.

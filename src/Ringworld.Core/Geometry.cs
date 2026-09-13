@@ -83,9 +83,12 @@ namespace Ringworld.Core
         public double Daylight(double along, double time)
         {
             // Twenty independently orbiting shadow squares; relative cadence sets the day.
-            double phase=Wrap(time/P.DaySeconds+20*along/P.Circumference,1);
-            double edge=Math.Abs(phase-.5);
-            return Math.Max(0,Math.Min(1,(edge-.22)/.06));
+            double phase=Wrap(20*along/P.Circumference-time/P.DaySeconds,1);
+            double edge=Math.Min(phase,1-phase);
+            // Same 4-million-km tangential panel length and 46-million-km orbital radius
+            // ratio as the scaled models. The small penumbra is an artistic approximation.
+            double halfShadow=10*Math.Atan(2.0/46.0)/Math.PI;
+            return Math.Max(0,Math.Min(1,(edge-halfShadow)/.02));
         }
     }
 }

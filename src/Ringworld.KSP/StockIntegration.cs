@@ -52,4 +52,16 @@ namespace NivenRingworld
             __result=Quaternion.LookRotation(Vector3.up,ConvertVector.Unity(f.Settings.Geometry.Up(f.Position(v))));return false;
         }
     }
+    // Stock altitude is solar altitude, so Krakensbane would remain active at the ring floor.
+    // Its velocity frame moves static colliders every tick and can inject contact energy.
+    // Retain floating-origin shifts, but keep ordinary local Rigidbody velocities at the floor.
+    [HarmonyPatch(typeof(Krakensbane),nameof(Krakensbane.SafeToEngage))]
+    internal static class RingVelocityFramePatch
+    {
+        private static bool Prefix(ref bool __0,ref bool __result)
+        {
+            if(!StockIntegration.Applies(FlightGlobals.ActiveVessel))return true;
+            __0=true;__result=false;return false;
+        }
+    }
 }

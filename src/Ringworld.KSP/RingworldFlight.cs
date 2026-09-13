@@ -39,6 +39,7 @@ namespace NivenRingworld
             return Ready&&v!=null&&v.mainBody==Star&&State.Vessels.TryGetValue(v.id.ToString(),out r)&&r.Restored;
         }
         internal DVec Position(Vessel v){return ConvertVector.Core(v.GetWorldPos3D()-Star.position);}
+        private DVec RootPosition(Vessel v){return ConvertVector.Core((Vector3d)v.transform.position-Star.position);}
         internal DVec Velocity(Vessel v){return ConvertVector.Core(v.obt_velocity);}
         public void Start()
         {
@@ -80,7 +81,7 @@ namespace NivenRingworld
                 VesselRecord r;
                 if(other==null||other==v||other.mainBody!=Star||!State.Vessels.TryGetValue(other.id.ToString(),out r)||!r.Restored)continue;
                 if((v.GetWorldPos3D()-other.GetWorldPos3D()).magnitude>250)continue;
-                string id=v.id.ToString();State.Vessels[id]=new VesselRecord{Id=id,Position=Position(v),Velocity=Velocity(v),Rotation=v.transform.rotation,Restored=true};return;
+                string id=v.id.ToString();State.Vessels[id]=new VesselRecord{Id=id,Position=RootPosition(v),Velocity=Velocity(v),Rotation=v.transform.rotation,Restored=true};return;
             }
         }
         public void FixedUpdate()
@@ -140,7 +141,7 @@ namespace NivenRingworld
             foreach(var v in FlightGlobals.VesselsLoaded)
             {
                 VesselRecord r;if(v==null||v.packed||v.mainBody!=Star||!State.Vessels.TryGetValue(v.id.ToString(),out r)||!r.Restored)continue;
-                r.Position=Position(v);r.Velocity=Velocity(v);r.Rotation=v.transform.rotation;
+                r.Position=RootPosition(v);r.Velocity=Velocity(v);r.Rotation=v.transform.rotation;
             }
         }
         internal void Visit()
@@ -193,7 +194,7 @@ namespace NivenRingworld
             foreach(var other in FlightGlobals.VesselsLoaded)
             {
                 VesselRecord r;if(other==null||other==v||!State.Vessels.TryGetValue(other.id.ToString(),out r))continue;
-                if(other.mainBody==Star&&!other.packed){r.Position=Position(other);r.Velocity=Velocity(other);r.Rotation=other.transform.rotation;r.Restored=false;}
+                if(other.mainBody==Star&&!other.packed){r.Position=RootPosition(other);r.Velocity=Velocity(other);r.Rotation=other.transform.rotation;r.Restored=false;}
             }
         }
         private void Leave()

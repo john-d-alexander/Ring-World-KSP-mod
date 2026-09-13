@@ -41,7 +41,11 @@ namespace NivenRingworld
             Debug.Log("[RingworldSmoke] SCENARIO READY");
             // This harness tests an unpowered impact with a damage-immune fixture.
             CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;
-            RingworldFlight.Instance.arrivalHeight=60;
+            deadline=Time.realtimeSinceStartup+360;
+            FlightInputHandler.state.mainThrottle=0;v.ctrlState.mainThrottle=0;
+            v.ActionGroups.SetGroup(KSPActionGroup.SAS,false);v.ActionGroups.SetGroup(KSPActionGroup.RCS,false);
+            foreach(var engine in v.FindPartModulesImplementing<ModuleEngines>())engine.Shutdown();
+            RingworldFlight.Instance.arrivalHeight=150;
             RingworldFlight.Instance.Visit();
             while(!RingworldFlight.Instance.Ready||v.mainBody!=RingworldFlight.Instance.Star)yield return null;
             FlightCamera.fetch.SetDistanceImmediate(100);FlightCamera.CamPitch=.2f;
@@ -52,7 +56,7 @@ namespace NivenRingworld
             p=flight.Settings.Geometry.Coordinates(flight.Position(v));
             Debug.Log("[RingworldSmoke] DROP dh="+(p.Altitude-first)+" speed="+v.obt_velocity.magnitude);
             // A fixture-only descent controller isolates contact stability from a destructive free fall.
-            for(int step=0;step<3000;step++)
+            for(int step=0;step<6000;step++)
             {
                 bool contact=false;foreach(var part in v.parts)if(part.GroundContact){contact=true;break;}
                 if(contact){Debug.Log("[RingworldSmoke] CONTACT");break;}
@@ -63,6 +67,7 @@ namespace NivenRingworld
             p=flight.Settings.Geometry.Coordinates(flight.Position(v));var terrain=flight.Settings.Terrain.Sample(p.Along,p.Across);
             double agl=p.Altitude-terrain.Height;
             Debug.Log("[RingworldSmoke] SETTLED agl="+agl+" speed="+v.obt_velocity.magnitude+" parts="+v.parts.Count);
+            Debug.Log("[RingworldSmoke] FRAME velocity="+Krakensbane.GetFrameVelocity().magnitude);
             ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldSmoke.png"));
             flight.Capture();var saved=new ConfigNode("SCENARIO");RingworldScenario.Instance.OnSave(saved);
             Debug.Log("[RingworldSmoke] SAVE vessel records="+saved.GetNodes("VESSEL").Length);

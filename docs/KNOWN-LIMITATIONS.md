@@ -21,6 +21,7 @@ This is version 0.1.0. The project is not a completed seamless Ringworld planet 
 - Rivers are carved analytical channels; water patches are opaque mesh surfaces with approximate shores. There are no currents or global drainage simulation.
 - Rim walls have collision panels. Monument mountains are terrain approximations; the puncture mountain is a depression, not a fully open hole through a layered scrith shell.
 - The scaled ring is a coarse uniform ribbon, not a seamless terrain LOD from every viewing distance. Shadow-square mesh motion and local daylight are illustrative and require visual alignment work. Local terrain brightness changes do not replace stock stellar lighting or affect solar-panel generation.
+- Krakensbane's velocity-frame shifting is disabled for the active expedition while floating-origin position shifts remain enabled. This avoids contact instability from moving custom terrain colliders, but limits the practical precision of very fast atmospheric flight.
 - There is no full atmospheric scattering, weather, volumetric cloud system, detailed night lighting, starfield occlusion solution, or procedural texture asset library.
 
 ## Science

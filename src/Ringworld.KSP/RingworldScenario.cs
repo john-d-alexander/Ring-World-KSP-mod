@@ -41,7 +41,7 @@ namespace NivenRingworld
         public override void OnSave(ConfigNode node)
         {
             if(RingworldFlight.Instance!=null) RingworldFlight.Instance.Capture();
-            base.OnSave(node);node.AddValue("formatVersion",1);node.AddValue("expedition",Expedition);
+            base.OnSave(node);node.AddValue("formatVersion",2);node.AddValue("positionReference","vesselRoot");node.AddValue("expedition",Expedition);
             foreach(var r in Vessels.Values)
             {
                 var n=node.AddNode("VESSEL");n.AddValue("id",r.Id);
