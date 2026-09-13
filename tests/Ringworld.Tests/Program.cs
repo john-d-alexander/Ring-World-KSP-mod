@@ -16,6 +16,36 @@ static class Program
         Near(p.Omega*p.Omega*p.Radius,p.Gravity,1e-10,"centrifugal acceleration");
         Near(p.RotationSeconds,2*Math.PI*Math.Sqrt(p.Radius/p.Gravity),1e-7,"spin period");
         var random=new Random(1970);
+        var air=new RingAtmosphere(g);
+        Near(air.Sample(g.Position(1000,0,0)).PressureKPa,101.325,.1,"sea-level dry-air pressure");
+        Near(air.Sample(g.Position(1000,p.Width,1000)).Density,0,0,"no air outside rim");
+        Near(air.Sample(g.Position(1000,0,-10)).Density,0,0,"no air behind scrith");
+        Check(g.InArrivalRegion(g.Position(0,0,200000),false),"arrival before atmosphere and rim");
+        Check(!g.InArrivalRegion(g.Position(0,0,240000),false)&&g.InArrivalRegion(g.Position(0,0,240000),true),"entry-exit hysteresis");
+        Near(g.TimeToArrival(g.Position(0,0,300000),new DVec(10000,0,0),20),9,.00001,"swept fast approach");
+        Check(double.IsPositiveInfinity(g.TimeToArrival(g.Position(0,0,300000),new DVec(-10000,0,0),20)),"receding vessel is not arriving");
+        var ordinary=g.RotatingVelocity(g.Position(0,0,100000),new DVec(0,0,-10000));
+        Check(ordinary.Length>370000,"arrival must not erase unmatched orbital speed");
+        for(int i=0;i<100;i++)
+        {
+            double epoch=random.NextDouble()*1e8,elapsed=random.NextDouble()*100000;
+            g.OrientationRadians=p.Omega*epoch;
+            var x=g.Position(1234567,421,12345);var v=new DVec(47,18,-300);
+            var inertial=g.ToInertialPosition(x,elapsed);
+            Near((RingGeometry.Rotate(inertial,-p.Omega*elapsed)-x).Length,0,.00002,"position chart inverse");
+            var iv=g.ToInertialVelocity(x,v,elapsed);
+            Near((g.RotatingVelocity(x,RingGeometry.Rotate(iv,-p.Omega*elapsed))-v).Length,0,1e-8,"velocity phase inverse");
+            Near(g.AlongDistance(g.Coordinates(x).Along,1234567),0,.01,"material longitude phase");
+            Near(air.CloudCoverage(1234567,4500,epoch),air.CloudCoverage(1234567+p.Circumference,4500,epoch),.000001,"cloud seam periodicity");
+        }
+        g.OrientationRadians=0;
+        var sky=air.Sky(g.Position(p.Circumference*.025,0,100),g.Up(g.Position(p.Circumference*.025,0,100)),0);
+        Check(sky.Opacity>0&&sky.Opacity<1,"finite zenith optical depth");
+        Check(sky.Radiance.Z>sky.Radiance.X,"Rayleigh blue sky");
+        var vacuum=air.Sky(g.Position(0,0,300000),g.Up(g.Position(0,0,300000)),0);
+        Near(vacuum.Opacity,0,0,"vacuum ray toward central star");
+        var fromSpace=air.Sky(g.Position(p.Circumference*.025,0,300000),-g.Up(g.Position(p.Circumference*.025,0,300000)),0);
+        Check(fromSpace.Opacity>0,"atmosphere visible from orbital approach");
         for(int i=0;i<2000;i++)
         {
             double a=random.NextDouble()*p.Circumference,b=(random.NextDouble()-.5)*p.Width,h=random.NextDouble()*60000;

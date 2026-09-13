@@ -50,18 +50,53 @@ namespace Ringworld.Core
     public sealed class RingGeometry
     {
         public readonly RingParameters P;
+        // Orientation of material longitude zero in the current physics chart.
+        public double OrientationRadians;
         public RingGeometry(RingParameters p) { p.Validate(); P=p; }
         public static double Wrap(double x, double period) { return x-period*Math.Floor(x/period); }
         public double AlongDistance(double a, double b) { return Wrap(a-b+P.Circumference/2,P.Circumference)-P.Circumference/2; }
         // Axis is +Y, floor normal is inward. Positive Along follows omega cross radius.
         public DVec Position(double along, double across, double altitude)
         {
-            double t=Wrap(along,P.Circumference)/P.Radius, r=P.Radius-altitude;
+            double t=Wrap(along,P.Circumference)/P.Radius+OrientationRadians, r=P.Radius-altitude;
             return new DVec(r*Math.Cos(t),across,-r*Math.Sin(t));
         }
         public RingPoint Coordinates(DVec p)
         {
-            return new RingPoint(Wrap(Math.Atan2(-p.Z,p.X),2*Math.PI)*P.Radius,p.Y,P.Radius-Math.Sqrt(p.X*p.X+p.Z*p.Z));
+            return new RingPoint(Wrap(Math.Atan2(-p.Z,p.X)-OrientationRadians,2*Math.PI)*P.Radius,p.Y,P.Radius-Math.Sqrt(p.X*p.X+p.Z*p.Z));
+        }
+        public static DVec Rotate(DVec v,double radians)
+        {
+            double c=Math.Cos(radians),s=Math.Sin(radians);
+            return new DVec(c*v.X+s*v.Z,v.Y,-s*v.X+c*v.Z);
+        }
+        public DVec ToInertialPosition(DVec p,double elapsed) { return Rotate(p,P.Omega*elapsed); }
+        public DVec ToInertialVelocity(DVec p,DVec v,double elapsed) { return Rotate(InertialVelocity(p,v),P.Omega*elapsed); }
+        // Hysteresis encompasses the rim tops as well as the air. No speed threshold:
+        // fast arrivals retain their full air-relative kinetic energy.
+        public bool InArrivalRegion(DVec p,bool alreadyInside)
+        {
+            var c=Coordinates(p);double margin=alreadyInside?100000:50000;
+            return c.Altitude>=-margin && c.Altitude<=P.WallHeight+margin && Math.Abs(c.Across)<=P.Width/2+margin;
+        }
+        public double TimeToArrival(DVec p,DVec velocity,double horizon)
+        {
+            if(InArrivalRegion(p,false))return 0;
+            double best=double.PositiveInfinity;
+            double a=velocity.X*velocity.X+velocity.Z*velocity.Z,b=p.X*velocity.X+p.Z*velocity.Z;
+            double r=Math.Sqrt(p.X*p.X+p.Z*p.Z);
+            foreach(double boundary in new[]{P.Radius+50000,P.Radius-P.WallHeight-50000})
+            {
+                double c=(r-boundary)*(r+boundary),disc=b*b-a*c;
+                if(a<1e-20||disc<0)continue;
+                double q=-b-(b>=0?1:-1)*Math.Sqrt(disc);
+                foreach(double t in new[]{q/a,Math.Abs(q)>1e-20?c/q:-b/a})
+                    if(t>=0&&t<=horizon&&InArrivalRegion(p+velocity*(t+1e-6),false))best=Math.Min(best,t);
+            }
+            if(Math.Abs(velocity.Y)>1e-12)
+                foreach(double y in new[]{-P.Width/2-50000,P.Width/2+50000})
+                {double t=(y-p.Y)/velocity.Y;if(t>=0&&t<=horizon&&InArrivalRegion(p+velocity*(t+1e-6),false))best=Math.Min(best,t);}
+            return best;
         }
         public DVec Up(DVec p) { return new DVec(-p.X,0,-p.Z).Unit; }
         public DVec SpinVelocity(DVec p) { return DVec.Cross(new DVec(0,P.Omega,0),p); }

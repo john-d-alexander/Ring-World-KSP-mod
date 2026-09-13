@@ -41,16 +41,49 @@ namespace NivenRingworld
             Debug.Log("[RingworldSmoke] SCENARIO READY");
             // This harness tests an unpowered impact with a damage-immune fixture.
             CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;
-            deadline=Time.realtimeSinceStartup+360;
+            deadline=Time.realtimeSinceStartup+500;
             FlightInputHandler.state.mainThrottle=0;v.ctrlState.mainThrottle=0;
             v.ActionGroups.SetGroup(KSPActionGroup.SAS,false);v.ActionGroups.SetGroup(KSPActionGroup.RCS,false);
             foreach(var engine in v.FindPartModulesImplementing<ModuleEngines>())engine.Shutdown();
+            // Fixture setup only: establish a spin-matched approach outside the capture shell.
+            var flight=RingworldFlight.Instance;
+            flight.arrivalHeight=230000;flight.Visit();
+            while(!flight.Ready||v.mainBody!=flight.Star)yield return null;
+            var geom=flight.Settings.Geometry;
+            v.SetWorldVelocity(ConvertVector.Ksp(geom.Up(flight.Position(v))*-2000));
+            var departurePos=flight.Position(v);var departureVel=flight.Velocity(v);
+            double elapsed=Planetarium.GetUniversalTime()-flight.FrameEpoch;
+            var expectedPos=geom.ToInertialPosition(departurePos,elapsed);
+            var expectedVel=geom.ToInertialVelocity(departurePos,departureVel,elapsed);
+            flight.Leave();
+            double dp=(flight.Position(v)-expectedPos).Length,dv=(flight.Velocity(v)-expectedVel).Length;
+            Debug.Log("[RingworldSmoke] DEPARTURE positionError="+dp+" velocityError="+dv);
+            if(dp>2||dv>1){Fail("Departure did not preserve inertial state");yield break;}
+            while(!flight.Owns(v))yield return null;
+            double arrivalSpeed=flight.Velocity(v).Length;
+            Debug.Log("[RingworldSmoke] AUTO ARRIVAL altitude="+geom.Coordinates(flight.Position(v)).Altitude+" speed="+arrivalSpeed);
+            if(arrivalSpeed<1800||arrivalSpeed>2300){Fail("Arrival erased or corrupted relative velocity");yield break;}
+            // Sample the real flight integrator inside the atmosphere.
+            flight.arrivalHeight=30000;flight.Visit();
+            while(!flight.Ready)yield return null;
+            v.SetWorldVelocity(ConvertVector.Ksp(geom.Up(flight.Position(v))*-100));
+            yield return new WaitForSeconds(2);
+            Debug.Log("[RingworldSmoke] AIR density="+v.atmDensity+" pressure="+v.staticPressurekPa+" mach="+v.mach+" q="+v.dynamicPressurekPa);
+            if(v.atmDensity<=0||v.staticPressurekPa<=0||v.mach<=0||v.dynamicPressurekPa<=0){Fail("Native air integration missing");yield break;}
+            FlightCamera.fetch.SetDistanceImmediate(40);FlightCamera.CamPitch=.6f;
+            ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldArrival.png"));
+            yield return new WaitForSeconds(1);
+            flight.arrivalHeight=8000;flight.Visit();
+            while(!flight.Ready)yield return null;
+            yield return new WaitForSeconds(2);
+            ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldClouds.png"));
+            yield return new WaitForSeconds(1);
             RingworldFlight.Instance.arrivalHeight=150;
             RingworldFlight.Instance.Visit();
             while(!RingworldFlight.Instance.Ready||v.mainBody!=RingworldFlight.Instance.Star)yield return null;
-            FlightCamera.fetch.SetDistanceImmediate(100);FlightCamera.CamPitch=.2f;
+            FlightCamera.fetch.SetDistanceImmediate(35);FlightCamera.CamPitch=.2f;
             yield return new WaitForSeconds(2);
-            var flight=RingworldFlight.Instance;var p=flight.Settings.Geometry.Coordinates(flight.Position(v));
+            var p=flight.Settings.Geometry.Coordinates(flight.Position(v));
             double first=p.Altitude;Debug.Log("[RingworldSmoke] ENTRY h="+first+" v="+v.obt_velocity.magnitude);
             yield return new WaitForSeconds(1);
             p=flight.Settings.Geometry.Coordinates(flight.Position(v));
@@ -69,6 +102,9 @@ namespace NivenRingworld
             Debug.Log("[RingworldSmoke] SETTLED agl="+agl+" speed="+v.obt_velocity.magnitude+" parts="+v.parts.Count);
             Debug.Log("[RingworldSmoke] FRAME velocity="+Krakensbane.GetFrameVelocity().magnitude);
             ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldSmoke.png"));
+            // ScreenCapture runs at end-of-frame. Do not start scenario restoration
+            // (which temporarily returns the camera to the solar frame) in that frame.
+            yield return new WaitForSeconds(1);
             flight.Capture();var saved=new ConfigNode("SCENARIO");RingworldScenario.Instance.OnSave(saved);
             Debug.Log("[RingworldSmoke] SAVE vessel records="+saved.GetNodes("VESSEL").Length);
             saved.Save(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldSmoke-scenario.cfg"));

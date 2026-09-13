@@ -13,6 +13,7 @@ namespace NivenRingworld
             internal GameObject Root;
             internal DVec Anchor;
             internal long X,Y;
+            internal double Phase;
             internal readonly List<Mesh> Meshes=new List<Mesh>();
         }
         private readonly Settings settings;
@@ -20,6 +21,8 @@ namespace NivenRingworld
         private readonly List<GameObject> props=new List<GameObject>();
         private readonly List<DVec> propPositions=new List<DVec>();
         private string propSite="";
+        private double propPhase,distantPhase;
+        private readonly List<Quaternion> propRotations=new List<Quaternion>();
         private readonly Material terrainMaterial,waterMaterial,buildingMaterial,scrithMaterial,leavesMaterial;
         private readonly Texture2D palette;
         private GameObject distant;
@@ -71,16 +74,22 @@ namespace NivenRingworld
             foreach(string key in remove){Destroy(tiles[key]);tiles.Remove(key);}
             double distance;var site=settings.Terrain.Nearest(p.Along,p.Across,out distance);
             string id=site!=null&&distance<8000?site.Id:"";
-            if(id!=propSite){ClearProps();propSite=id;if(id!="")BuildProps(site);}
+            if(id!=propSite){ClearProps();propSite=id;if(id!=""){propPhase=settings.Geometry.OrientationRadians;BuildProps(site);}}
             if(double.IsNaN(distantAlong)||Math.Abs(settings.Geometry.AlongDistance(p.Along,distantAlong))>1500||Math.Abs(p.Across-distantAcross)>1500)
                 BuildDistant(p.Along,p.Across);
             Reposition(star);
         }
         internal void Reposition(Vector3d star)
         {
-            foreach(var t in tiles.Values)t.Root.transform.position=(Vector3)(star+ConvertVector.Ksp(t.Anchor));
-            for(int i=0;i<props.Count;i++)props[i].transform.position=(Vector3)(star+ConvertVector.Ksp(propPositions[i]));
-            if(distant!=null)distant.transform.position=(Vector3)(star+ConvertVector.Ksp(distantAnchor));
+            foreach(var t in tiles.Values)Place(t.Root,t.Anchor,t.Phase,Quaternion.identity,star);
+            for(int i=0;i<props.Count;i++)Place(props[i],propPositions[i],propPhase,propRotations[i],star);
+            if(distant!=null)Place(distant,distantAnchor,distantPhase,Quaternion.identity,star);
+        }
+        private void Place(GameObject obj,DVec anchor,double phase,Quaternion rotation,Vector3d star)
+        {
+            double delta=settings.Geometry.OrientationRadians-phase;
+            obj.transform.position=(Vector3)(star+ConvertVector.Ksp(RingGeometry.Rotate(anchor,delta)));
+            obj.transform.rotation=Quaternion.AngleAxis((float)(delta*180/Math.PI),Vector3.up)*rotation;
         }
         internal void Light(double daylight)
         {
@@ -91,7 +100,7 @@ namespace NivenRingworld
         private Tile Build(long tx,long ty)
         {
             double size=settings.TileSize,x0=tx*size,y0=ty*size;int n=settings.TileResolution;
-            var t=new Tile{Root=new GameObject("Ringworld terrain "+tx+","+ty),Anchor=settings.Geometry.Position(x0,y0,0),X=tx,Y=ty};
+            var t=new Tile{Root=new GameObject("Ringworld terrain "+tx+","+ty),Anchor=settings.Geometry.Position(x0,y0,0),X=tx,Y=ty,Phase=settings.Geometry.OrientationRadians};
             t.Root.layer=15;
             int count=(n+1)*(n+1);var vertices=new Vector3[count];var uv=new Vector2[count];var heights=new double[count];
             var waterVerts=new Vector3[count];var wet=new bool[count];
@@ -181,8 +190,8 @@ namespace NivenRingworld
         private void BuildDistant(double along,double across)
         {
             if(distant!=null)UnityEngine.Object.Destroy(distant);if(distantMesh!=null)UnityEngine.Object.Destroy(distantMesh);
-            distantAlong=along;distantAcross=across;distantAnchor=settings.Geometry.Position(along,across,0);
-            double[] rings={2200,3500,5000,8000,16000,32000,64000,128000};const int sectors=128;
+            distantPhase=settings.Geometry.OrientationRadians;distantAlong=along;distantAcross=across;distantAnchor=settings.Geometry.Position(along,across,0);
+            double[] rings={2200,3500,5000,8000,16000,32000,64000,128000,256000,512000,1000000,2000000};const int sectors=128;
             var vertices=new Vector3[rings.Length*(sectors+1)];var uv=new Vector2[vertices.Length];var indices=new List<int>();
             for(int j=0;j<rings.Length;j++)for(int i=0;i<=sectors;i++)
             {
@@ -198,7 +207,7 @@ namespace NivenRingworld
                 Add(indices,x,y,z);Add(indices,y,w,z);
             }
             distantMesh=new Mesh{name="Ringworld distant terrain"};distantMesh.vertices=vertices;distantMesh.uv=uv;distantMesh.SetTriangles(indices,0);distantMesh.RecalculateNormals();distantMesh.RecalculateBounds();
-            distant=new GameObject("Ringworld terrain to 128 km");distant.layer=15;distant.AddComponent<MeshFilter>().sharedMesh=distantMesh;distant.AddComponent<MeshRenderer>().sharedMaterial=terrainMaterial;
+            distant=new GameObject("Ringworld terrain to 2000 km");distant.layer=15;distant.AddComponent<MeshFilter>().sharedMesh=distantMesh;distant.AddComponent<MeshRenderer>().sharedMaterial=terrainMaterial;
         }
         private void Prop(string name,double along,double across,double height,Vector3 size,Material mat,PrimitiveType shape=PrimitiveType.Cube)
         {
@@ -206,7 +215,7 @@ namespace NivenRingworld
             var obj=GameObject.CreatePrimitive(shape);obj.name=name;obj.layer=15;
             obj.transform.rotation=Quaternion.FromToRotation(Vector3.up,ConvertVector.Unity(settings.Geometry.Up(position)));
             obj.transform.localScale=size;obj.GetComponent<Renderer>().sharedMaterial=mat;
-            props.Add(obj);propPositions.Add(position);
+            props.Add(obj);propPositions.Add(position);propRotations.Add(obj.transform.rotation);
         }
         private void BuildProps(Landmark l)
         {
@@ -230,7 +239,7 @@ namespace NivenRingworld
             Prop("Transport causeway",l.Along,l.Across,h+.5,new Vector3(28,1,650),scrithMaterial);
             if(l.Kind=="terminal")Prop("Rim transport gantry",l.Along+130,l.Across,h+45,new Vector3(20,90,20),scrithMaterial);
         }
-        private void ClearProps(){foreach(var p in props)UnityEngine.Object.Destroy(p);props.Clear();propPositions.Clear();}
+        private void ClearProps(){foreach(var p in props)UnityEngine.Object.Destroy(p);props.Clear();propPositions.Clear();propRotations.Clear();}
         private static void Destroy(Tile t){UnityEngine.Object.Destroy(t.Root);foreach(var m in t.Meshes)UnityEngine.Object.Destroy(m);}
         public void Dispose()
         {

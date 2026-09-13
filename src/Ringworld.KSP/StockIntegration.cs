@@ -44,10 +44,11 @@ namespace NivenRingworld
     [HarmonyPatch(typeof(FlightCamera),nameof(FlightCamera.GetCameraFoR))]
     internal static class RingCameraPatch
     {
-        private static bool Prefix(FoRModes mode,ref Quaternion __result)
+        private static bool Prefix(FlightCamera __instance,FoRModes mode,ref Quaternion __result)
         {
             var v=FlightGlobals.ActiveVessel;if(!StockIntegration.Applies(v))return true;
             if(mode!=FoRModes.SRF_NORTH&&mode!=FoRModes.SRF_HDG&&mode!=FoRModes.SRF_VEL)return true;
+            __instance.FoRMode=mode;
             var f=RingworldFlight.Instance;
             __result=Quaternion.LookRotation(Vector3.up,ConvertVector.Unity(f.Settings.Geometry.Up(f.Position(v))));return false;
         }

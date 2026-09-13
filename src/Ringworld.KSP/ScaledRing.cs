@@ -60,7 +60,10 @@ namespace NivenRingworld
         {
             if(root==null||star==null)return;
             root.transform.position=(Vector3)ScaledSpace.LocalToScaledSpace(star.position);
-            // Material-frame terrain is stationary; the relative square speed yields the configured cadence.
+            // Squares and material longitude use the same phase in both flight charts.
+            var flight=RingworldFlight.Instance;
+            double epoch=flight!=null&&flight.Active?flight.FrameEpoch:Planetarium.GetUniversalTime();
+            root.transform.rotation=Quaternion.Euler(0,(float)(settings.Geometry.P.Omega*epoch*180/Math.PI),0);
             squares.transform.localRotation=Quaternion.Euler(0,(float)(RingGeometry.Wrap(Planetarium.GetUniversalTime()/settings.Geometry.P.DaySeconds,20)*18),0);
         }
         public void OnDestroy(){if(root!=null)Destroy(root);if(ring!=null)Destroy(ring);if(material!=null)Destroy(material);if(dark!=null)Destroy(dark);}

@@ -12,6 +12,7 @@ namespace NivenRingworld
         internal DVec Position,Velocity;
         internal Quaternion Rotation=Quaternion.identity;
         internal bool Restored;
+        internal double Epoch;
     }
 
     [KSPScenario(ScenarioCreationOptions.AddToAllGames,GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION)]
@@ -32,7 +33,7 @@ namespace NivenRingworld
             {
                 string id=n.GetValue("id");Guid parsed;
                 if(!Guid.TryParse(id,out parsed)) continue;
-                var r=new VesselRecord{Id=id,Position=new DVec(Read(n,"x"),Read(n,"y"),Read(n,"z")),Velocity=new DVec(Read(n,"vx"),Read(n,"vy"),Read(n,"vz")),
+                var r=new VesselRecord{Id=id,Epoch=Read(n,"frameEpoch"),Position=new DVec(Read(n,"x"),Read(n,"y"),Read(n,"z")),Velocity=new DVec(Read(n,"vx"),Read(n,"vy"),Read(n,"vz")),
                     Rotation=new Quaternion((float)Read(n,"qx"),(float)Read(n,"qy"),(float)Read(n,"qz"),(float)Read(n,"qw",1))};
                 if(r.Position.Length>1000) Vessels[id]=r;
             }
@@ -41,10 +42,10 @@ namespace NivenRingworld
         public override void OnSave(ConfigNode node)
         {
             if(RingworldFlight.Instance!=null) RingworldFlight.Instance.Capture();
-            base.OnSave(node);node.AddValue("formatVersion",2);node.AddValue("positionReference","vesselRoot");node.AddValue("expedition",Expedition);
+            base.OnSave(node);node.AddValue("formatVersion",3);node.AddValue("positionReference","vesselRoot");node.AddValue("expedition",Expedition);
             foreach(var r in Vessels.Values)
             {
-                var n=node.AddNode("VESSEL");n.AddValue("id",r.Id);
+                var n=node.AddNode("VESSEL");n.AddValue("id",r.Id);n.AddValue("frameEpoch",Num(r.Epoch));
                 n.AddValue("x",Num(r.Position.X));n.AddValue("y",Num(r.Position.Y));n.AddValue("z",Num(r.Position.Z));
                 n.AddValue("vx",Num(r.Velocity.X));n.AddValue("vy",Num(r.Velocity.Y));n.AddValue("vz",Num(r.Velocity.Z));
                 n.AddValue("qx",Num(r.Rotation.x));n.AddValue("qy",Num(r.Rotation.y));n.AddValue("qz",Num(r.Rotation.z));n.AddValue("qw",Num(r.Rotation.w));
