@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Ringworld.Core;
@@ -15,6 +16,35 @@ static class Program
         Near(g.Position(0,0,0).Length,p.Radius,.00001,"radius");
         Near(p.Omega*p.Omega*p.Radius,p.Gravity,1e-10,"centrifugal acceleration");
         Near(p.RotationSeconds,2*Math.PI*Math.Sqrt(p.Radius/p.Gravity),1e-7,"spin period");
+        foreach(int n in new[]{1,2,16,32})
+        {
+            var indices=GroundShell.Triangles(n);var edges=new Dictionary<string,int>();
+            Check(indices.Length==12*n*n+24*n,"closed shell triangle count");
+            for(int i=0;i<indices.Length;i+=3)for(int j=0;j<3;j++)
+            {
+                int a=indices[i+j],b=indices[i+(j+1)%3];
+                Check(a>=0&&a<2*(n+1)*(n+1)&&a!=b,"valid shell edge");
+                string key=a+":"+b;edges[key]=edges.ContainsKey(key)?edges[key]+1:1;
+            }
+            foreach(var edge in edges)
+            {var pair=edge.Key.Split(':');string reverse=pair[1]+":"+pair[0];Check(edge.Value==1&&edges.ContainsKey(reverse)&&edges[reverse]==1,"watertight consistently wound shell");}
+        }
+        // LOD partitions must cover every requested point exactly once outside fine
+        // collision tiles, including negative coordinates and a tile-boundary crossing.
+        foreach(double center in new[]{0.0,-1735.0,p.Circumference*.03125,1023.99,1024.01})
+        {
+            var blocks=TerrainLodPlan.Create(center,1700,1024,3);var keys=new HashSet<string>();
+            Check(blocks.Count>30&&blocks.Count<800,"bounded terrain LOD budget");
+            foreach(var block in blocks)Check(keys.Add(block.Key),"unique LOD blocks");
+            for(int yy=-15;yy<=15;yy++)for(int xx=-15;xx<=15;xx++)
+            {
+                double a=center+xx*8201.3+37,c=1700+yy*7103.7+19;
+                double nx=Math.Floor(center/1024)*1024,ny=1024;
+                bool fine=a>=nx-3072&&a<nx+4096&&c>=ny-3072&&c<ny+4096;
+                int hits=0;foreach(var block in blocks)if(a>=block.X&&a<block.X+block.Size&&c>=block.Y&&c<block.Y+block.Size)hits++;
+                Check(hits==(fine?0:1),"LOD cover without overlap or gaps");
+            }
+        }
         var random=new Random(1970);
         var air=new RingAtmosphere(g);
         Near(air.Sample(g.Position(1000,0,0)).PressureKPa,101.325,.1,"sea-level dry-air pressure");
@@ -79,6 +109,14 @@ static class Program
         }
         var waterSite=t.Landmarks.Find(l=>l.Id=="waterway");
         Check(t.Sample(waterSite.Along,waterSite.Across).Wet,"waterway destination reaches a lake");
+        // A long horizon grows by LOD levels, not by tiling the whole area finely.
+        var horizon=TerrainLodPlan.Create(0,0,1024,3,160000000);
+        Check(horizon.Count<1600,"160000 km horizon has bounded patch count");
+        Check(horizon.Exists(b=>b.Size>16000000),"distant horizon coarsens to continental blocks");
+        foreach(double distance in new[]{300000.0,1000000,20000000,159000000})
+            Check(horizon.Exists(b=>b.X<=distance&&b.X+b.Size>distance&&b.Y<=0&&b.Y+b.Size>0),"long horizon coverage");
+        var clearAir=new RingAtmosphere(g).Sky(g.Position(0,0,100),g.Up(g.Position(0,0,100)),0);
+        Check(clearAir.Opacity<.5,"clear overhead air transmits the distant ring and Sun");
         // A stationary object becomes a freely falling trajectory inward in the inertial frame.
         var initial=g.Position(0,0,1000);var position=initial;var velocity=new DVec();double dt=.002;
         for(int i=0;i<5000;i++)
@@ -110,7 +148,7 @@ static class Program
     static void Export(TerrainGenerator terrain,string dir)
     {
         Directory.CreateDirectory(dir);var origin=terrain.Landmarks[0];int n=240;double size=32000;
-        string[] colors={"#074159","#186478","#267f92","#5d7046","#849453","#385d37","#baa373","#79746c","#e5ecec","#586a76","#ad9f83","#6d7885"};
+        string[] colors={"#074159","#186478","#267f92","#5d7046","#849453","#385d37","#baa373","#79746c","#e5ecec","#586a76","#ad9f83","#6d7885","#615e53"};
         using(var w=new StreamWriter(Path.Combine(dir,"terrain-preview.svg")))
         {
             w.WriteLine("<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1320' viewBox='0 0 1200 1320'><rect width='1200' height='1320' fill='#111c25'/><text x='40' y='52' fill='white' font-family='sans-serif' font-size='26'>Ringworld | generated terrain near the expedition outpost</text><text x='40' y='85' fill='#bac8cf' font-family='sans-serif' font-size='18'>32 km square • same C# terrain sampler as the KSP plugin • plan view</text>");

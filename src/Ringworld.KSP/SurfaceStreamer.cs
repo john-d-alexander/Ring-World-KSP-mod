@@ -12,7 +12,7 @@ namespace NivenRingworld
         {
             internal GameObject Root;
             internal DVec Anchor;
-            internal long X,Y;
+            internal long X,Y;internal Texture2D Texture;
             internal double Phase;
             internal readonly List<Mesh> Meshes=new List<Mesh>();
         }
@@ -21,14 +21,16 @@ namespace NivenRingworld
         private readonly List<GameObject> props=new List<GameObject>();
         private readonly List<DVec> propPositions=new List<DVec>();
         private string propSite="";
-        private double propPhase,distantPhase;
+        private double propPhase;
         private readonly List<Quaternion> propRotations=new List<Quaternion>();
         private readonly Material terrainMaterial,waterMaterial,buildingMaterial,scrithMaterial,leavesMaterial;
         private readonly Texture2D palette;
-        private GameObject distant;
-        private Mesh distantMesh;
-        private DVec distantAnchor;
-        private double distantAlong=double.NaN,distantAcross;
+        private TerrainLod lod;
+        internal void RebuildLod(){lod.Dispose();lod=new TerrainLod(settings,terrainMaterial);}
+        private readonly GameObject sunlightObject;private readonly Light sunlight;
+        internal int LodCount {get{return lod.Count;}}
+        internal int LodPending {get{return lod.Pending;}}
+        internal int ScaledLodCount {get{return lod.ScaledCount;}}
         internal int TileCount { get { return tiles.Count; } }
         internal SurfaceStreamer(Settings s)
         {
@@ -37,9 +39,12 @@ namespace NivenRingworld
             palette=new Texture2D(16,1,TextureFormat.RGBA32,false);palette.filterMode=FilterMode.Point;palette.wrapMode=TextureWrapMode.Clamp;
             Color[] colors={new Color(.02f,.18f,.29f),new Color(.07f,.30f,.40f),new Color(.10f,.36f,.43f),new Color(.28f,.37f,.19f),
                 new Color(.40f,.49f,.24f),new Color(.16f,.31f,.16f),new Color(.69f,.57f,.35f),new Color(.41f,.39f,.36f),new Color(.84f,.89f,.89f),
-                new Color(.23f,.27f,.30f),new Color(.47f,.45f,.36f),new Color(.28f,.32f,.36f),Color.gray,Color.gray,Color.gray,Color.gray};
+                new Color(.23f,.27f,.30f),new Color(.47f,.45f,.36f),new Color(.28f,.32f,.36f),new Color(.31f,.30f,.26f),Color.gray,Color.gray,Color.gray};
             palette.SetPixels(colors);palette.Apply();
-            terrainMaterial=Material(new Color(1,1,1));terrainMaterial.mainTexture=palette;
+            terrainMaterial=Material(new Color(1,1,1));terrainMaterial.mainTexture=palette;terrainMaterial.SetFloat("_Glossiness",.08f);
+            lod=new TerrainLod(settings,terrainMaterial);
+            sunlightObject=new GameObject("Ringworld habitat sunlight");sunlight=sunlightObject.AddComponent<Light>();
+            sunlight.type=LightType.Directional;sunlight.cullingMask=1<<15;sunlight.color=new Color(1,.96f,.88f);sunlight.intensity=0;sunlight.shadows=LightShadows.Soft;sunlight.shadowBias=.05f;sunlight.shadowNormalBias=.4f;
             waterMaterial=Material(new Color(.07f,.31f,.42f));waterMaterial.SetFloat("_Glossiness",.8f);
             buildingMaterial=Material(new Color(.64f,.60f,.48f));scrithMaterial=Material(new Color(.24f,.29f,.32f));
             leavesMaterial=Material(new Color(.15f,.29f,.12f));
@@ -53,6 +58,7 @@ namespace NivenRingworld
         internal void Update(DVec observer,Vector3d star,bool immediate=false)
         {
             RingPoint p=settings.Geometry.Coordinates(observer);
+            sunlight.transform.rotation=Quaternion.LookRotation(-ConvertVector.Unity(settings.Geometry.Up(observer)),Vector3.up);
             long cx=(long)Math.Floor(p.Along/settings.TileSize),cy=(long)Math.Floor(p.Across/settings.TileSize);
             int radius=settings.TileRadius;
             var wanted=new HashSet<string>();
@@ -75,15 +81,40 @@ namespace NivenRingworld
             double distance;var site=settings.Terrain.Nearest(p.Along,p.Across,out distance);
             string id=site!=null&&distance<8000?site.Id:"";
             if(id!=propSite){ClearProps();propSite=id;if(id!=""){propPhase=settings.Geometry.OrientationRadians;BuildProps(site);}}
-            if(double.IsNaN(distantAlong)||Math.Abs(settings.Geometry.AlongDistance(p.Along,distantAlong))>1500||Math.Abs(p.Across-distantAcross)>1500)
-                BuildDistant(p.Along,p.Across);
+            lod.Update(p.Along,p.Across);
             Reposition(star);
         }
+        internal double CollisionHeight(double along,double across)
+        {
+            // Interpolate the same two triangles used by a streamed grid cell.
+            double spacing=settings.TileSize/settings.TileResolution;
+            double x=Math.Floor(along/spacing)*spacing,y=Math.Floor(across/spacing)*spacing;
+            double u=(along-x)/spacing,v=(across-y)/spacing;
+            double a=settings.Terrain.Sample(x,y).Height,b=settings.Terrain.Sample(x+spacing,y).Height;
+            double c=settings.Terrain.Sample(x,y+spacing).Height,d=settings.Terrain.Sample(x+spacing,y+spacing).Height;
+            return u+v<=1?a+(b-a)*u+(c-a)*v:d+(c-d)*(1-u)+(b-d)*(1-v);
+        }
+        internal double CameraFloor(double along,double across)
+        {
+            // Match water triangle interpolation, including partially wet shoreline cells.
+            double spacing=settings.TileSize/settings.TileResolution;
+            double x=Math.Floor(along/spacing)*spacing,y=Math.Floor(across/spacing)*spacing;
+            double u=(along-x)/spacing,v=(across-y)/spacing;
+            var a=settings.Terrain.Sample(x,y);var b=settings.Terrain.Sample(x+spacing,y);
+            var c=settings.Terrain.Sample(x,y+spacing);var d=settings.Terrain.Sample(x+spacing,y+spacing);
+            double floor=CollisionHeight(along,across);
+            if(u+v<=1&&(a.Wet||b.Wet||c.Wet))
+                floor=Math.Max(floor,WaterVertex(a)+(WaterVertex(b)-WaterVertex(a))*u+(WaterVertex(c)-WaterVertex(a))*v);
+            else if(u+v>1&&(b.Wet||c.Wet||d.Wet))
+                floor=Math.Max(floor,WaterVertex(d)+(WaterVertex(c)-WaterVertex(d))*(1-u)+(WaterVertex(b)-WaterVertex(d))*(1-v));
+            return floor;
+        }
+        private static double WaterVertex(TerrainSample s){return (double.IsNegativeInfinity(s.WaterHeight)?s.Height-1:s.WaterHeight)+.1;}
         internal void Reposition(Vector3d star)
         {
             foreach(var t in tiles.Values)Place(t.Root,t.Anchor,t.Phase,Quaternion.identity,star);
             for(int i=0;i<props.Count;i++)Place(props[i],propPositions[i],propPhase,propRotations[i],star);
-            if(distant!=null)Place(distant,distantAnchor,distantPhase,Quaternion.identity,star);
+            lod.Reposition(star);
         }
         private void Place(GameObject obj,DVec anchor,double phase,Quaternion rotation,Vector3d star)
         {
@@ -93,9 +124,11 @@ namespace NivenRingworld
         }
         internal void Light(double daylight)
         {
-            float light=(float)(.18+.82*daylight);
+            float light=(float)(.08+.92*daylight);
+            sunlight.intensity=(float)(daylight*.5);lod.Light(light);
             terrainMaterial.color=new Color(light,light,light);buildingMaterial.color=new Color(.64f*light,.60f*light,.48f*light);
             waterMaterial.color=new Color(.07f*light,.31f*light,.42f*light);
+            scrithMaterial.color=new Color(.24f*light,.29f*light,.32f*light);leavesMaterial.color=new Color(.15f*light,.29f*light,.12f*light);
         }
         private Tile Build(long tx,long ty)
         {
@@ -103,13 +136,14 @@ namespace NivenRingworld
             var t=new Tile{Root=new GameObject("Ringworld terrain "+tx+","+ty),Anchor=settings.Geometry.Position(x0,y0,0),X=tx,Y=ty,Phase=settings.Geometry.OrientationRadians};
             t.Root.layer=15;
             int count=(n+1)*(n+1);var vertices=new Vector3[count];var uv=new Vector2[count];var heights=new double[count];
+            var colors=new Color[count];
             var waterVerts=new Vector3[count];var wet=new bool[count];
             for(int y=0;y<=n;y++)for(int x=0;x<=n;x++)
             {
                 int i=y*(n+1)+x;double a=x0+size*x/n,b=y0+size*y/n;
                 var sample=settings.Terrain.Sample(a,b);heights[i]=sample.Height;
                 vertices[i]=ConvertVector.Unity(settings.Geometry.Position(a,b,sample.Height)-t.Anchor);
-                uv[i]=new Vector2(((int)sample.Biome+.5f)/16,.5f);
+                uv[i]=new Vector2((x+.5f)/(n+1),(y+.5f)/(n+1));colors[i]=TerrainTint.Color(sample);
                 wet[i]=sample.Wet;
                 double water=double.IsNegativeInfinity(sample.WaterHeight)?sample.Height-1:sample.WaterHeight;
                 waterVerts[i]=ConvertVector.Unity(settings.Geometry.Position(a,b,water+.1)-t.Anchor);
@@ -124,8 +158,21 @@ namespace NivenRingworld
                 if(wet[b]||wet[d]||wet[c])Add(waterIndices,b,c,d);
             }
             Mesh ground=new Mesh{name="Ringworld ground"};ground.vertices=vertices;ground.uv=uv;ground.SetTriangles(indices,0);ground.RecalculateNormals();ground.RecalculateBounds();t.Meshes.Add(ground);
-            t.Root.AddComponent<MeshFilter>().sharedMesh=ground;t.Root.AddComponent<MeshRenderer>().sharedMaterial=terrainMaterial;
-            t.Root.AddComponent<MeshCollider>().sharedMesh=ground;
+            t.Texture=TerrainTint.Texture(n+1,colors);
+            t.Root.AddComponent<MeshFilter>().sharedMesh=ground;var renderer=t.Root.AddComponent<MeshRenderer>();renderer.sharedMaterial=terrainMaterial;
+            var colorBlock=new MaterialPropertyBlock();colorBlock.SetTexture("_MainTex",t.Texture);renderer.SetPropertyBlock(colorBlock);
+            var shellVertices=new Vector3[count*2];Array.Copy(vertices,shellVertices,count);
+            for(int y=0;y<=n;y++)for(int x=0;x<=n;x++)
+                shellVertices[count+y*(n+1)+x]=ConvertVector.Unity(settings.Geometry.Position(x0+size*x/n,y0+size*y/n,settings.UndersideAltitude)-t.Anchor);
+            var shellIndices=GroundShell.Triangles(n);
+            var shell=new Mesh{name="Closed ring collision shell"};shell.vertices=shellVertices;shell.triangles=shellIndices;shell.RecalculateBounds();t.Meshes.Add(shell);
+            t.Root.AddComponent<MeshCollider>().sharedMesh=shell;
+            // Render only underside and edges here; the terrain renderer owns the top.
+            var undersideIndices=new int[shellIndices.Length-n*n*6];Array.Copy(shellIndices,n*n*6,undersideIndices,0,undersideIndices.Length);
+            var undersideMesh=new Mesh{name="Scrith underside and edges"};undersideMesh.vertices=shellVertices;undersideMesh.triangles=undersideIndices;undersideMesh.RecalculateNormals();undersideMesh.RecalculateBounds();t.Meshes.Add(undersideMesh);
+            var underside=new GameObject("Ring structural underside");underside.layer=15;underside.transform.SetParent(t.Root.transform,false);
+            underside.AddComponent<MeshFilter>().sharedMesh=undersideMesh;var undersideRenderer=underside.AddComponent<MeshRenderer>();undersideRenderer.sharedMaterial=scrithMaterial;
+            undersideRenderer.shadowCastingMode=ShadowCastingMode.Off;
             AddRimWalls(t,x0,y0,size);
             AddScenery(t,x0,y0,size);
             if(waterIndices.Count>0)
@@ -162,53 +209,37 @@ namespace NivenRingworld
         }
         private void AddScenery(Tile t,double x0,double y0,double size)
         {
-            for(int y=0;y<4;y++)for(int x=0;x<4;x++)
+            for(int y=0;y<8;y++)for(int x=0;x<8;x++)
             {
-                double a=x0+(x+.5)*size/4,b=y0+(y+.5)*size/4;
+                long cellX=t.X*8+x,cellY=t.Y*8+y;
+                double a=x0+(x+.08+.84*settings.Terrain.Scatter(cellX,cellY,91))*size/8;
+                double b=y0+(y+.08+.84*settings.Terrain.Scatter(cellX,cellY,93))*size/8;
                 var sample=settings.Terrain.Sample(a,b);if(sample.Wet||sample.Biome==Biome.Rimwall||sample.Biome==Biome.Ruins)continue;
-                double variation=settings.Terrain.Noise(a,b,75,97);
-                if(sample.Biome==Biome.Forest||(sample.Biome==Biome.Grassland&&variation>.75))
+                double variation=settings.Terrain.Scatter(cellX,cellY,97);
+                double grove=settings.Terrain.Noise(a,b,1100,99);
+                if((sample.Biome==Biome.Forest&&variation<grove*.85*settings.ForestDensity)||(sample.Biome==Biome.Grassland&&variation>1-.08*settings.ForestDensity&&grove>.55))
                 {
                     float h=(float)(8+12*variation);
                     TileProp(t,"Procedural tree trunk",a,b,sample.Height+h/2,new Vector3(1.5f,h/2,1.5f),scrithMaterial,PrimitiveType.Cylinder);
                     TileProp(t,"Procedural tree canopy",a,b,sample.Height+h,new Vector3(h*.7f,h*.7f,h*.7f),leavesMaterial,PrimitiveType.Sphere);
                 }
-                else if(variation>.78)
+                else if(variation>.9&&sample.Biome!=Biome.Road)
                     TileProp(t,"Weathered boulder",a,b,sample.Height+1,new Vector3(4,3,5),scrithMaterial,PrimitiveType.Sphere);
             }
-            double ca=x0+size*.5,cb=y0+size*.5;var center=settings.Terrain.Sample(ca,cb);
+            double ca=x0+size*(.2+.6*settings.Terrain.Scatter(t.X,t.Y,103)),cb=y0+size*(.2+.6*settings.Terrain.Scatter(t.X,t.Y,107));var center=settings.Terrain.Sample(ca,cb);
             if((center.Biome==Biome.Grassland||center.Biome==Biome.Desert)&&settings.Terrain.Noise(ca,cb,50,101)>.97)
             {
-                for(int i=-1;i<=1;i++)
+                for(int i=-2;i<=2;i++)
                 {
-                    double a=ca+i*48,h=settings.Terrain.Sample(a,cb).Height;
-                    TileProp(t,"Procedural rural habitation",a,cb,h+6,new Vector3(24,12,30),buildingMaterial,PrimitiveType.Cube);
+                    double a=ca+i*48+(settings.Terrain.Scatter(t.X+i,t.Y,109)-.5)*25;
+                    double b=cb+(settings.Terrain.Scatter(t.X+i,t.Y,113)-.5)*120;
+                    var sample=settings.Terrain.Sample(a,b);if(sample.Wet||sample.Biome==Biome.Road)continue;
+                    float height=(float)(5+settings.Terrain.Scatter(t.X+i,t.Y,127)*19);
+                    TileProp(t,"Weathered rural habitation",a,b,sample.Height+height/2,new Vector3(18,height,24),buildingMaterial,PrimitiveType.Cube);
                 }
             }
         }
         private static void Add(List<int> a,int x,int y,int z){a.Add(x);a.Add(y);a.Add(z);}
-        private void BuildDistant(double along,double across)
-        {
-            if(distant!=null)UnityEngine.Object.Destroy(distant);if(distantMesh!=null)UnityEngine.Object.Destroy(distantMesh);
-            distantPhase=settings.Geometry.OrientationRadians;distantAlong=along;distantAcross=across;distantAnchor=settings.Geometry.Position(along,across,0);
-            double[] rings={2200,3500,5000,8000,16000,32000,64000,128000,256000,512000,1000000,2000000};const int sectors=128;
-            var vertices=new Vector3[rings.Length*(sectors+1)];var uv=new Vector2[vertices.Length];var indices=new List<int>();
-            for(int j=0;j<rings.Length;j++)for(int i=0;i<=sectors;i++)
-            {
-                int index=j*(sectors+1)+i;double angle=i*2*Math.PI/sectors;
-                double a=along+Math.Cos(angle)*rings[j],b=across+Math.Sin(angle)*rings[j];var sample=settings.Terrain.Sample(a,b);
-                double h=sample.Wet?sample.WaterHeight:sample.Height;
-                // Lower the overlap under the detailed collider tiles; outer rings are visual-only.
-                h-=Math.Max(0,1-(rings[j]-2200)/2800)*450;
-                vertices[index]=ConvertVector.Unity(settings.Geometry.Position(a,b,h)-distantAnchor);
-                uv[index]=new Vector2(((int)(sample.Wet?Biome.Ocean:sample.Biome)+.5f)/16,.5f);
-                if(i==sectors||j==rings.Length-1)continue;
-                int x=index,y=index+1,z=index+sectors+1,w=z+1;
-                Add(indices,x,y,z);Add(indices,y,w,z);
-            }
-            distantMesh=new Mesh{name="Ringworld distant terrain"};distantMesh.vertices=vertices;distantMesh.uv=uv;distantMesh.SetTriangles(indices,0);distantMesh.RecalculateNormals();distantMesh.RecalculateBounds();
-            distant=new GameObject("Ringworld terrain to 2000 km");distant.layer=15;distant.AddComponent<MeshFilter>().sharedMesh=distantMesh;distant.AddComponent<MeshRenderer>().sharedMaterial=terrainMaterial;
-        }
         private void Prop(string name,double along,double across,double height,Vector3 size,Material mat,PrimitiveType shape=PrimitiveType.Cube)
         {
             var position=settings.Geometry.Position(along,across,height);
@@ -228,7 +259,8 @@ namespace NivenRingworld
             for(int y=0;y<n;y++)for(int x=0;x<n;x++)
             {
                 if(x==n/2&&y==n/2)continue;
-                double a=l.Along+(x-n/2)*95,b=l.Across+(y-n/2)*95;
+                double jitterA=(settings.Terrain.Scatter(x,y,151)-.5)*22,jitterB=(settings.Terrain.Scatter(x,y,157)-.5)*22;
+                double a=l.Along+(x-n/2)*95+jitterA,b=l.Across+(y-n/2)*95+jitterB;
                 float bh=l.Kind=="city"?18+(x*17+y*31)%105:12+(x*7+y*13)%15;
                 double floor=settings.Terrain.Sample(a,b).Height;
                 Prop("Habitat block",a,b,floor+bh/2,new Vector3(36,bh,42),buildingMaterial);
@@ -240,11 +272,11 @@ namespace NivenRingworld
             if(l.Kind=="terminal")Prop("Rim transport gantry",l.Along+130,l.Across,h+45,new Vector3(20,90,20),scrithMaterial);
         }
         private void ClearProps(){foreach(var p in props)UnityEngine.Object.Destroy(p);props.Clear();propPositions.Clear();propRotations.Clear();}
-        private static void Destroy(Tile t){UnityEngine.Object.Destroy(t.Root);foreach(var m in t.Meshes)UnityEngine.Object.Destroy(m);}
+        private static void Destroy(Tile t){UnityEngine.Object.Destroy(t.Texture);UnityEngine.Object.Destroy(t.Root);foreach(var m in t.Meshes)UnityEngine.Object.Destroy(m);}
         public void Dispose()
         {
             foreach(var t in tiles.Values)Destroy(t);tiles.Clear();ClearProps();
-            if(distant!=null)UnityEngine.Object.Destroy(distant);if(distantMesh!=null)UnityEngine.Object.Destroy(distantMesh);
+            lod.Dispose();UnityEngine.Object.Destroy(sunlightObject);
             UnityEngine.Object.Destroy(terrainMaterial);UnityEngine.Object.Destroy(waterMaterial);UnityEngine.Object.Destroy(buildingMaterial);UnityEngine.Object.Destroy(scrithMaterial);UnityEngine.Object.Destroy(leavesMaterial);UnityEngine.Object.Destroy(palette);
         }
     }

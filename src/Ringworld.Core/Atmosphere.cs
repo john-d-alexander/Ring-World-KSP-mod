@@ -17,6 +17,7 @@ namespace Ringworld.Core
     public sealed class RingAtmosphere
     {
         private readonly RingGeometry geometry;
+        private TerrainGenerator cloudNoise;
         public RingAtmosphere(RingGeometry geometry) { this.geometry=geometry; }
         public AirSample Sample(DVec position)
         {
@@ -77,13 +78,16 @@ namespace Ringworld.Core
             double s1=q/a,s2=Math.Abs(q)>1e-16?c/q:-b/a;
             if(s1>0&&s1<limit)cuts.Add(s1);if(s2>0&&s2<limit)cuts.Add(s2);
         }
-        public double CloudCoverage(double along,double across,double time)
+        public double CloudCoverage(double along,double across,double time,double amount=.5,bool dynamicWeather=true)
         {
             // Periodic material coordinates, slow wind, soft edges and several scales.
-            double x=RingGeometry.Wrap(along-time*8,geometry.P.Circumference)/geometry.P.Circumference*2*Math.PI;
-            double y=across/18000;
-            double n=.5+.22*Math.Sin(x*401123+Math.Sin(y*.7)*2)*Math.Cos(y)+.16*Math.Sin(x*1103117+y*2.7)+.1*Math.Cos(x*2700001-y*6.1);
-            double a=Math.Max(0,Math.Min(1,(n-.49)/.24));return a*a*(3-2*a);
+            if(cloudNoise==null)cloudNoise=new TerrainGenerator(geometry);
+            double a=along-time*8,b=across+time*1.5;
+            double warp=(cloudNoise.Noise(a,b,85000,201)-.5)*38000;
+            double weather=dynamicWeather?cloudNoise.Noise(along-time*120,across+time*45,280000,203):.5;
+            double n=.56*cloudNoise.Noise(a+warp,b,24000,211)+.29*cloudNoise.Noise(a,b+warp,7000,223)+.15*cloudNoise.Noise(a,b,1800,227);
+            double density=Math.Max(0,Math.Min(1,(n-(.79-.50*amount-.13*weather))/.20));
+            return density*density*(3-2*density);
         }
     }
 }

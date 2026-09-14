@@ -26,7 +26,8 @@ namespace NivenRingworld
     {
         private static bool Prefix(Vessel __instance,ref bool __result)
         {
-            if(!StockIntegration.Applies(__instance))return true;
+            var f=RingworldFlight.Instance;
+            if(f==null||!f.IsParticipant(__instance))return true;
             __instance.Landed=false;__result=false;return false;
         }
     }
@@ -53,6 +54,24 @@ namespace NivenRingworld
             __result=Quaternion.LookRotation(Vector3.up,ConvertVector.Unity(f.Settings.Geometry.Up(f.Position(v))));return false;
         }
     }
+    [HarmonyPatch(typeof(FlightCamera),"GetAutoModeForVessel")]
+    internal static class RingAutoCameraPatch
+    {
+        private static bool Prefix(Vessel v,ref FlightCamera.Modes __result)
+        {
+            if(!StockIntegration.Applies(v))return true;
+            __result=FlightCamera.Modes.FREE;return false;
+        }
+    }
+    [HarmonyPatch(typeof(FlightCamera),"GetChaseFoR")]
+    internal static class RingEvaChasePatch
+    {
+        private static bool Prefix(FlightCamera __instance,Vessel v,ref Quaternion __result)
+        {
+            if(v==null||!v.isEVA||!StockIntegration.Applies(v))return true;
+            __result=__instance.GetCameraFoR(FoRModes.SRF_NORTH);return false;
+        }
+    }
     // Stock altitude is solar altitude, so Krakensbane would remain active at the ring floor.
     // Its velocity frame moves static colliders every tick and can inject contact energy.
     // Retain floating-origin shifts, but keep ordinary local Rigidbody velocities at the floor.
@@ -61,8 +80,22 @@ namespace NivenRingworld
     {
         private static bool Prefix(ref bool __0,ref bool __result)
         {
-            if(!StockIntegration.Applies(FlightGlobals.ActiveVessel))return true;
+            var f=RingworldFlight.Instance;
+            if(f==null||(!f.FrameInUse&&!f.IsParticipant(FlightGlobals.ActiveVessel)))return true;
             __0=true;__result=false;return false;
         }
     }
+    [HarmonyPatch(typeof(KSP.UI.Screens.Flight.AltitudeTumbler),"LateUpdate")]
+    internal static class RingAltimeterPatch
+    {
+        private static bool Prefix(KSP.UI.Screens.Flight.AltitudeTumbler __instance,ref float ___lastUpdateTime)
+        {
+            var v=FlightGlobals.ActiveVessel;if(!StockIntegration.Applies(v))return true;
+            if(__instance.modeTumbler!=null)__instance.modeTumbler.UpdateDelta(Time.realtimeSinceStartup-___lastUpdateTime,__instance.modeTumblerSharpness);
+            ___lastUpdateTime=Time.realtimeSinceStartup;
+            if(__instance.tumbler!=null)__instance.tumbler.SetValue(RingworldFlight.Instance.SurfaceClearance(v));
+            return false;
+        }
+    }
+
 }

@@ -22,12 +22,30 @@ namespace NivenRingworld
         internal readonly Dictionary<string,VesselRecord> Vessels=new Dictionary<string,VesselRecord>();
         internal readonly HashSet<string> Discoveries=new HashSet<string>();
         internal bool Expedition;
+        internal ConfigNode Options;
+        internal ConfigNode GetOptions()
+        {
+            if(Options==null)
+            {
+                var defaults=Settings.Load();
+                if(Vessels.Count>0||Discoveries.Count>0)defaults.GenerationVersion=1;
+                else
+                {
+                    var nodes=GameDatabase.Instance.GetConfigNodes("NIVEN_RINGWORLD");int seed;
+                    if(nodes.Length==0||!int.TryParse(nodes[0].GetValue("seed"),out seed))seed=BitConverter.ToInt32(Guid.NewGuid().ToByteArray(),0);
+                    defaults.Geometry.P.Seed=seed;
+                }
+                Options=defaults.Save();
+            }
+            return Options;
+        }
         private static string Num(double x) { return x.ToString("R",CultureInfo.InvariantCulture); }
         private static double Read(ConfigNode n,string key,double fallback=0)
         { double v;return double.TryParse(n.GetValue(key),NumberStyles.Float,CultureInfo.InvariantCulture,out v)&&RingParameters.Finite(v)?v:fallback; }
         public override void OnAwake() { base.OnAwake();Instance=this; }
         public override void OnLoad(ConfigNode node)
         {
+            Options=node.HasNode("OPTIONS")?node.GetNode("OPTIONS").CreateCopy():null;
             base.OnLoad(node);Instance=this;Vessels.Clear();Discoveries.Clear();Expedition=node.GetValue("expedition")=="True";
             foreach(var n in node.GetNodes("VESSEL"))
             {
@@ -42,6 +60,7 @@ namespace NivenRingworld
         public override void OnSave(ConfigNode node)
         {
             if(RingworldFlight.Instance!=null) RingworldFlight.Instance.Capture();
+            node.AddNode(GetOptions().CreateCopy());
             base.OnSave(node);node.AddValue("formatVersion",3);node.AddValue("positionReference","vesselRoot");node.AddValue("expedition",Expedition);
             foreach(var r in Vessels.Values)
             {
