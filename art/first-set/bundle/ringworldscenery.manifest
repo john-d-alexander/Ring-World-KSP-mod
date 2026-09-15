@@ -1,0 +1,86 @@
+ManifestFileVersion: 0
+CRC: 2105447951
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: d0cc9fce15d333f1befa1ad1d8a02e9c
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: a265c60479cf04ee20cf81d13af62328
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 23
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 33
+  Script: {instanceID: 0}
+- Class: 43
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 64
+  Script: {instanceID: 0}
+- Class: 65
+  Script: {instanceID: 0}
+- Class: 136
+  Script: {instanceID: 0}
+- Class: 205
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/Scenery/mushrooms_01.prefab
+- Assets/Scenery/reed_patch_01.prefab
+- Assets/Scenery/maglev_segment_01.prefab
+- Assets/Scenery/sediment_nozzle_01.prefab
+- Assets/Scenery/conifer_layered_01.prefab
+- Assets/Scenery/habitation_reclaimed_02.prefab
+- Assets/Scenery/rim_hatch_01.prefab
+- Assets/Scenery/transport_causeway_01.prefab
+- Assets/Scenery/boulder_weathered_01.prefab
+- Assets/Scenery/habitation_thatch_01.prefab
+- Assets/Scenery/pump_station_01.prefab
+- Assets/Scenery/maintenance_platform_01.prefab
+- Assets/Scenery/ruin_tower_01.prefab
+- Assets/Scenery/fern_patch_01.prefab
+- Assets/Scenery/conduit_live_01.prefab
+- Assets/Scenery/watchtower_01.prefab
+- Assets/Scenery/root_cluster_01.prefab
+- Assets/Scenery/bush_01.prefab
+- Assets/Scenery/levitation_grid_01.prefab
+- Assets/Scenery/research_station_01.prefab
+- Assets/Scenery/broadleaf_windswept_02.prefab
+- Assets/Scenery/rim_airlock_01.prefab
+- Assets/Scenery/desert_scrub_01.prefab
+- Assets/Scenery/stump_01.prefab
+- Assets/Scenery/city_disk_fragment_01.prefab
+- Assets/Scenery/debris_beam_01.prefab
+- Assets/Scenery/dead_tree_01.prefab
+- Assets/Scenery/habitat_block_01.prefab
+- Assets/Scenery/roof_machinery_01.prefab
+- Assets/Scenery/leaf_litter_01.prefab
+- Assets/Scenery/mirror_sunflower_01.prefab
+- Assets/Scenery/driftwood_01.prefab
+- Assets/Scenery/crashed_city_disk_01.prefab
+- Assets/Scenery/conduit_dark_01.prefab
+- Assets/Scenery/elevator_base_01.prefab
+- Assets/Scenery/conifer_slender_02.prefab
+- Assets/Scenery/pebble_cluster_01.prefab
+- Assets/Scenery/fallen_log_01.prefab
+- Assets/Scenery/grass_patch_01.prefab
+- Assets/Scenery/transit_tube_01.prefab
+- Assets/Scenery/boulder_sandstone_02.prefab
+- Assets/Scenery/campfire_01.prefab
+- Assets/Scenery/flup_outlet_01.prefab
+- Assets/Scenery/terminal_gantry_01.prefab
+- Assets/Scenery/broadleaf_spreading_01.prefab
+- Assets/Scenery/bridge_segment_01.prefab
+- Assets/Scenery/stone_enclosure_01.prefab
+- Assets/Scenery/scrith_outcrop_01.prefab
+Dependencies: []

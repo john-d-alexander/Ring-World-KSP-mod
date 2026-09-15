@@ -6,7 +6,7 @@
     <KspRoot Condition="'$(KspRoot)' == ''">$(MSBuildThisFileDirectory)..\..\template_instance</KspRoot>
     <ManagedPath>$(KspRoot)\KSP_x64_Data\Managed</ManagedPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Version>0.4.0</Version>
+    <Version>0.9.0</Version>
     <DefineConstants Condition="'$(SmokeTest)' == 'true'">$(DefineConstants);RINGWORLD_SMOKE_TEST</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -16,6 +16,8 @@
     <Reference Include="0Harmony"><HintPath>$(MSBuildThisFileDirectory)..\..\vendor\HarmonyKSP\GameData\000_Harmony\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Assembly-CSharp-firstpass"><HintPath>$(ManagedPath)\Assembly-CSharp-firstpass.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine"><HintPath>$(ManagedPath)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(ManagedPath)\UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.AssetBundleModule"><HintPath>$(ManagedPath)\UnityEngine.AssetBundleModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.CoreModule"><HintPath>$(ManagedPath)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(ManagedPath)\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(ManagedPath)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>

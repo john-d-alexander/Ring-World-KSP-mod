@@ -6,7 +6,8 @@ namespace Ringworld.Core
     public enum Biome { Ocean, Lake, River, Wetland, Grassland, Forest, Desert, Mountain, Snow, Scrith, Ruins, Rimwall, Road }
     public struct TerrainSample
     {
-        public double Height, WaterHeight, Temperature;
+        public double Height, WaterHeight, Temperature, Shore;
+        public DVec GroundColor;public bool BlendedColor;
         public Biome Biome;
         public bool Wet { get { return WaterHeight > Height; } }
     }
@@ -23,6 +24,7 @@ namespace Ringworld.Core
         public const double MinimumHeight=-1200;
         public double HeightMultiplier=1;
         public int GenerationVersion=2;
+        public double PondAmount=1;
         public readonly RingGeometry Geometry;
         public readonly List<Landmark> Landmarks = new List<Landmark>();
         public TerrainGenerator(RingGeometry geometry)
@@ -79,6 +81,7 @@ namespace Ringworld.Core
         public TerrainSample Sample(double along,double across)
         {
             var p=Geometry.P;
+            if(GenerationVersion>=3)along=RingGeometry.Wrap(along,p.Circumference);
             double broad=Noise(along,across,1100000,11), moisture=Noise(along,across,270000,19);
             double hills=Noise(along+(Noise(along,across,17000,401)-.5)*11000,across+(Noise(along,across,23000,409)-.5)*11000,6000,23), detail=Noise(along,across,350,29);
             // Domain warping breaks up aligned noise features; multiple ridge scales form
@@ -89,21 +92,33 @@ namespace Ringworld.Core
             double ridge=1-Math.Abs(Noise(warpA,warpB,28000,31)*2-1);
             double ridge2=1-Math.Abs(Noise(warpA,warpB,7200,43)*2-1);
             double ranges=Smooth(Math.Max(0,Math.Min(1,(Noise(along,across,240000,47)-.35)/.35)));
-            double mountains=ranges*(Math.Pow(ridge,5)*5200+Math.Pow(ridge2,6)*850);
+            var climate=GenerationVersion>=4?Ecology.Sample(this,along,across):new ClimateBlend();
+            double mountains=(GenerationVersion>=4?climate.Relief:1)*ranges*(Math.Pow(ridge,5)*5200+Math.Pow(ridge2,6)*850);
             // The expedition pad belongs in a broad foothill valley, not a 650 m
             // wide pit carved several kilometres down into a generated mountain.
             double startX=Geometry.AlongDistance(along,Landmarks[0].Along),startY=across-Landmarks[0].Across;
             mountains*=Smooth(Math.Min(1,Math.Sqrt(startX*startX+startY*startY)/24000));
-            double dunes=moisture<.27?24*Math.Pow(.5+.5*Math.Sin(RingGeometry.Wrap(warpA,p.Circumference)/p.Circumference*Math.Round(p.Circumference/(110*2*Math.PI))*2*Math.PI+warpB/500),3):0;
+            double dunes=(GenerationVersion>=4?climate.Desert>.3:moisture<.27)?24*Math.Pow(.5+.5*Math.Sin(RingGeometry.Wrap(warpA,p.Circumference)/p.Circumference*Math.Round(p.Circumference/(110*2*Math.PI))*2*Math.PI+warpB/500),3):0;
             double h=70+HeightMultiplier*(600*hills+32*detail+mountains+dunes);
+            if(GenerationVersion>=4)h=100+HeightMultiplier*Math.Min(100,10+60*hills+5*detail+mountains*.008+dunes*.15);
             double water=double.NegativeInfinity;
-            Biome biome=moisture<.27?Biome.Desert:moisture>.61?Biome.Forest:Biome.Grassland;
+            Biome biome=GenerationVersion>=4?climate.Dominant:moisture<.27?Biome.Desert:moisture>.61?Biome.Forest:Biome.Grassland;
             // Smooth analytic catchments. Channels descend across the ribbon toward basin lakes.
             // These are deterministic carved rivers, not a simulated global drainage network.
             double basin=131072;
+            double drainageAlong=along,drainageAcross=across;
+            if(GenerationVersion>=3)
+            {
+                // Keep the named research lake navigable while deforming catchments
+                // continuously elsewhere; no discontinuous per-cell offsets.
+                var lakeSite=Landmarks[3];double sx=Geometry.AlongDistance(along,lakeSite.Along),sy=across-lakeSite.Across;
+                double fade=Smooth(Math.Min(1,Math.Sqrt(sx*sx+sy*sy)/16000));
+                drainageAlong+=(Noise(along,across,180000,503)-.5)*90000*fade;
+                drainageAcross+=(Noise(along,across,145000,509)-.5)*70000*fade;
+            }
             long nx=Math.Max(2,(long)Math.Round(p.Circumference/basin));
-            double px=RingGeometry.Wrap(along,p.Circumference)/p.Circumference*nx;
-            double yy=RingGeometry.Wrap(across+basin/2,basin)-basin/2;
+            double px=RingGeometry.Wrap(drainageAlong,p.Circumference)/p.Circumference*nx;
+            double yy=RingGeometry.Wrap(drainageAcross+basin/2,basin)-basin/2;
             double riverX=(px-Math.Floor(px)-.5)*basin-3000*Math.Sin(2*Math.PI*yy/basin)-900*Math.Sin(6*Math.PI*yy/basin);
             double riverLevel=20+120*(1-Math.Cos(Math.PI*yy/(basin/2)))/2;
             double channelWidth=260+340*Noise(along,across,85000,137);
@@ -112,6 +127,23 @@ namespace Ringworld.Core
             if(Math.Abs(riverX)<channelWidth) { water=riverLevel; biome=Biome.River; }
             double lake=Math.Sqrt(Math.Pow((px-Math.Floor(px)-.5)*basin/(2700+1800*Noise(along,across,150000,139)),2)+Math.Pow(yy/(2000+1400*Noise(along,across,120000,149)),2));
             if(lake<1.3) { h=Mix(0,h,Smooth(Math.Max(0,Math.Min(1,(lake-.7)/.6)))); water=20; biome=Biome.Lake; }
+            if(GenerationVersion>=3&&PondAmount>0&&double.IsNegativeInfinity(water)&&mountains<500)
+            {
+                long pondPeriod=Math.Max(2,(long)Math.Round(p.Circumference/4096));
+                double pxp=RingGeometry.Wrap(along,p.Circumference)/p.Circumference*pondPeriod,pyp=across/4096;
+                long ix=(long)Math.Floor(pxp),iy=(long)Math.Floor(pyp);
+                if(Hash(ix,iy,521)<.28*PondAmount)
+                {
+                    double dx=(pxp-ix-(.2+.6*Hash(ix,iy,523)))*4096,dy=(pyp-iy-(.2+.6*Hash(ix,iy,527)))*4096;
+                    double radius=90+230*Hash(ix,iy,529),shape=Math.Sqrt(dx*dx+dy*dy*1.8)/radius;
+                    if(shape<1.5)
+                    {
+                        double level=150+100*Hash(ix,iy,531);
+                        h=Mix(level-5,h,Smooth(Math.Max(0,Math.Min(1,(shape-.6)/.9))));
+                        water=level;biome=Biome.Lake;
+                    }
+                }
+            }
             if(broad<.17) { h-=900*(.17-broad)/.17;water=0;biome=Biome.Ocean; }
             // An ancient transport corridor network, interpreted procedurally. Roads
             // disappear through open water/high peaks; detailed bridges are future assets.
@@ -119,7 +151,7 @@ namespace Ringworld.Core
             double roadOffset=(Noise(along,across,180000,131)-.5)*1800;
             double roadDistance=Math.Abs((roadX-Math.Floor(roadX)-.25)*65536-roadOffset);
             if(roadDistance<65&&double.IsNegativeInfinity(water)&&h<1400)biome=Biome.Road;
-            if(mountains>1300&&double.IsNegativeInfinity(water))biome=Biome.Mountain;
+            if(GenerationVersion<4&&mountains>1300&&double.IsNegativeInfinity(water))biome=Biome.Mountain;
             foreach(var l in Landmarks)
             {
                 double dx=Geometry.AlongDistance(along,l.Along),dy=across-l.Across;
@@ -138,7 +170,13 @@ namespace Ringworld.Core
             if(Math.Abs(across)>=p.Width/2) { h=p.WallHeight;water=double.NegativeInfinity;biome=Biome.Rimwall; }
             if(!double.IsNegativeInfinity(water) && h>=water && biome!=Biome.Ocean) biome=Biome.Wetland;
             if(h>2800 && double.IsNegativeInfinity(water) && biome!=Biome.Ruins) biome=Biome.Snow;
-            return new TerrainSample {Height=h,WaterHeight=water,Biome=biome,Temperature=Math.Max(210,293-.0065*Math.Max(0,h))};
+            double shore=double.IsNegativeInfinity(water)?0:Math.Max(0,1-Math.Abs(h-water)/15);
+            bool natural=biome==Biome.Grassland||biome==Biome.Forest||biome==Biome.Desert||biome==Biome.Mountain||biome==Biome.Snow||biome==Biome.Wetland||biome==Biome.Ocean&&h>=water;
+            var tint=climate.Ground;
+            double exposure=GenerationVersion>=4?Smooth(Math.Max(0,Math.Min(1,(Noise(along,across,1700,947)-.58)/.13)))*climate.Desert:0;
+            if(exposure>.65&&natural&&double.IsNegativeInfinity(water))biome=Biome.Scrith;
+            if(GenerationVersion>=4&&natural){tint=tint*(1-exposure)+new DVec(.30,.34,.36)*exposure;tint=tint*(1-shore)+new DVec(.65,.57,.40)*shore;if(h>2800)tint=tint*.3+new DVec(.76,.81,.81)*.7;}
+            return new TerrainSample {Height=h,WaterHeight=water,Biome=biome,Shore=shore,BlendedColor=GenerationVersion>=4&&natural,GroundColor=tint,Temperature=Math.Max(210,293-.0065*Math.Max(0,h))};
         }
         public Landmark Nearest(double along,double across,out double distance)
         {

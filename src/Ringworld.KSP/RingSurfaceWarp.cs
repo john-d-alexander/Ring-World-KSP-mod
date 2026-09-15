@@ -1,0 +1,124 @@
+using System;
+using System.Collections.Generic;
+using HarmonyLib;
+using Ringworld.Core;
+using UnityEngine;
+namespace NivenRingworld
+{
+    internal sealed class RingSurfaceWarp
+    {
+        private sealed class Anchor {internal DVec Position;internal Quaternion Rotation;}
+        private readonly Dictionary<Vessel,Anchor> anchors=new Dictionary<Vessel,Anchor>();
+        internal double Rate
+        {
+            get{return TimeWarp.CurrentRate;}
+            set{int index=0;for(int i=0;i<TimeWarp.fetch.warpRates.Length;i++)if(TimeWarp.fetch.warpRates[i]<=value)index=i;TimeWarp.SetRate(index,true);}
+        }
+        internal string Status="Use stock time warp when resting on the ring.";
+        internal bool Anchored(Vessel v){return v!=null&&anchors.ContainsKey(v);}
+        internal bool CanAdvance(RingworldFlight f)
+        {
+            if(Time.timeScale==0||(!f.Ready&&anchors.Count==0)){Status="Warp waiting for an unpacked, ready expedition.";return false;}
+            bool found=false;
+            foreach(var v in FlightGlobals.VesselsLoaded)
+            {
+                if(v==null)continue;
+                if(Anchored(v)){found=true;continue;}
+                if(v.packed)continue;
+                if(!f.Owns(v)){Status="Warp blocked by a nearby craft outside the ring frame.";return false;}
+                found=true;var c=f.Settings.Geometry.Coordinates(f.Position(v));var t=f.Settings.Terrain.Sample(c.Along,c.Across);
+                bool contact=false;foreach(var part in v.parts)if(part.GroundContact)contact=true;
+                double speed=f.Velocity(v).Length;
+                if(!contact){Status="Warp blocked: no solid ground contact ("+v.vesselName+").";return false;}
+                if(t.Wet){Status="Warp blocked: vessel is on water.";return false;}
+                if(speed>.25){Status="Warp blocked: still moving at "+speed.ToString("F2")+" m/s (limit 0.25).";return false;}
+                if(v.ctrlState.mainThrottle>.001f){Status="Warp blocked: throttle is not zero.";return false;}
+                foreach(var part in v.parts)if(part.rb!=null&&part.rb.angularVelocity.magnitude>.05f){Status="Warp blocked: "+(part.partInfo==null?part.name:part.partInfo.title)+" is still rotating at "+part.rb.angularVelocity.magnitude.ToString("F3")+" rad/s (limit 0.05).";return false;}
+            }
+            if(found)Status="Ready for stock ring-surface warp.";return found;
+        }
+        internal bool Prepare(RingworldFlight f)
+        {
+            if(!CanAdvance(f))return false;
+            f.Capture();
+            foreach(var v in FlightGlobals.VesselsLoaded)
+                if(f.Owns(v)&&!Anchored(v))anchors[v]=new Anchor{Position=ConvertVector.Core((Vector3d)v.transform.position-f.Star.position),Rotation=v.transform.rotation};
+            return true;
+        }
+        internal void Hold(Vessel v)
+        {
+            Anchor a;if(!anchors.TryGetValue(v,out a))return;
+            var f=RingworldFlight.Instance;if(f==null)return;
+            var pos=ConvertVector.Ksp(a.Position);
+            v.orbitDriver.pos=pos;v.orbitDriver.vel=Vector3d.zero;
+            v.orbit.pos=ConvertVector.Orbit(pos);v.orbit.vel=Vector3d.zero;
+            v.SetPosition(f.Star.position+pos,true);v.SetRotation(a.Rotation,false);
+        }
+        internal void Release(Vessel v)
+        {
+            if(!Anchored(v)||v.packed)return;
+            Hold(v);v.SetWorldVelocity(Vector3d.zero);v.IgnoreGForces(2);v.IgnoreSpeed(2);anchors.Remove(v);
+        }
+        internal void Update(RingworldFlight f)
+        {
+            if(TimeWarp.CurrentRateIndex>0||TimeWarp.CurrentRate>1.0001f)
+            {
+                if(anchors.Count==0&&!Prepare(f)){TimeWarp.SetRate(0,true);return;}
+                foreach(var v in new List<Vessel>(anchors.Keys)){if(v==null){anchors.Remove(v);continue;}if(!v.packed)v.GoOnRails();Hold(v);}
+                Status="Stock rails warp: ring contact anchored; universal time advances normally.";
+            }
+            else if(anchors.Count>0)
+            {
+                foreach(var v in new List<Vessel>(anchors.Keys)){if(v==null){anchors.Remove(v);continue;}Hold(v);v.GoOffRails();Release(v);}
+            }
+        }
+        internal void Draw(RingworldFlight f){if(TimeWarp.CurrentRateIndex==0)CanAdvance(f);GUILayout.Label(Status);GUILayout.Label("Use the stock top-left warp controls or comma/period. Ground contact is required for ring-surface rails warp.");}
+    }
+    [HarmonyPatch(typeof(TimeWarp),"setRate")]
+    internal static class RingStockWarpRate
+    {
+        private static bool Prefix(TimeWarp __instance,ref int rateIdx,ref bool __result)
+        {
+            var f=RingworldFlight.Instance;if(f==null||!f.Active)return true;
+            rateIdx=Math.Max(0,Math.Min(__instance.warpRates.Length-1,rateIdx));if(rateIdx==0)return true;
+            if(TimeWarp.WarpMode!=TimeWarp.Modes.HIGH){f.surfaceWarp.Status="Use standard rails warp; physics warp is unavailable in the ring frame.";__result=false;return false;}
+            if(!f.surfaceWarp.Prepare(f)){__result=false;return false;}
+            while(rateIdx>0&&__instance.warpRates[rateIdx]>f.Settings.SurfaceWarpLimit)rateIdx--;
+            return true;
+        }
+    }
+    [HarmonyPatch(typeof(TimeWarp),"getMaxOnRailsRateIdx")]
+    internal static class RingStockWarpLimit
+    {
+        private static bool Prefix(int tgtRateIdx,ref ClearToSaveStatus reason,ref int __result)
+        {
+            var f=RingworldFlight.Instance;if(f==null||!f.Active||!f.surfaceWarp.CanAdvance(f))return true;
+            reason=ClearToSaveStatus.CLEAR;__result=tgtRateIdx;return false;
+        }
+    }
+    [HarmonyPatch(typeof(OrbitDriver),"UpdateOrbit")]
+    internal static class RingAnchoredOrbit
+    {
+        private static bool Prefix(OrbitDriver __instance)
+        {var f=RingworldFlight.Instance;if(f==null||!f.surfaceWarp.Anchored(__instance.vessel))return true;f.surfaceWarp.Hold(__instance.vessel);return false;}
+    }
+    [HarmonyPatch(typeof(VesselPrecalculate),"MainPhysics")]
+    internal static class RingAnchoredPhysics
+    {
+        private static bool Prefix(VesselPrecalculate __instance)
+        {var f=RingworldFlight.Instance;var v=__instance.Vessel;if(f==null||!v.packed||!f.surfaceWarp.Anchored(v))return true;f.surfaceWarp.Hold(v);return false;}
+    }
+    [HarmonyPatch(typeof(VesselPrecalculate),"Update")]
+    internal static class RingAnchoredPresentation
+    {
+        private static bool Prefix(VesselPrecalculate __instance)
+        {var f=RingworldFlight.Instance;var v=__instance.Vessel;if(f==null||!v.packed||!f.surfaceWarp.Anchored(v))return true;f.surfaceWarp.Hold(v);return false;}
+    }
+    [HarmonyPatch(typeof(Vessel),"GoOffRails")]
+    internal static class RingUnpackAnchor
+    {
+        private static bool Prefix(Vessel __instance)
+        {var f=RingworldFlight.Instance;return f==null||!f.surfaceWarp.Anchored(__instance)||(TimeWarp.CurrentRateIndex==0&&TimeWarp.CurrentRate<=1.0001f);}
+        private static void Postfix(Vessel __instance){var f=RingworldFlight.Instance;if(f!=null)f.surfaceWarp.Release(__instance);}
+    }
+}

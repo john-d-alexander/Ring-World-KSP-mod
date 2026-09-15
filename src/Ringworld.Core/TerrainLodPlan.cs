@@ -12,10 +12,11 @@ namespace Ringworld.Core
     public static class TerrainLodPlan
     {
         public const double Range=2000000;
+        public const double MaximumRange=2000000000;
         public static List<LodBlock> Create(double along,double across,double tileSize,int tileRadius,double range=Range)
         {
             var result=new List<LodBlock>();double root=tileSize*1024;
-            if(!RingParameters.Finite(range)||range<tileSize||range>160000000)throw new ArgumentOutOfRangeException(nameof(range));
+            if(!RingParameters.Finite(range)||range<tileSize||range>MaximumRange)throw new ArgumentOutOfRangeException(nameof(range));
             while(root<range)root*=2;
             double nearX=Math.Floor(along/tileSize)*tileSize,nearY=Math.Floor(across/tileSize)*tileSize;
             for(long y=(long)Math.Floor((across-range)/root);y<=Math.Floor((across+range)/root);y++)

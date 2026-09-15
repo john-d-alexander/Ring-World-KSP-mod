@@ -10,6 +10,7 @@ foreach(var handle in metadata.TypeDefinitions)
     var type=metadata.GetTypeDefinition(handle);string name=metadata.GetString(type.Name);
     if(!name.Contains(args[1],StringComparison.OrdinalIgnoreCase))continue;
     Console.WriteLine(metadata.GetString(type.Namespace)+"."+name);
+    if(args.Length>2&&args[2]=="--fields") { foreach(var fh in type.GetFields()){var field=metadata.GetFieldDefinition(fh);Console.WriteLine("  "+metadata.GetString(field.Name));} continue; }
     foreach(var methodHandle in type.GetMethods())
     {
         var method=metadata.GetMethodDefinition(methodHandle);string methodName=metadata.GetString(method.Name);

@@ -1,0 +1,1007 @@
+{
+  "schema": 1,
+  "authoring": "Original first-pass Ringworld habitat library",
+  "atlas": "../first-set/exports/SceneryAtlas.png",
+  "assets": [
+    {
+      "id": "grass_patch_01",
+      "kind": "grass_patch",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.6827923357486725,
+        0.6619998514652252,
+        0.8814493417739868
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 36
+        },
+        {
+          "level": 1,
+          "triangles": 20
+        },
+        {
+          "level": 2,
+          "triangles": 10
+        }
+      ]
+    },
+    {
+      "id": "reed_patch_01",
+      "kind": "reed_patch",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.6563957333564758,
+        0.6552590429782867,
+        0.8830183213576674
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 504
+        },
+        {
+          "level": 1,
+          "triangles": 280
+        },
+        {
+          "level": 2,
+          "triangles": 140
+        }
+      ]
+    },
+    {
+      "id": "fern_patch_01",
+      "kind": "fern_patch",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.7603034675121307,
+        0.8360538184642792,
+        0.8830183213576674
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 936
+        },
+        {
+          "level": 1,
+          "triangles": 360
+        },
+        {
+          "level": 2,
+          "triangles": 180
+        }
+      ]
+    },
+    {
+      "id": "desert_scrub_01",
+      "kind": "desert_scrub",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.8453114926815033,
+        0.8258549571037292,
+        1.042814559303224
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 576
+        },
+        {
+          "level": 1,
+          "triangles": 220
+        },
+        {
+          "level": 2,
+          "triangles": 110
+        }
+      ]
+    },
+    {
+      "id": "bush_01",
+      "kind": "bush",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.8453114926815033,
+        0.8258549571037292,
+        1.042814559303224
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 576
+        },
+        {
+          "level": 1,
+          "triangles": 220
+        },
+        {
+          "level": 2,
+          "triangles": 110
+        }
+      ]
+    },
+    {
+      "id": "mirror_sunflower_01",
+      "kind": "mirror_sunflower",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.7600000202655792,
+        0.7599999904632568,
+        0.8470986434258521
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 184
+        },
+        {
+          "level": 1,
+          "triangles": 136
+        },
+        {
+          "level": 2,
+          "triangles": 84
+        }
+      ]
+    },
+    {
+      "id": "root_cluster_01",
+      "kind": "root_cluster",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.9052922129631042,
+        0.8969095647335052,
+        0.34380264580249786
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 156
+        },
+        {
+          "level": 1,
+          "triangles": 108
+        },
+        {
+          "level": 2,
+          "triangles": 64
+        }
+      ]
+    },
+    {
+      "id": "dead_tree_01",
+      "kind": "dead_tree",
+      "collider": "box",
+      "family": "vegetation",
+      "nominalSize": [
+        0.9052922129631042,
+        0.8969095647335052,
+        1.0214972831308842
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 268
+        },
+        {
+          "level": 1,
+          "triangles": 188
+        },
+        {
+          "level": 2,
+          "triangles": 112
+        }
+      ]
+    },
+    {
+      "id": "stump_01",
+      "kind": "stump",
+      "collider": "box",
+      "family": "vegetation",
+      "nominalSize": [
+        0.9052922129631042,
+        0.8969095647335052,
+        0.34380264580249786
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 156
+        },
+        {
+          "level": 1,
+          "triangles": 108
+        },
+        {
+          "level": 2,
+          "triangles": 64
+        }
+      ]
+    },
+    {
+      "id": "fallen_log_01",
+      "kind": "fallen_log",
+      "collider": "box",
+      "family": "vegetation",
+      "nominalSize": [
+        1.0091926455497742,
+        0.384935662150383,
+        0.2690086364746094
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 92
+        },
+        {
+          "level": 1,
+          "triangles": 76
+        },
+        {
+          "level": 2,
+          "triangles": 16
+        }
+      ]
+    },
+    {
+      "id": "driftwood_01",
+      "kind": "driftwood",
+      "collider": "box",
+      "family": "vegetation",
+      "nominalSize": [
+        1.0091926455497742,
+        0.384935662150383,
+        0.2690086364746094
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 92
+        },
+        {
+          "level": 1,
+          "triangles": 76
+        },
+        {
+          "level": 2,
+          "triangles": 16
+        }
+      ]
+    },
+    {
+      "id": "leaf_litter_01",
+      "kind": "leaf_litter",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.889976441860199,
+        0.8120425045490265,
+        0.07007159665226936
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 128
+        },
+        {
+          "level": 1,
+          "triangles": 72
+        },
+        {
+          "level": 2,
+          "triangles": 32
+        }
+      ]
+    },
+    {
+      "id": "mushrooms_01",
+      "kind": "mushrooms",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.7840235233306885,
+        0.7056749165058136,
+        0.44156789779663086
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 320
+        },
+        {
+          "level": 1,
+          "triangles": 144
+        },
+        {
+          "level": 2,
+          "triangles": 72
+        }
+      ]
+    },
+    {
+      "id": "pebble_cluster_01",
+      "kind": "pebble_cluster",
+      "collider": "none",
+      "family": "vegetation",
+      "nominalSize": [
+        0.7836063802242279,
+        0.8258862495422363,
+        0.07999999821186066
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 392
+        },
+        {
+          "level": 1,
+          "triangles": 80
+        },
+        {
+          "level": 2,
+          "triangles": 32
+        }
+      ]
+    },
+    {
+      "id": "scrith_outcrop_01",
+      "kind": "scrith_outcrop",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        0.9303268790245056,
+        0.8415490984916687,
+        0.1600000038743019
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 96
+        },
+        {
+          "level": 1,
+          "triangles": 80
+        },
+        {
+          "level": 2,
+          "triangles": 20
+        }
+      ]
+    },
+    {
+      "id": "conduit_live_01",
+      "kind": "conduit_live",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.10750000178813934
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 180
+        },
+        {
+          "level": 1,
+          "triangles": 132
+        },
+        {
+          "level": 2,
+          "triangles": 84
+        }
+      ]
+    },
+    {
+      "id": "conduit_dark_01",
+      "kind": "conduit_dark",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.10750000178813934
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 180
+        },
+        {
+          "level": 1,
+          "triangles": 132
+        },
+        {
+          "level": 2,
+          "triangles": 84
+        }
+      ]
+    },
+    {
+      "id": "levitation_grid_01",
+      "kind": "levitation_grid",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.1599999964237213
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 564
+        },
+        {
+          "level": 1,
+          "triangles": 388
+        },
+        {
+          "level": 2,
+          "triangles": 244
+        }
+      ]
+    },
+    {
+      "id": "debris_beam_01",
+      "kind": "debris_beam",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        1.0157501101493835,
+        0.2709042429924011,
+        0.267326170578599
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 96
+        },
+        {
+          "level": 1,
+          "triangles": 72
+        },
+        {
+          "level": 2,
+          "triangles": 48
+        }
+      ]
+    },
+    {
+      "id": "city_disk_fragment_01",
+      "kind": "city_disk_fragment",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        0.4347373843193054,
+        0.7173560857772827,
+        0.6098814606666565
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 276
+        },
+        {
+          "level": 1,
+          "triangles": 180
+        },
+        {
+          "level": 2,
+          "triangles": 96
+        }
+      ]
+    },
+    {
+      "id": "crashed_city_disk_01",
+      "kind": "crashed_city_disk",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.6098814606666565
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 268
+        },
+        {
+          "level": 1,
+          "triangles": 172
+        },
+        {
+          "level": 2,
+          "triangles": 88
+        }
+      ]
+    },
+    {
+      "id": "ruin_tower_01",
+      "kind": "ruin_tower",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        0.800000011920929,
+        0.6499999761581421,
+        0.9200000204145908
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 336
+        },
+        {
+          "level": 1,
+          "triangles": 276
+        },
+        {
+          "level": 2,
+          "triangles": 276
+        }
+      ]
+    },
+    {
+      "id": "habitat_block_01",
+      "kind": "habitat_block",
+      "collider": "box",
+      "family": "ruins",
+      "nominalSize": [
+        0.800000011920929,
+        0.6499999761581421,
+        0.9200000204145908
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 360
+        },
+        {
+          "level": 1,
+          "triangles": 360
+        },
+        {
+          "level": 2,
+          "triangles": 360
+        }
+      ]
+    },
+    {
+      "id": "stone_enclosure_01",
+      "kind": "stone_enclosure",
+      "collider": "box",
+      "family": "settlements",
+      "nominalSize": [
+        0.918155699968338,
+        0.9236164689064026,
+        0.20000000298023224
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 320
+        },
+        {
+          "level": 1,
+          "triangles": 120
+        },
+        {
+          "level": 2,
+          "triangles": 80
+        }
+      ]
+    },
+    {
+      "id": "watchtower_01",
+      "kind": "watchtower",
+      "collider": "box",
+      "family": "settlements",
+      "nominalSize": [
+        0.75,
+        0.75,
+        0.9560120694804937
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 232
+        },
+        {
+          "level": 1,
+          "triangles": 196
+        },
+        {
+          "level": 2,
+          "triangles": 160
+        }
+      ]
+    },
+    {
+      "id": "campfire_01",
+      "kind": "campfire",
+      "collider": "box",
+      "family": "settlements",
+      "nominalSize": [
+        0.8889452517032623,
+        0.8457128405570984,
+        0.16189062781631947
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 148
+        },
+        {
+          "level": 1,
+          "triangles": 118
+        },
+        {
+          "level": 2,
+          "triangles": 98
+        }
+      ]
+    },
+    {
+      "id": "bridge_segment_01",
+      "kind": "bridge_segment",
+      "collider": "box",
+      "family": "settlements",
+      "nominalSize": [
+        1.0,
+        0.800000011920929,
+        0.3474999889731407
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 108
+        },
+        {
+          "level": 1,
+          "triangles": 108
+        },
+        {
+          "level": 2,
+          "triangles": 108
+        }
+      ]
+    },
+    {
+      "id": "research_station_01",
+      "kind": "research_station",
+      "collider": "box",
+      "family": "settlements",
+      "nominalSize": [
+        0.8999999761581421,
+        0.75,
+        0.9099999982863665
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 176
+        },
+        {
+          "level": 1,
+          "triangles": 144
+        },
+        {
+          "level": 2,
+          "triangles": 120
+        }
+      ]
+    },
+    {
+      "id": "flup_outlet_01",
+      "kind": "flup_outlet",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.8199999928474426
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 516
+        },
+        {
+          "level": 1,
+          "triangles": 356
+        },
+        {
+          "level": 2,
+          "triangles": 236
+        }
+      ]
+    },
+    {
+      "id": "sediment_nozzle_01",
+      "kind": "sediment_nozzle",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.7099999785423279
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 516
+        },
+        {
+          "level": 1,
+          "triangles": 356
+        },
+        {
+          "level": 2,
+          "triangles": 236
+        }
+      ]
+    },
+    {
+      "id": "transit_tube_01",
+      "kind": "transit_tube",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.8199999928474426
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 516
+        },
+        {
+          "level": 1,
+          "triangles": 356
+        },
+        {
+          "level": 2,
+          "triangles": 236
+        }
+      ]
+    },
+    {
+      "id": "rim_hatch_01",
+      "kind": "rim_hatch",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.75
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 276
+        },
+        {
+          "level": 1,
+          "triangles": 212
+        },
+        {
+          "level": 2,
+          "triangles": 84
+        }
+      ]
+    },
+    {
+      "id": "rim_airlock_01",
+      "kind": "rim_airlock",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.675000011920929
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 264
+        },
+        {
+          "level": 1,
+          "triangles": 200
+        },
+        {
+          "level": 2,
+          "triangles": 72
+        }
+      ]
+    },
+    {
+      "id": "elevator_base_01",
+      "kind": "elevator_base",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 92
+        },
+        {
+          "level": 1,
+          "triangles": 92
+        },
+        {
+          "level": 2,
+          "triangles": 92
+        }
+      ]
+    },
+    {
+      "id": "terminal_gantry_01",
+      "kind": "terminal_gantry",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 92
+        },
+        {
+          "level": 1,
+          "triangles": 92
+        },
+        {
+          "level": 2,
+          "triangles": 92
+        }
+      ]
+    },
+    {
+      "id": "maglev_segment_01",
+      "kind": "maglev_segment",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.1850000023841858
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 168
+        },
+        {
+          "level": 1,
+          "triangles": 120
+        },
+        {
+          "level": 2,
+          "triangles": 96
+        }
+      ]
+    },
+    {
+      "id": "transport_causeway_01",
+      "kind": "transport_causeway",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.1850000023841858
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 168
+        },
+        {
+          "level": 1,
+          "triangles": 120
+        },
+        {
+          "level": 2,
+          "triangles": 96
+        }
+      ]
+    },
+    {
+      "id": "maintenance_platform_01",
+      "kind": "maintenance_platform",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.7200000286102295
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 96
+        },
+        {
+          "level": 1,
+          "triangles": 96
+        },
+        {
+          "level": 2,
+          "triangles": 96
+        }
+      ]
+    },
+    {
+      "id": "pump_station_01",
+      "kind": "pump_station",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.7250000238418579
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 400
+        },
+        {
+          "level": 1,
+          "triangles": 256
+        },
+        {
+          "level": 2,
+          "triangles": 136
+        }
+      ]
+    },
+    {
+      "id": "roof_machinery_01",
+      "kind": "roof_machinery",
+      "collider": "box",
+      "family": "infrastructure",
+      "nominalSize": [
+        1.0,
+        1.0,
+        0.7250000238418579
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 400
+        },
+        {
+          "level": 1,
+          "triangles": 256
+        },
+        {
+          "level": 2,
+          "triangles": 136
+        }
+      ]
+    }
+  ]
+}

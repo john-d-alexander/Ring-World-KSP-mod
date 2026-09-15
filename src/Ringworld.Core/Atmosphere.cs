@@ -28,7 +28,7 @@ namespace Ringworld.Core
         }
         // Numerical single scattering with Rayleigh and Henyey-Greenstein Mie phase
         // functions. Coefficients are per metre. This is not multiple scattering.
-        public SkySample Sky(DVec origin,DVec direction,double time)
+        public SkySample Sky(DVec origin,DVec direction,double time,bool unshadowed=false)
         {
             direction=direction.Unit;
             const double limit=4000000;
@@ -59,7 +59,7 @@ namespace Ringworld.Core
                     double solarColumn=geometry.P.ScaleHeight*rho/Math.Max(.1,DVec.Dot((-point).Unit,geometry.Up(point)));
                     var sunDepth=beta*solarColumn+new DVec(mie,mie,mie)*1200;
                     var depth=optical+extinction*(ds*.5)+sunDepth;
-                    double lit=geometry.Daylight(c.Along,time);
+                    double lit=unshadowed?1:geometry.Daylight(c.Along,time);
                     var source=beta*(rho*phaseR)+new DVec(mie,mie,mie)*phaseM;
                     light+=new DVec(source.X*Math.Exp(-depth.X),source.Y*Math.Exp(-depth.Y),source.Z*Math.Exp(-depth.Z))*(ds*lit*12);
                     optical+=extinction*ds;

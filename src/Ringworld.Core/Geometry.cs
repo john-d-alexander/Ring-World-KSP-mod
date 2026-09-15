@@ -19,6 +19,7 @@ namespace Ringworld.Core
 
     public sealed class RingParameters
     {
+        public double SurfaceDensity = 0; // kg/m²; zero preserves legacy massless simulations
         public double Radius = 15300000000;
         public double Width = 160500000;
         public double WallHeight = 160000;
@@ -32,7 +33,7 @@ namespace Ringworld.Core
         public double RotationSeconds { get { return 2*Math.PI/Omega; } }
         public void Validate()
         {
-            if (!Finite(Radius) || Radius < 1000000 || !Finite(Width) || Width < 10000 || Width > Radius ||
+            if (!Finite(SurfaceDensity) || SurfaceDensity<0 || !Finite(Radius) || Radius < 1000000 || !Finite(Width) || Width < 10000 || Width > Radius ||
                 !Finite(WallHeight) || WallHeight <= 0 || WallHeight >= Radius/10 ||
                 !Finite(Gravity) || Gravity <= 0 || Gravity > 100 || !Finite(DaySeconds) || DaySeconds < 60 ||
                 !Finite(AtmosphereHeight) || AtmosphereHeight < 100 || AtmosphereHeight > WallHeight ||
@@ -102,12 +103,12 @@ namespace Ringworld.Core
         public DVec SpinVelocity(DVec p) { return DVec.Cross(new DVec(0,P.Omega,0),p); }
         public DVec InertialVelocity(DVec p, DVec rotatingVelocity) { return rotatingVelocity+SpinVelocity(p); }
         public DVec RotatingVelocity(DVec p, DVec inertialVelocity) { return inertialVelocity-SpinVelocity(p); }
-        public DVec Acceleration(DVec p, DVec rotatingVelocity, double starMu)
+        public DVec Acceleration(DVec p, DVec rotatingVelocity, double starMu, bool includeRibbon=true)
         {
             DVec omega=new DVec(0,P.Omega,0);
             double r=p.Length;
             DVec stellar=r>1 ? p*(-starMu/(r*r*r)) : new DVec();
-            return stellar-DVec.Cross(omega,DVec.Cross(omega,p))-DVec.Cross(omega,rotatingVelocity)*2;
+            return stellar+(includeRibbon?RibbonGravity.Acceleration(p,P,P.SurfaceDensity):new DVec())-DVec.Cross(omega,DVec.Cross(omega,p))-DVec.Cross(omega,rotatingVelocity)*2;
         }
         public double Density(double altitude)
         {

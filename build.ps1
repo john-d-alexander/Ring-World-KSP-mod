@@ -31,7 +31,7 @@ if ($Install) {
     Write-Host "Installed into $target"
 }
 if (-not $SmokeTest) {
-    foreach ($doc in @('README.md','LICENSE','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md','docs\ORBITAL-ARRIVAL.md','docs\GROUND-AND-EVA.md','docs\TERRAIN-LOD.md','docs\SETTINGS-AND-HORIZON.md')) {
+    foreach ($doc in @('README.md','LICENSE','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md','docs\ORBITAL-ARRIVAL.md','docs\GROUND-AND-EVA.md','docs\TERRAIN-LOD.md','docs\SETTINGS-AND-HORIZON.md','docs\ORBITS-WARP-AND-ASSETS.md','docs\BIOMES-AND-GRAPHICS.md','docs\ASSET-TRACKER.md','docs\BIOME-ASSET-CATALOG.md','docs\BIOME-FREQUENCY-SURVEY.txt','docs\STOCK-WARP-AND-RENDERING.md','docs\HIGH-END-VISUALS.md','docs\WEATHER-AND-NIGHT.md','docs\BLENDER-ASSETS.md')) {
         $source = Join-Path $taskRoot $doc
         if (Test-Path -LiteralPath $source) {
             $docTarget = Join-Path (Join-Path $taskRoot 'artifacts\NivenRingworld') $doc
@@ -39,6 +39,6 @@ if (-not $SmokeTest) {
             Copy-Item -LiteralPath $source -Destination $docTarget -Force
         }
     }
-    Compress-Archive -Path (Join-Path $taskRoot 'artifacts\NivenRingworld\*') -DestinationPath (Join-Path $taskRoot 'artifacts\NivenRingworld-0.4.0.zip') -Force
+    Compress-Archive -Path (Join-Path $taskRoot 'artifacts\NivenRingworld\*') -DestinationPath (Join-Path $taskRoot 'artifacts\NivenRingworld-0.9.0.zip') -Force
 }
 Write-Host "Build staged in $stage"

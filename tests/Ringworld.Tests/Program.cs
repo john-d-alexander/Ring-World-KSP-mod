@@ -13,6 +13,83 @@ static class Program
     static void Main(string[] args)
     {
         var p=new RingParameters();var g=new RingGeometry(p);var t=new TerrainGenerator(g);
+        // Weather has deterministic UT evolution, continuous interval boundaries and explicit clear overrides.
+        double weatherMin=1,weatherMax=0;
+        for(int i=0;i<1000;i++)
+        {
+            double ut=i*113.7;var w=RingWeather.Sample(t,123400,5600,ut,.45,true,600,1,.4);
+            var again=RingWeather.Sample(t,123400,5600,ut,.45,true,600,1,.4);
+            Near(w.Severity,again.Severity,0,"weather deterministic");
+            var next=RingWeather.Sample(t,123400,5600,ut+.001,.45,true,600,1,.4);
+            Check(Math.Abs(w.Severity-next.Severity)<.0001,"weather continuous in UT");
+            weatherMin=Math.Min(weatherMin,w.Severity);weatherMax=Math.Max(weatherMax,w.Severity);
+            Check(w.Cloud>=0&&w.Cloud<=1&&w.Rain>=0&&w.Rain<=1&&w.Storm>=0&&w.Storm<=1,"weather bounded");
+            var noStorm=RingWeather.Sample(t,123400,5600,ut,.45,true,600,1,0);Near(noStorm.Storm,0,0,"zero storm fraction");
+            var clear=RingWeather.Sample(t,123400,5600,ut,0,true,600,1,1);Near(clear.Cloud+clear.Rain+clear.Storm,0,0,"forced clear weather");
+        }
+        Check(weatherMin<.15&&weatherMax>.85,"weather spans sunny and storms");
+        var storm=RingWeather.Sample(t,123400,5600,0,1,false,600,1,.4);Check(storm.Rain>.99&&storm.Storm>.99,"fixed storm fixture");
+        for(int i=1;i<30;i++)Near(RingWeather.Sample(t,123400,5600,i*600-.00001,.45,true,600,1,.4).Severity,RingWeather.Sample(t,123400,5600,i*600+.00001,.45,true,600,1,.4).Severity,.00001,"weather interval seam");
+        // Physical reference cases independent of the flight implementation.
+        var zero=RibbonGravity.Acceleration(new DVec(),p,1e6);
+        Near(zero.Length,0,1e-12,"ribbon centre symmetry");
+        double axisY=p.Radius*.4,lo=-p.Width/2-axisY,hi=p.Width/2-axisY;
+        double expectedAxis=2*Math.PI*RibbonGravity.G*1e6*p.Radius*(1/Math.Sqrt(p.Radius*p.Radius+lo*lo)-1/Math.Sqrt(p.Radius*p.Radius+hi*hi));
+        Near(RibbonGravity.Acceleration(new DVec(0,axisY,0),p,1e6).Y,expectedAxis,1e-12,"analytic finite-width axial field");
+        var nearFloor=new DVec(p.Radius-10000,0,0);
+        var sheet=RibbonGravity.Acceleration(nearFloor,p,1e6);
+        Near(sheet.X,2*Math.PI*RibbonGravity.G*1e6,8e-6,"near floor infinite-sheet limit (curvature correction below 2%)");
+        foreach(var point in new[]{nearFloor,new DVec(p.Radius+100,0,0),new DVec(p.Radius-50,p.Width/2,0),new DVec(p.Radius*.5,p.Width,0)})
+        {
+            var baseField=RibbonGravity.Acceleration(point,p,1e6);var refined=RibbonGravity.Acceleration(point,p,1e6,50,4);
+            Check((baseField-refined).Length<Math.Max(1e-10,refined.Length*2e-4),"ribbon quadrature convergence");
+            var mirrored=RibbonGravity.Acceleration(new DVec(point.X,-point.Y,0),p,1e6);
+            Near(mirrored.Y,-baseField.Y,1e-12,"ribbon axial reflection");
+        }
+        var distant=new DVec(p.Radius*100,0,0);double totalMass=2*Math.PI*p.Radius*p.Width*1e6;
+        Near(RibbonGravity.Acceleration(distant,p,1e6).X,-RibbonGravity.G*totalMass/(distant.Length*distant.Length),1e-12,"far field point-mass limit");
+        Func<DVec,DVec,DVec> kepler=(pos,vel)=>pos*(-1/Math.Pow(pos.Length,3));
+        var orbit=new FlightState(new DVec(1,0,0),new DVec(0,0,1));
+        for(int i=0;i<1000;i++)orbit=NumericalFlight.Step(orbit,2*Math.PI/1000,kepler);
+        Check((orbit.Position-new DVec(1,0,0)).Length<1e-8,"RK4 closed Kepler orbit reference");
+        p.SurfaceDensity=1e6;
+        var rotatingState=new FlightState(nearFloor,new DVec(0,1,0));
+        var inertialState=new FlightState(nearFloor,g.InertialVelocity(nearFloor,rotatingState.Velocity));
+        double initialMomentum=DVec.Cross(inertialState.Position,inertialState.Velocity).Y;
+        for(int i=0;i<100;i++)
+        {
+            rotatingState=NumericalFlight.Step(rotatingState,.1,(pos,vel)=>g.Acceleration(pos,vel,1e18));
+            inertialState=NumericalFlight.Step(inertialState,.1,(pos,vel)=>pos*(-1e18/Math.Pow(pos.Length,3))+RibbonGravity.Acceleration(pos,p,p.SurfaceDensity));
+        }
+        Check((g.ToInertialPosition(rotatingState.Position,10)-inertialState.Position).Length<.01,"rotating and inertial numerical predictions agree");
+        Near(DVec.Cross(inertialState.Position,inertialState.Velocity).Y/initialMomentum,1,1e-10,"axisymmetric field conserves angular momentum");
+        p.SurfaceDensity=0;
+        Check(TerrainLodPlan.Create(0,0,1024,3,TerrainLodPlan.MaximumRange).Count<2200,"two-million-km bounded LOD plan");
+        var ecologyTerrain=new TerrainGenerator(g){GenerationVersion=4};var climateKinds=new HashSet<Biome>();
+        for(int i=0;i<1000;i++)
+        {
+            double a=i*179381.71,b=Math.Sin(i*.73)*p.Width*.48;
+            var climate=Ecology.Sample(ecologyTerrain,a,b);var closeClimate=Ecology.Sample(ecologyTerrain,a+1,b);
+            Near(climate.Desert+climate.Meadow+climate.Forest+climate.Cold+climate.Highland,1,1e-12,"normalized climate weights");
+            Check((climate.Ground-closeClimate.Ground).Length<.001,"smooth biome color at one metre");
+            Check(Math.Abs(climate.Relief-closeClimate.Relief)<.001,"smooth terrain relief blend");
+            Near(climate.TreeCover,Ecology.Sample(ecologyTerrain,a+p.Circumference,b).TreeCover,1e-8,"periodic climate map");
+            climateKinds.Add(climate.Dominant);
+            var ground=ecologyTerrain.Sample(a,b);
+            Check(RingParameters.Finite(ground.Height)&&ground.Height<=200,"gentle ordinary v4 relief away from landmarks");
+        }
+        Check(climateKinds.Count==5,"all five climate families distributed by seed");
+        var newTerrain=new TerrainGenerator(g){GenerationVersion=3};int pondCount=0;
+        long pondPeriod=Math.Max(2,(long)Math.Round(p.Circumference/4096));
+        for(int i=0;i<400;i++)
+        {
+            double along=(i+.2+.6*newTerrain.Scatter(i,0,523))*p.Circumference/pondPeriod;
+            double across=(.2+.6*newTerrain.Scatter(i,0,527))*4096;
+            var sample=newTerrain.Sample(along,across);if(sample.Wet&&sample.Biome==Biome.Lake)pondCount++;
+            Near(sample.Height,newTerrain.Sample(along+p.Circumference,across).Height,.002,"v3 global seam precision within two millimetres");
+            Check(RingParameters.Finite(sample.Height),"v3 finite height");
+        }
+        Check(pondCount>2,"v3 small ponds exist");
         Near(g.Position(0,0,0).Length,p.Radius,.00001,"radius");
         Near(p.Omega*p.Omega*p.Radius,p.Gravity,1e-10,"centrifugal acceleration");
         Near(p.RotationSeconds,2*Math.PI*Math.Sqrt(p.Radius/p.Gravity),1e-7,"spin period");
@@ -136,6 +213,15 @@ static class Program
         {
             if(l.Kind=="city"||l.Kind=="outpost"||l.Kind=="terminal"||l.Kind=="scrith")
             {var s=t.Sample(l.Along,l.Across);Near(s.Height,l.Height,1e-6,"level landmark pad "+l.Id);Check(!s.Wet,"dry landmark "+l.Id);}
+        }
+        for(int selection=0;selection<100;selection++)
+        {
+            RingPoint randomSite,repeatSite;
+            Check(TerrainExploration.TryChoose(ecologyTerrain,selection,out randomSite),"random exploration site found");
+            Check(TerrainExploration.TryChoose(ecologyTerrain,selection,out repeatSite),"repeat exploration search");
+            Check(!ecologyTerrain.Sample(randomSite.Along,randomSite.Across).Wet,"random exploration dry");
+            Near(randomSite.Along,repeatSite.Along,0,"repeatable exploration selection");
+            Check(Math.Abs(randomSite.Across)<p.Width/2-4999,"exploration avoids wall");
         }
         // The resolved terrain must be continuous across tile borders, independent of generation order.
         var site=t.Landmarks[0];var timer=Stopwatch.StartNew();

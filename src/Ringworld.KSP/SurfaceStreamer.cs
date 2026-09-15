@@ -10,7 +10,7 @@ namespace NivenRingworld
     {
         private sealed class Tile
         {
-            internal GameObject Root;
+            internal GameObject Root,Scenery;
             internal DVec Anchor;
             internal long X,Y;internal Texture2D Texture;
             internal double Phase;
@@ -25,8 +25,11 @@ namespace NivenRingworld
         private readonly List<Quaternion> propRotations=new List<Quaternion>();
         private readonly Material terrainMaterial,waterMaterial,buildingMaterial,scrithMaterial,leavesMaterial;
         private readonly Texture2D palette;
+        private readonly Shader simpleWaterShader;
         private TerrainLod lod;
-        internal void RebuildLod(){lod.Dispose();lod=new TerrainLod(settings,terrainMaterial);}
+        private float scatter=-1;
+        private readonly PhysicMaterial groundFriction=new PhysicMaterial("Ringworld soil"){staticFriction=1f,dynamicFriction=.85f,bounciness=0,frictionCombine=PhysicMaterialCombine.Maximum,bounceCombine=PhysicMaterialCombine.Minimum};
+        internal void RebuildLod(){lod.Dispose();lod=new TerrainLod(settings,terrainMaterial,waterMaterial);}
         private readonly GameObject sunlightObject;private readonly Light sunlight;
         internal int LodCount {get{return lod.Count;}}
         internal int LodPending {get{return lod.Pending;}}
@@ -35,6 +38,7 @@ namespace NivenRingworld
         internal SurfaceStreamer(Settings s)
         {
             settings=s;
+            SceneryAssets.Acquire();
             // A one-row palette avoids requiring a proprietary Unity asset bundle.
             palette=new Texture2D(16,1,TextureFormat.RGBA32,false);palette.filterMode=FilterMode.Point;palette.wrapMode=TextureWrapMode.Clamp;
             Color[] colors={new Color(.02f,.18f,.29f),new Color(.07f,.30f,.40f),new Color(.10f,.36f,.43f),new Color(.28f,.37f,.19f),
@@ -42,10 +46,11 @@ namespace NivenRingworld
                 new Color(.23f,.27f,.30f),new Color(.47f,.45f,.36f),new Color(.28f,.32f,.36f),new Color(.31f,.30f,.26f),Color.gray,Color.gray,Color.gray};
             palette.SetPixels(colors);palette.Apply();
             terrainMaterial=Material(new Color(1,1,1));terrainMaterial.mainTexture=palette;terrainMaterial.SetFloat("_Glossiness",.08f);
-            lod=new TerrainLod(settings,terrainMaterial);
             sunlightObject=new GameObject("Ringworld habitat sunlight");sunlight=sunlightObject.AddComponent<Light>();
             sunlight.type=LightType.Directional;sunlight.cullingMask=1<<15;sunlight.color=new Color(1,.96f,.88f);sunlight.intensity=0;sunlight.shadows=LightShadows.Soft;sunlight.shadowBias=.05f;sunlight.shadowNormalBias=.4f;
             waterMaterial=Material(new Color(.07f,.31f,.42f));waterMaterial.SetFloat("_Glossiness",.8f);
+            simpleWaterShader=waterMaterial.shader;
+            lod=new TerrainLod(settings,terrainMaterial,waterMaterial);
             buildingMaterial=Material(new Color(.64f,.60f,.48f));scrithMaterial=Material(new Color(.24f,.29f,.32f));
             leavesMaterial=Material(new Color(.15f,.29f,.12f));
         }
@@ -57,7 +62,27 @@ namespace NivenRingworld
         }
         internal void Update(DVec observer,Vector3d star,bool immediate=false)
         {
+            if(scatter!=StockGraphics.Scatter){foreach(var tile in tiles.Values)RebuildScenery(tile);scatter=StockGraphics.Scatter;}
+            sunlight.shadows=QualitySettings.shadows==ShadowQuality.Disable?LightShadows.None:QualitySettings.shadows==ShadowQuality.HardOnly?LightShadows.Hard:LightShadows.Soft;
             RingPoint p=settings.Geometry.Coordinates(observer);
+            var f=RingworldFlight.Instance;int waterQuality=f!=null&&f.visuals!=null&&f.visuals.PhotoActive?2:settings.WaterQuality;
+            if(waterQuality>0&&f!=null&&f.visuals!=null)
+            {
+                var shader=f.visuals.WaterShader();if(shader!=null)
+                {
+                    waterMaterial.shader=shader;
+                    waterMaterial.SetVector("_WaveCamera",(Vector3)(star+ConvertVector.Ksp(observer)));
+                    waterMaterial.SetVector("_WaveAlong",ConvertVector.Unity(settings.Geometry.SpinVelocity(observer).Unit));
+                    waterMaterial.SetVector("_WaveAcross",Vector3.up);waterMaterial.SetVector("_WaveUp",ConvertVector.Unity(settings.Geometry.Up(observer)));
+                    double time=Planetarium.GetUniversalTime();
+                    waterMaterial.SetVector("_Wave",new Vector4(0,0,0,waterQuality==2?(float)settings.WaveHeight:0));
+                    Func<double,float> phase=a=>(float)RingGeometry.Wrap(a,Math.PI*2);
+                    waterMaterial.SetVector("_WavePhase",new Vector4(phase(p.Along*.037+p.Across*.012-time*1.1),phase(-p.Along*.016+p.Across*.029-time*.8),phase(p.Along*.063-p.Across*.054-time*1.7),0));
+                    waterMaterial.SetVector("_RipplePhase",new Vector4(phase(p.Along*1.7+p.Across*.64-time*2),phase(p.Across*1.3-p.Along*.92+time*1.6),phase(p.Along*5+p.Across*3.1+time*2.4),phase(p.Across*4.2-p.Along*3.7-time*2.1)));
+                    waterMaterial.SetFloat("_WaterLight",(float)settings.Geometry.Daylight(p.Along,time));waterMaterial.SetFloat("_WaterQuality",waterQuality);
+                }
+            }
+            else waterMaterial.shader=simpleWaterShader;
             sunlight.transform.rotation=Quaternion.LookRotation(-ConvertVector.Unity(settings.Geometry.Up(observer)),Vector3.up);
             long cx=(long)Math.Floor(p.Along/settings.TileSize),cy=(long)Math.Floor(p.Across/settings.TileSize);
             int radius=settings.TileRadius;
@@ -66,6 +91,7 @@ namespace NivenRingworld
             for(int y=-radius;y<=radius;y++)for(int x=-radius;x<=radius;x++)
             {
                 long tx=cx+x,ty=cy+y;
+                if(ty*settings.TileSize>=settings.Geometry.P.Width/2||(ty+1)*settings.TileSize<=-settings.Geometry.P.Width/2)continue;
                 string key=tx+":"+ty;wanted.Add(key);
                 if(!tiles.ContainsKey(key))pending.Add(Tuple.Create(tx,ty));
             }
@@ -84,32 +110,37 @@ namespace NivenRingworld
             lod.Update(p.Along,p.Across);
             Reposition(star);
         }
-        internal double CollisionHeight(double along,double across)
+        private double Across(double across){return Math.Max(-settings.Geometry.P.Width/2,Math.Min(settings.Geometry.P.Width/2,across));}
+        private TerrainSample FloorSample(double along,double across)
+        {double edge=settings.Geometry.P.Width/2-.01;return settings.Terrain.Sample(along,Math.Max(-edge,Math.Min(edge,across)));}
+        private double FloorHeight(double along,double across,bool includeWater)
         {
-            // Interpolate the same two triangles used by a streamed grid cell.
+            double half=settings.Geometry.P.Width/2;
+            if(Math.Abs(across)>half)return settings.Terrain.Sample(along,across).Height;
             double spacing=settings.TileSize/settings.TileResolution;
-            double x=Math.Floor(along/spacing)*spacing,y=Math.Floor(across/spacing)*spacing;
-            double u=(along-x)/spacing,v=(across-y)/spacing;
-            double a=settings.Terrain.Sample(x,y).Height,b=settings.Terrain.Sample(x+spacing,y).Height;
-            double c=settings.Terrain.Sample(x,y+spacing).Height,d=settings.Terrain.Sample(x+spacing,y+spacing).Height;
-            return u+v<=1?a+(b-a)*u+(c-a)*v:d+(c-d)*(1-u)+(b-d)*(1-v);
-        }
-        internal double CameraFloor(double along,double across)
-        {
-            // Match water triangle interpolation, including partially wet shoreline cells.
-            double spacing=settings.TileSize/settings.TileResolution;
-            double x=Math.Floor(along/spacing)*spacing,y=Math.Floor(across/spacing)*spacing;
-            double u=(along-x)/spacing,v=(across-y)/spacing;
-            var a=settings.Terrain.Sample(x,y);var b=settings.Terrain.Sample(x+spacing,y);
-            var c=settings.Terrain.Sample(x,y+spacing);var d=settings.Terrain.Sample(x+spacing,y+spacing);
-            double floor=CollisionHeight(along,across);
-            if(u+v<=1&&(a.Wet||b.Wet||c.Wet))
-                floor=Math.Max(floor,WaterVertex(a)+(WaterVertex(b)-WaterVertex(a))*u+(WaterVertex(c)-WaterVertex(a))*v);
-            else if(u+v>1&&(b.Wet||c.Wet||d.Wet))
-                floor=Math.Max(floor,WaterVertex(d)+(WaterVertex(c)-WaterVertex(d))*(1-u)+(WaterVertex(b)-WaterVertex(d))*(1-v));
+            double x=Math.Floor(along/spacing)*spacing,y=Math.Floor(Math.Min(across,half-.0001)/spacing)*spacing;
+            double low=Across(y),high=Across(y+spacing);
+            double u=(along-x)/spacing,v=high>low?(across-low)/(high-low):0;
+            var a=FloorSample(x,low);var b=FloorSample(x+spacing,low);var c=FloorSample(x,high);var d=FloorSample(x+spacing,high);
+            double floor=u+v<=1?a.Height+(b.Height-a.Height)*u+(c.Height-a.Height)*v:d.Height+(c.Height-d.Height)*(1-u)+(b.Height-d.Height)*(1-v);
+            if(includeWater&&u+v<=1&&(a.Wet||b.Wet||c.Wet))floor=Math.Max(floor,WaterVertex(a)+(WaterVertex(b)-WaterVertex(a))*u+(WaterVertex(c)-WaterVertex(a))*v);
+            else if(includeWater&&u+v>1&&(b.Wet||c.Wet||d.Wet))floor=Math.Max(floor,WaterVertex(d)+(WaterVertex(c)-WaterVertex(d))*(1-u)+(WaterVertex(b)-WaterVertex(d))*(1-v));
             return floor;
         }
-        private static double WaterVertex(TerrainSample s){return (double.IsNegativeInfinity(s.WaterHeight)?s.Height-1:s.WaterHeight)+.1;}
+        internal double CollisionHeight(double along,double across){return FloorHeight(along,across,false);}
+        internal double CameraFloor(double along,double across){return FloorHeight(along,across,true);}
+        private static int[] Nondegenerate(Vector3[] vertices,int[] indices)
+        {
+            var result=new List<int>(indices.Length);
+            for(int i=0;i<indices.Length;i+=3)if(Vector3.Cross(vertices[indices[i+1]]-vertices[indices[i]],vertices[indices[i+2]]-vertices[indices[i]]).sqrMagnitude>1e-8f)
+            {result.Add(indices[i]);result.Add(indices[i+1]);result.Add(indices[i+2]);}
+            return result.ToArray();
+        }
+        private double WaterVertex(TerrainSample s)
+        {
+            var f=RingworldFlight.Instance;bool waves=settings.WaterQuality>1||(f!=null&&f.visuals!=null&&f.visuals.PhotoActive);
+            return (double.IsNegativeInfinity(s.WaterHeight)?s.Height-1:s.WaterHeight)+.1+(waves?settings.WaveHeight:0);
+        }
         internal void Reposition(Vector3d star)
         {
             foreach(var t in tiles.Values)Place(t.Root,t.Anchor,t.Phase,Quaternion.identity,star);
@@ -137,20 +168,22 @@ namespace NivenRingworld
             t.Root.layer=15;
             int count=(n+1)*(n+1);var vertices=new Vector3[count];var uv=new Vector2[count];var heights=new double[count];
             var colors=new Color[count];
-            var waterVerts=new Vector3[count];var wet=new bool[count];
+            var waterVerts=new Vector3[count];var waterUv=new Vector2[count];var wet=new bool[count];
             for(int y=0;y<=n;y++)for(int x=0;x<=n;x++)
             {
-                int i=y*(n+1)+x;double a=x0+size*x/n,b=y0+size*y/n;
-                var sample=settings.Terrain.Sample(a,b);heights[i]=sample.Height;
+                int i=y*(n+1)+x;double a=x0+size*x/n,b=Across(y0+size*y/n);
+                var sample=FloorSample(a,b);heights[i]=sample.Height;
                 vertices[i]=ConvertVector.Unity(settings.Geometry.Position(a,b,sample.Height)-t.Anchor);
                 uv[i]=new Vector2((x+.5f)/(n+1),(y+.5f)/(n+1));colors[i]=TerrainTint.Color(sample);
                 wet[i]=sample.Wet;
                 double water=double.IsNegativeInfinity(sample.WaterHeight)?sample.Height-1:sample.WaterHeight;
                 waterVerts[i]=ConvertVector.Unity(settings.Geometry.Position(a,b,water+.1)-t.Anchor);
+                waterUv[i]=new Vector2((float)Math.Max(0,water-sample.Height),0);
             }
             var indices=new List<int>(n*n*6);var waterIndices=new List<int>();
             for(int y=0;y<n;y++)for(int x=0;x<n;x++)
             {
+                if(y0+size*y/n>=settings.Geometry.P.Width/2||y0+size*(y+1)/n<=-settings.Geometry.P.Width/2)continue;
                 int a=y*(n+1)+x,b=a+1,c=a+n+1,d=c+1;
                 // Across cross Along points inward with this ring parameterization.
                 Add(indices,a,c,b);Add(indices,b,c,d);
@@ -163,22 +196,22 @@ namespace NivenRingworld
             var colorBlock=new MaterialPropertyBlock();colorBlock.SetTexture("_MainTex",t.Texture);renderer.SetPropertyBlock(colorBlock);
             var shellVertices=new Vector3[count*2];Array.Copy(vertices,shellVertices,count);
             for(int y=0;y<=n;y++)for(int x=0;x<=n;x++)
-                shellVertices[count+y*(n+1)+x]=ConvertVector.Unity(settings.Geometry.Position(x0+size*x/n,y0+size*y/n,settings.UndersideAltitude)-t.Anchor);
+                shellVertices[count+y*(n+1)+x]=ConvertVector.Unity(settings.Geometry.Position(x0+size*x/n,Across(y0+size*y/n),settings.UndersideAltitude)-t.Anchor);
             var shellIndices=GroundShell.Triangles(n);
-            var shell=new Mesh{name="Closed ring collision shell"};shell.vertices=shellVertices;shell.triangles=shellIndices;shell.RecalculateBounds();t.Meshes.Add(shell);
-            t.Root.AddComponent<MeshCollider>().sharedMesh=shell;
+            var shell=new Mesh{name="Closed ring collision shell"};shell.vertices=shellVertices;shell.triangles=Nondegenerate(shellVertices,shellIndices);shell.RecalculateBounds();t.Meshes.Add(shell);
+            var floorCollider=t.Root.AddComponent<MeshCollider>();floorCollider.sharedMesh=shell;floorCollider.sharedMaterial=groundFriction;
             // Render only underside and edges here; the terrain renderer owns the top.
             var undersideIndices=new int[shellIndices.Length-n*n*6];Array.Copy(shellIndices,n*n*6,undersideIndices,0,undersideIndices.Length);
-            var undersideMesh=new Mesh{name="Scrith underside and edges"};undersideMesh.vertices=shellVertices;undersideMesh.triangles=undersideIndices;undersideMesh.RecalculateNormals();undersideMesh.RecalculateBounds();t.Meshes.Add(undersideMesh);
+            var undersideMesh=new Mesh{name="Scrith underside and edges"};undersideMesh.vertices=shellVertices;undersideMesh.triangles=Nondegenerate(shellVertices,undersideIndices);undersideMesh.RecalculateNormals();undersideMesh.RecalculateBounds();t.Meshes.Add(undersideMesh);
             var underside=new GameObject("Ring structural underside");underside.layer=15;underside.transform.SetParent(t.Root.transform,false);
             underside.AddComponent<MeshFilter>().sharedMesh=undersideMesh;var undersideRenderer=underside.AddComponent<MeshRenderer>();undersideRenderer.sharedMaterial=scrithMaterial;
             undersideRenderer.shadowCastingMode=ShadowCastingMode.Off;
             AddRimWalls(t,x0,y0,size);
-            AddScenery(t,x0,y0,size);
+            RebuildScenery(t);
             if(waterIndices.Count>0)
             {
                 var water=new GameObject("Water");water.layer=15;water.transform.SetParent(t.Root.transform,false);
-                var mesh=new Mesh{name="Ringworld water"};mesh.vertices=waterVerts;mesh.SetTriangles(waterIndices,0);mesh.RecalculateNormals();mesh.RecalculateBounds();t.Meshes.Add(mesh);
+                var mesh=new Mesh{name="Ringworld water"};mesh.vertices=waterVerts;mesh.uv=waterUv;mesh.SetTriangles(waterIndices,0);mesh.RecalculateNormals();mesh.RecalculateBounds();var bounds=mesh.bounds;bounds.Expand(4);mesh.bounds=bounds;t.Meshes.Add(mesh);
                 water.AddComponent<MeshFilter>().sharedMesh=mesh;water.AddComponent<MeshRenderer>().sharedMaterial=waterMaterial;
             }
             return t;
@@ -188,51 +221,93 @@ namespace NivenRingworld
             foreach(int sign in new[]{-1,1})
             {
                 double edge=sign*settings.Geometry.P.Width/2;
-                if(edge<y0||edge>=y0+size)continue;
-                var v=new Vector3[4];
-                v[0]=ConvertVector.Unity(settings.Geometry.Position(x0,edge,-100)-t.Anchor);
-                v[1]=ConvertVector.Unity(settings.Geometry.Position(x0+size,edge,-100)-t.Anchor);
-                v[2]=ConvertVector.Unity(settings.Geometry.Position(x0,edge,settings.Geometry.P.WallHeight)-t.Anchor);
-                v[3]=ConvertVector.Unity(settings.Geometry.Position(x0+size,edge,settings.Geometry.P.WallHeight)-t.Anchor);
-                var mesh=new Mesh{name="Atmosphere retaining rim wall"};mesh.vertices=v;mesh.triangles=new[]{0,1,2,1,3,2,2,1,0,2,3,1};mesh.RecalculateNormals();mesh.RecalculateBounds();t.Meshes.Add(mesh);
+                if(sign>0?(edge<=y0||edge>y0+size):(edge<y0||edge>=y0+size))continue;
+                var v=new Vector3[8];double outer=edge+sign*settings.StructuralThickness;
+                for(int end=0;end<2;end++)for(int j=0;j<4;j++)
+                    v[end*4+j]=ConvertVector.Unity(settings.Geometry.Position(x0+end*size,j<2?edge:outer,j==1||j==2?settings.Geometry.P.WallHeight:settings.UndersideAltitude)-t.Anchor);
+                var faceVertices=new List<Vector3>();var faces=new List<int>();Vector3 center=Vector3.zero;foreach(var point in v)center+=point/8;
+                int[][] quads={new[]{0,1,5,4},new[]{1,2,6,5},new[]{2,3,7,6},new[]{3,0,4,7},new[]{0,3,2,1},new[]{4,5,6,7}};
+                foreach(var q in quads)
+                {
+                    var normal=Vector3.Cross(v[q[1]]-v[q[0]],v[q[2]]-v[q[0]]);
+                    var faceCenter=(v[q[0]]+v[q[1]]+v[q[2]]+v[q[3]])/4;
+                    if(Vector3.Dot(normal,faceCenter-center)<0){int swap=q[1];q[1]=q[3];q[3]=swap;}
+                    int start=faceVertices.Count;foreach(int index in q)faceVertices.Add(v[index]);
+                    faces.AddRange(new[]{start,start+1,start+2,start,start+2,start+3});
+                }
+                var mesh=new Mesh{name="Solid atmosphere retaining rim wall"};mesh.SetVertices(faceVertices);mesh.triangles=faces.ToArray();mesh.RecalculateNormals();mesh.RecalculateBounds();t.Meshes.Add(mesh);
                 var wall=new GameObject("Scrith rim wall");wall.layer=15;wall.transform.SetParent(t.Root.transform,false);
                 wall.AddComponent<MeshFilter>().sharedMesh=mesh;wall.AddComponent<MeshRenderer>().sharedMaterial=scrithMaterial;wall.AddComponent<MeshCollider>().sharedMesh=mesh;
             }
         }
-        private void TileProp(Tile t,string name,double a,double b,double altitude,Vector3 scale,Material mat,PrimitiveType shape)
+        private void TileProp(Tile t,string name,double a,double b,double altitude,Vector3 scale,Material mat,PrimitiveType shape,string assetKind=null)
         {
             var point=settings.Geometry.Position(a,b,altitude);
-            var obj=GameObject.CreatePrimitive(shape);obj.name=name;obj.layer=15;obj.transform.SetParent(t.Root.transform,false);
+            var obj=SceneryAssets.Create(assetKind??(name=="Weathered rural habitation"?"rural_building":name=="Weathered boulder"?"boulder":""),(int)(t.X^t.Y));bool imported=obj!=null;
+            if(obj==null)obj=GameObject.CreatePrimitive(shape);obj.name=name;obj.layer=15;obj.transform.SetParent(t.Scenery.transform,false);
             obj.transform.localPosition=ConvertVector.Unity(point-t.Anchor);
             obj.transform.localRotation=Quaternion.FromToRotation(Vector3.up,ConvertVector.Unity(settings.Geometry.Up(point)));
-            obj.transform.localScale=scale;obj.GetComponent<Renderer>().sharedMaterial=mat;
+            obj.transform.localScale=scale;if(!imported)obj.GetComponent<Renderer>().sharedMaterial=mat;
+            if(imported)foreach(var collider in obj.GetComponentsInChildren<Collider>())collider.sharedMaterial=groundFriction;
+        }
+        private void RebuildScenery(Tile t)
+        {
+            if(t.Scenery!=null)UnityEngine.Object.Destroy(t.Scenery);t.Scenery=new GameObject("Ring tile scenery");t.Scenery.transform.SetParent(t.Root.transform,false);
+            double old=settings.Geometry.OrientationRadians;settings.Geometry.OrientationRadians=t.Phase;
+            try{AddScenery(t,t.X*settings.TileSize,t.Y*settings.TileSize,settings.TileSize);}finally{settings.Geometry.OrientationRadians=old;}
         }
         private void AddScenery(Tile t,double x0,double y0,double size)
         {
-            for(int y=0;y<8;y++)for(int x=0;x<8;x++)
+            for(int y=0;y<8&&StockGraphics.Scatter>0;y++)for(int x=0;x<8;x++)
             {
                 long cellX=t.X*8+x,cellY=t.Y*8+y;
-                double a=x0+(x+.08+.84*settings.Terrain.Scatter(cellX,cellY,91))*size/8;
-                double b=y0+(y+.08+.84*settings.Terrain.Scatter(cellX,cellY,93))*size/8;
+                double a=x0+(settings.GenerationVersion>=3?settings.Terrain.Scatter(cellX,cellY,91)*size:(x+.08+.84*settings.Terrain.Scatter(cellX,cellY,91))*size/8);
+                double b=y0+(settings.GenerationVersion>=3?settings.Terrain.Scatter(cellX,cellY,93)*size:(y+.08+.84*settings.Terrain.Scatter(cellX,cellY,93))*size/8);
+                if(Math.Abs(b)>=settings.Geometry.P.Width/2)continue;
                 var sample=settings.Terrain.Sample(a,b);if(sample.Wet||sample.Biome==Biome.Rimwall||sample.Biome==Biome.Ruins)continue;
                 double variation=settings.Terrain.Scatter(cellX,cellY,97);
+                if(settings.Terrain.Scatter(cellX,cellY,907)>StockGraphics.Scatter)continue;
                 double grove=settings.Terrain.Noise(a,b,1100,99);
-                if((sample.Biome==Biome.Forest&&variation<grove*.85*settings.ForestDensity)||(sample.Biome==Biome.Grassland&&variation>1-.08*settings.ForestDensity&&grove>.55))
+                if(settings.GenerationVersion>=4?variation<Ecology.Sample(settings.Terrain,a,b).TreeCover*grove*settings.ForestDensity:(sample.Biome==Biome.Forest&&variation<grove*.85*settings.ForestDensity)||(sample.Biome==Biome.Grassland&&variation>1-.08*settings.ForestDensity&&grove>.55))
                 {
                     float h=(float)(8+12*variation);
+                    bool conifer=settings.GenerationVersion>=3&&settings.Terrain.Noise(a,b,18000,601)>.5;
+                    var model=SceneryAssets.Create(conifer?"tree_conifer":"tree_broadleaf",(int)(variation*100000));
+                    if(model!=null)
+                    {
+                        var point=settings.Geometry.Position(a,b,sample.Height);model.transform.SetParent(t.Scenery.transform,false);
+                        model.transform.localPosition=ConvertVector.Unity(point-t.Anchor);
+                        model.transform.localRotation=Quaternion.FromToRotation(Vector3.up,ConvertVector.Unity(settings.Geometry.Up(point)))*Quaternion.Euler(0,(float)(variation*360),0);
+                        model.transform.localScale=Vector3.one*h;
+                        foreach(var collider in model.GetComponentsInChildren<Collider>())collider.sharedMaterial=groundFriction;
+                        continue;
+                    }
                     TileProp(t,"Procedural tree trunk",a,b,sample.Height+h/2,new Vector3(1.5f,h/2,1.5f),scrithMaterial,PrimitiveType.Cylinder);
-                    TileProp(t,"Procedural tree canopy",a,b,sample.Height+h,new Vector3(h*.7f,h*.7f,h*.7f),leavesMaterial,PrimitiveType.Sphere);
+                    if(conifer)
+                        for(int tier=0;tier<3;tier++)TileProp(t,"Conifer foliage tier",a,b,sample.Height+h*(.6+tier*.18),new Vector3(h*(.65f-tier*.16f),h*.35f,h*(.65f-tier*.16f)),leavesMaterial,PrimitiveType.Sphere);
+                    else TileProp(t,"Broadleaf canopy",a,b,sample.Height+h,settings.GenerationVersion>=3?new Vector3(h*.85f,h*.55f,h*.7f):new Vector3(h*.7f,h*.7f,h*.7f),leavesMaterial,PrimitiveType.Sphere);
                 }
                 else if(variation>.9&&sample.Biome!=Biome.Road)
-                    TileProp(t,"Weathered boulder",a,b,sample.Height+1,new Vector3(4,3,5),scrithMaterial,PrimitiveType.Sphere);
+                {
+                    if(sample.Shore>.1)
+                        TileProp(t,"Shore driftwood",a,b,sample.Height+.4,new Vector3(4,.8f,2),scrithMaterial,PrimitiveType.Sphere,"driftwood");
+                    else if(sample.Biome==Biome.Forest&&variation>.94)
+                    {
+                        string[] kinds={"dead_tree","stump","fallen_log","root_cluster","bush"};int which=(int)(settings.Terrain.Scatter(cellX,cellY,953)*kinds.Length)%kinds.Length;
+                        Vector3 size=which==0?new Vector3(3,6,3):which==1?new Vector3(2,1.2f,2):which==2?new Vector3(4,1,2):which==3?new Vector3(3,.6f,3):new Vector3(2,1.5f,2);
+                        TileProp(t,"Forest "+kinds[which],a,b,sample.Height+size.y*.5,size,scrithMaterial,PrimitiveType.Sphere,kinds[which]);
+                    }
+                    else TileProp(t,"Weathered boulder",a,b,sample.Height+1,new Vector3(4,3,5),scrithMaterial,PrimitiveType.Sphere);
+                }
             }
             double ca=x0+size*(.2+.6*settings.Terrain.Scatter(t.X,t.Y,103)),cb=y0+size*(.2+.6*settings.Terrain.Scatter(t.X,t.Y,107));var center=settings.Terrain.Sample(ca,cb);
-            if((center.Biome==Biome.Grassland||center.Biome==Biome.Desert)&&settings.Terrain.Noise(ca,cb,50,101)>.97)
+            if(Math.Abs(cb)<settings.Geometry.P.Width/2&&(center.Biome==Biome.Grassland||center.Biome==Biome.Desert)&&(settings.GenerationVersion>=3?settings.Terrain.Scatter(t.X,t.Y,101):settings.Terrain.Noise(ca,cb,50,101))>.97)
             {
                 for(int i=-2;i<=2;i++)
                 {
                     double a=ca+i*48+(settings.Terrain.Scatter(t.X+i,t.Y,109)-.5)*25;
                     double b=cb+(settings.Terrain.Scatter(t.X+i,t.Y,113)-.5)*120;
+                    if(Math.Abs(b)>=settings.Geometry.P.Width/2)continue;
                     var sample=settings.Terrain.Sample(a,b);if(sample.Wet||sample.Biome==Biome.Road)continue;
                     float height=(float)(5+settings.Terrain.Scatter(t.X+i,t.Y,127)*19);
                     TileProp(t,"Weathered rural habitation",a,b,sample.Height+height/2,new Vector3(18,height,24),buildingMaterial,PrimitiveType.Cube);
@@ -240,21 +315,37 @@ namespace NivenRingworld
             }
         }
         private static void Add(List<int> a,int x,int y,int z){a.Add(x);a.Add(y);a.Add(z);}
-        private void Prop(string name,double along,double across,double height,Vector3 size,Material mat,PrimitiveType shape=PrimitiveType.Cube)
+        private bool Prop(string name,double along,double across,double height,Vector3 size,Material mat,PrimitiveType shape=PrimitiveType.Cube,string assetKind=null)
         {
             var position=settings.Geometry.Position(along,across,height);
-            var obj=GameObject.CreatePrimitive(shape);obj.name=name;obj.layer=15;
+            string kind=name=="Research plinth"?"research_station":name=="Exposed scrith plate"?"scrith_outcrop":name=="Habitat block"?"habitat_block":name=="Abandoned tower"?"ruin_tower":name=="Roof machinery"?"roof_machinery":name=="Transport causeway"?"transport_causeway":name=="Rim transport gantry"?"terminal_gantry":"";
+            var obj=SceneryAssets.Create(assetKind??kind,0);bool imported=obj!=null;if(obj==null)obj=GameObject.CreatePrimitive(shape);obj.name=name;obj.layer=15;
             obj.transform.rotation=Quaternion.FromToRotation(Vector3.up,ConvertVector.Unity(settings.Geometry.Up(position)));
-            obj.transform.localScale=size;obj.GetComponent<Renderer>().sharedMaterial=mat;
+            obj.transform.localScale=size;if(!imported)obj.GetComponent<Renderer>().sharedMaterial=mat;
+            foreach(var collider in obj.GetComponentsInChildren<Collider>())collider.sharedMaterial=groundFriction;
             props.Add(obj);propPositions.Add(position);propRotations.Add(obj.transform.rotation);
+            return imported;
+        }
+        private void Decor(Landmark site,string kind,double da,double db,Vector3 size)
+        {
+            double a=site.Along+da,b=site.Across+db;if(Math.Abs(b)>=settings.Geometry.P.Width/2)return;
+            var sample=settings.Terrain.Sample(a,b);if(sample.Wet)return;
+            var f=RingworldFlight.Instance;var v=FlightGlobals.ActiveVessel;
+            if(f!=null&&f.Active&&v!=null&&f.Owns(v)&&(f.Position(v)-settings.Geometry.Position(a,b,sample.Height)).Length<Math.Max(size.x,Math.Max(size.y,size.z))*1.5+50)return;
+            Prop("Ringworld "+kind,a,b,sample.Height+size.y*.5,size,scrithMaterial,PrimitiveType.Cube,kind);
         }
         private void BuildProps(Landmark l)
         {
+            if(l.Id=="spill")
+            {
+                Decor(l,"flup_outlet",220,0,new Vector3(80,60,100));Decor(l,"sediment_nozzle",220,140,new Vector3(35,30,60));Decor(l,"pump_station",320,0,new Vector3(60,45,65));Decor(l,"maintenance_platform",320,130,new Vector3(55,20,55));
+                return;
+            }
             if(l.Kind=="ocean"||l.Kind=="mountain"||l.Kind=="puncture"||l.Kind=="waterway")return;
             double h=settings.Terrain.Sample(l.Along,l.Across).Height;
             Prop("Research plinth",l.Along+45,l.Across,h+3,new Vector3(9,6,9),scrithMaterial);
             if(l.Kind=="scrith")
-            { Prop("Exposed scrith plate",l.Along,l.Across,h+.3,new Vector3(90,.6f,90),scrithMaterial);return; }
+            { Prop("Exposed scrith plate",l.Along,l.Across,h+.3,new Vector3(90,.6f,90),scrithMaterial);Decor(l,"conduit_live",150,0,new Vector3(65,.5f,40));Decor(l,"conduit_dark",150,90,new Vector3(65,.5f,40));return; }
             int n=l.Kind=="city"?7:3;
             for(int y=0;y<n;y++)for(int x=0;x<n;x++)
             {
@@ -263,20 +354,33 @@ namespace NivenRingworld
                 double a=l.Along+(x-n/2)*95+jitterA,b=l.Across+(y-n/2)*95+jitterB;
                 float bh=l.Kind=="city"?18+(x*17+y*31)%105:12+(x*7+y*13)%15;
                 double floor=settings.Terrain.Sample(a,b).Height;
-                Prop("Habitat block",a,b,floor+bh/2,new Vector3(36,bh,42),buildingMaterial);
+                bool importedBlock=Prop(l.Kind=="city"?"Abandoned tower":"Habitat block",a,b,floor+bh/2,new Vector3(36,bh,42),buildingMaterial);
                 Prop("Roof machinery",a,b,floor+bh+2,new Vector3(24,4,30),scrithMaterial);
                 // Dark window bands are shallow physical trim, requiring no imported textures.
-                for(int f=1;f<bh/9;f++)Prop("Window belt",a,b,floor+f*9,new Vector3(36.3f,1.8f,42.3f),scrithMaterial);
+                if(!importedBlock)for(int f=1;f<bh/9;f++)Prop("Window belt",a,b,floor+f*9,new Vector3(36.3f,1.8f,42.3f),scrithMaterial);
             }
             Prop("Transport causeway",l.Along,l.Across,h+.5,new Vector3(28,1,650),scrithMaterial);
             if(l.Kind=="terminal")Prop("Rim transport gantry",l.Along+130,l.Across,h+45,new Vector3(20,90,20),scrithMaterial);
+            if(l.Kind=="terminal")
+            {
+                Decor(l,"rim_hatch",260,0,new Vector3(18,8,20));Decor(l,"rim_airlock",320,0,new Vector3(24,15,24));Decor(l,"elevator_base",420,0,new Vector3(35,70,35));Decor(l,"transit_tube",260,-100,new Vector3(25,20,80));Decor(l,"maglev_segment",360,-100,new Vector3(20,2,80));
+            }
+            else if(l.Kind=="city")
+            {
+                Decor(l,"crashed_city_disk",650,0,new Vector3(220,55,220));Decor(l,"city_disk_fragment",650,230,new Vector3(110,30,100));Decor(l,"levitation_grid",450,340,new Vector3(70,3,60));Decor(l,"debris_beam",550,340,new Vector3(55,8,14));
+            }
+            else
+            {
+                Decor(l,"stone_enclosure",280,0,new Vector3(20,2,20));Decor(l,"watchtower",320,0,new Vector3(9,16,9));Decor(l,"campfire",280,40,new Vector3(3,.5f,3));Decor(l,"bridge_segment",280,110,new Vector3(35,4,10));
+            }
         }
         private void ClearProps(){foreach(var p in props)UnityEngine.Object.Destroy(p);props.Clear();propPositions.Clear();propRotations.Clear();}
         private static void Destroy(Tile t){UnityEngine.Object.Destroy(t.Texture);UnityEngine.Object.Destroy(t.Root);foreach(var m in t.Meshes)UnityEngine.Object.Destroy(m);}
         public void Dispose()
         {
             foreach(var t in tiles.Values)Destroy(t);tiles.Clear();ClearProps();
-            lod.Dispose();UnityEngine.Object.Destroy(sunlightObject);
+            SceneryAssets.Release();
+            lod.Dispose();UnityEngine.Object.Destroy(groundFriction);UnityEngine.Object.Destroy(sunlightObject);
             UnityEngine.Object.Destroy(terrainMaterial);UnityEngine.Object.Destroy(waterMaterial);UnityEngine.Object.Destroy(buildingMaterial);UnityEngine.Object.Destroy(scrithMaterial);UnityEngine.Object.Destroy(leavesMaterial);UnityEngine.Object.Destroy(palette);
         }
     }

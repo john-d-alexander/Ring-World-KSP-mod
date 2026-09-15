@@ -7,3 +7,9 @@ local.settings.ps1
 template_instance/
 template/
 .tools/
+
+tools/VisualShaders/Library/
+tools/VisualShaders/Logs/
+tools/VisualShaders/Temp/
+tools/VisualShaders/obj/
+tools/VisualShaders/UserSettings/

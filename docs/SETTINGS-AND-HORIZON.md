@@ -1,3 +1,7 @@
+> For the new full-circumference surface colour layer and photo mode, see [HIGH-END-VISUALS.md](HIGH-END-VISUALS.md).
+
+> Historical v0.4 notes. Current bounds, physics and settings are in [ORBITS-WARP-AND-ASSETS.md](ORBITS-WARP-AND-ASSETS.md).
+
 # Save settings and the long horizon — v0.4.0
 
 Open the Ringworld panel with Alt+R, then select **Settings**. Apply changes and save the game to persist them. Settings belong to the save, not to every KSP career on the installation.

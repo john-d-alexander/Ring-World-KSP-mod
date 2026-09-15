@@ -49,12 +49,19 @@ namespace NivenRingworld
         internal static float Wobble(FlightCamera camera)
         {
             var v=FlightGlobals.ActiveVessel;
-            return v!=null&&v.isEVA&&StockIntegration.Applies(v)?0:camera.cameraWobbleSensitivity;
+            return QuietCamera(v)?0:camera.cameraWobbleSensitivity;
         }
         internal static float Effects()
         {
             var v=FlightGlobals.ActiveVessel;
-            return v!=null&&v.isEVA&&StockIntegration.Applies(v)?0:GameSettings.CAMERA_FX_EXTERNAL;
+            return QuietCamera(v)?0:GameSettings.CAMERA_FX_EXTERNAL;
+        }
+        private static bool QuietCamera(Vessel v)
+        {
+            if(!StockIntegration.Applies(v))return false;
+            if(v.isEVA)return true;
+            foreach(var part in v.parts)if(part.GroundContact)return true;
+            return RingworldFlight.Instance.SurfaceClearance(v)<10&&RingworldFlight.Instance.Velocity(v).Length<1;
         }
         private static Vector3d Up()
         {

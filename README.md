@@ -1,5 +1,27 @@
 # Niven Ringworld Expedition — KSP 1.12.5
 
+## First Blender scenery set
+
+Eight original low-poly assets now replace the local broadleaf/conifer, boulder and rural-building placeholders. Each has three LOD meshes and simple collision proxies; all share a 512px atlas. Editable sources and previews are in `art/first-set/`. See the [asset guide and rebuild instructions](docs/BLENDER-ASSETS.md). This first set is stylized; detailed Ringworld structures and distant forest/city impostors remain future work.
+
+## Version 0.9 weather and night update
+
+Continuous UT-driven cloud drift replaces timed cloud rebuilds. Shared weather can evolve from fair skies to visual rain/thunderstorms, with separate controls and quality-scaled precipitation. Daytime starfield suppression preserves celestial renderers. Moving analytical night bands apply to the whole ring, including the low-detail setting and scaled terrain. See [weather, warp and night visibility](docs/WEATHER-AND-NIGHT.md).
+
+## Version 0.8 visual update
+
+Optional High/Ultra GPU volumetric clouds and atmospheric scattering, independent Ringworld water quality with animated waves, and a frozen tiled photo renderer. A full-ring surface detail option adds seeded distant land/ocean/cloud colour beyond the terrain horizon. Photo mode waits for finer terrain LOD and restores normal settings on resume. Laptop remains the default. See [high-end visuals and photo mode](docs/HIGH-END-VISUALS.md).
+
+## Version 0.7 development update
+
+Stock warp controls now support resting ring expeditions through native rails anchoring. Terrain has explicit friction, ground-contact craft share EVA camera-shake suppression, and re-entry effects use ring-relative airflow. Coarse hull geometry is moved below the terrain, walls have closed thickness, and LOD blocks publish progressively. See [stock warp and rendering](docs/STOCK-WARP-AND-RENDERING.md) and the [combined biome/asset catalog](docs/BIOME-ASSET-CATALOG.md).
+
+## Version 0.6 development update
+
+Smooth climate-blended biomes for new worlds, shallow ordinary relief, batched grass/shore stones/litter, visual sunflower patches and local dust/pollen. Graphics follow KSP's native settings. The laptop preset now includes 75 m ground detail. A random procedural-site button transfers the craft with ring-matched velocity for rendering inspection.
+
+Read [biomes, graphics and random visits](docs/BIOMES-AND-GRAPHICS.md), the [Blender asset tracker](docs/ASSET-TRACKER.md), and the existing [physics/warp contract](docs/ORBITS-WARP-AND-ASSETS.md). Older saves retain their terrain generator; use a new Sandbox save for v4 terrain.
+
 An experimental, source-included KSP 1 mod implementing a **1:10 linear-scale, star-encircling ring habitat**. This is an early playable-physics prototype, not a finished planet pack or a complete recreation of the novels.
 
 The development game is `template_instance` beside this file. The included **HarmonyKSP 2.2.1.0** library applies scoped stock-compatibility patches. No Kopernicus, ModuleManager, or downloaded art packs are required. The survey instrument references the thermometer model in your own KSP installation; no game assets are redistributed.
@@ -10,9 +32,9 @@ The development game is `template_instance` beside this file. The included **Har
 2. Build and launch a small rocket lander with landing legs, sufficient thrust for 1 g, and the **RW-1 Ringworld Surveyor** from the Science category. Bring a transmitter and electrical power for science transmission. Rockets are supported by stock propulsion; atmospheric aircraft are not yet fully supported.
 3. The **Niven Ringworld** flight panel opens automatically. **Left Alt+R** toggles it.
 4. To test orbital entry, choose a site and click **Training: set up a spin-matched approach**. This explicitly places the craft at 250 km with a 1 km/s descent and matched tangential motion. Entry then happens automatically near 210 km above the floor datum; air starts at 60 km. Fly and brake the descent. For direct surface exploration, choose **Explorer's landing field** and click **Begin expedition**. This relocates the current craft to 300 m above the ring by default; the height slider allows 60–2,000 m. Control your descent: it begins at rest and falls under approximately 1 g. This is not an automatic landing.
-5. Use the panel's **Above ground** and **Ring speed** readouts. The stock navball and altimeter still refer to the Sun and do not describe the ring surface.
+5. Use the panel's **Above ground** and **Ring speed** readouts. During an active expedition, the stock altimeter reports ring ground/water clearance and speed cues use the ring-relative frame.
 6. Land, drive, explore the nearby abandoned city or scrith excavation, and right-click the RW-1 to **Survey Ringworld**. Data can be reviewed, transmitted through a stock antenna, transferred through stock science containers, or recovered after return to a stock body.
-7. The destination list provides expedition relocation to distant sites. These jumps are an exploration aid; the distances are genuinely enormous. Ordinary high time warp is held at 1x during an expedition because stock patched conics cannot represent a stationary object on the ring.
+7. The destination list provides expedition relocation to distant sites. These jumps are an exploration aid; the distances are genuinely enormous. Use stock high time warp after settling on dry terrain. Ring craft use a custom surface anchor while KSP advances the universal clock; airborne ring flight remains at 1x.
 
 **Leaving the ring frame** converts the loaded expedition craft to inertial velocity, including the ring's approximately **386 km/s** surface speed. This is physically well above solar escape speed. It is not a return-to-Kerbin shortcut.
 

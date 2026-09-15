@@ -1,0 +1,100 @@
+{
+  "status": "success",
+  "result": {
+    "name": "Ringworld \u2014 Scenery Review",
+    "object_count": 28,
+    "objects": [
+      {
+        "name": "broadleaf_spreading_01_LOD0.001",
+        "type": "MESH",
+        "location": [
+          -7.8,
+          2.8,
+          0.0
+        ]
+      },
+      {
+        "name": "Review plinth",
+        "type": "MESH",
+        "location": [
+          -7.8,
+          2.8,
+          -0.12
+        ]
+      },
+      {
+        "name": "Text",
+        "type": "FONT",
+        "location": [
+          -7.8,
+          0.6,
+          0.01
+        ]
+      },
+      {
+        "name": "broadleaf_windswept_02_LOD0.001",
+        "type": "MESH",
+        "location": [
+          -2.6,
+          2.8,
+          0.0
+        ]
+      },
+      {
+        "name": "Review plinth.001",
+        "type": "MESH",
+        "location": [
+          -2.6,
+          2.8,
+          -0.12
+        ]
+      },
+      {
+        "name": "Text.001",
+        "type": "FONT",
+        "location": [
+          -2.6,
+          0.6,
+          0.01
+        ]
+      },
+      {
+        "name": "conifer_layered_01_LOD0.001",
+        "type": "MESH",
+        "location": [
+          2.6,
+          2.8,
+          0.0
+        ]
+      },
+      {
+        "name": "Review plinth.002",
+        "type": "MESH",
+        "location": [
+          2.6,
+          2.8,
+          -0.12
+        ]
+      },
+      {
+        "name": "Text.002",
+        "type": "FONT",
+        "location": [
+          2.6,
+          0.6,
+          0.01
+        ]
+      },
+      {
+        "name": "conifer_slender_02_LOD0.001",
+        "type": "MESH",
+        "location": [
+          7.8,
+          2.8,
+          0.0
+        ]
+      }
+    ],
+    "materials_count": 6
+  }
+}
