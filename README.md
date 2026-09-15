@@ -126,3 +126,6 @@ Return expedition vessels to ordinary spaceflight first. Close KSP, then remove 
 ## Attribution
 
 An unofficial fan project inspired by Larry Niven's *Ringworld*. Niven's names, fictional setting, and book text are not licensed by this project's software license. Original code and newly authored descriptions are included; no book passages, maps, cover art, or models are copied. See [LICENSE](LICENSE).
+
+
+The stock ring toolbar button (or Alt+R) opens flight information; Sandbox additionally exposes testing transports and world settings. See [mod interoperability and the surface API](docs/MOD-INTEROPERABILITY.md), [global clouds](docs/GLOBAL-CLOUDS.md), and the [habitat/city asset inventory](docs/HABITAT-LIBRARY.md). Native Blender city sources and their preview are in `art/city-kit`.

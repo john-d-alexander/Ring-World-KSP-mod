@@ -70,6 +70,29 @@ namespace NivenRingworld
             foreach(var engine in v.FindPartModulesImplementing<ModuleEngines>())engine.Shutdown();
             // Fixture setup only: establish a spin-matched approach outside the capture shell.
             var flight=RingworldFlight.Instance;
+            try
+            {
+                var mode=HighLogic.CurrentGame.Mode;
+                try
+                {
+                    foreach(var testMode in new[]{Game.Modes.SANDBOX,Game.Modes.CAREER,Game.Modes.SCIENCE_SANDBOX})
+                    {
+                        HighLogic.CurrentGame.Mode=testMode;
+                        if(RingworldFlight.SandboxControls!=(testMode==Game.Modes.SANDBOX))throw new Exception("Sandbox control gate failed");
+                    }
+                }
+                finally{HighLogic.CurrentGame.Mode=mode;}
+                var launcher=AccessTools.Field(typeof(RingworldFlight),"toolbar").GetValue(flight);
+                if(launcher==null)throw new Exception("Ring toolbar missing");
+                var button=AccessTools.Field(typeof(RingToolbar),"button").GetValue(launcher);
+                if(button==null)throw new Exception("Stock launcher button missing");
+                GameEvents.onHideUI.Fire();if(((RingToolbar)launcher).UiVisible)throw new Exception("F2 hide ignored");
+                GameEvents.onShowUI.Fire();if(!((RingToolbar)launcher).UiVisible)throw new Exception("F2 show ignored");
+                RingworldSurfaceState outside;
+                if(RingworldSurfaceApi.TryGetSurfaceState(v,out outside))throw new Exception("Surface API captured an orbital vessel");
+                Debug.Log("[RingworldSmoke] TOOLBAR stock button present; Sandbox/Career/Science and F2 gates passed; API rejects orbital vessel");
+            }
+            catch(Exception ex){Fail("Toolbar/API: "+ex);yield break;}
             flight.ApplyOptions(RingworldScenario.Instance.GetOptions(),true);
             int worldSeed=flight.Settings.Geometry.P.Seed;
             var optionCopy=flight.Settings.Save();var optionCheck=Settings.Load();optionCheck.Apply(optionCopy);
@@ -194,6 +217,10 @@ namespace NivenRingworld
                 while(!flight.surfaceWarp.CanAdvance(flight)&&Time.realtimeSinceStartup<restDeadline)yield return null;
                 Debug.Log("[RingworldSmoke] RANDOM CONTACT status="+flight.surfaceWarp.Status+" speed="+flight.Velocity(v).Length+" clearance="+flight.SurfaceClearance(v));
                 if(!flight.surfaceWarp.CanAdvance(flight)){ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldRestFailure.png"));yield return new WaitForSecondsRealtime(1);Fail("Random crashed craft cannot settle: "+flight.surfaceWarp.Status);yield break;}
+                RingworldSurfaceState surfaceState;
+                if(!RingworldSurfaceApi.TryGetSurfaceState(v,out surfaceState)||surfaceState.SurfaceRelativeVelocity.magnitude>.1||Math.Abs(surfaceState.SurfaceUp.magnitude-1)>.00001||surfaceState.TangentialSpeed<100000)
+                {Fail("Surface API did not report a resting ring-relative state");yield break;}
+                Debug.Log("[RingworldSmoke] SURFACE API speed="+surfaceState.SurfaceRelativeVelocity.magnitude+" tangential="+surfaceState.TangentialSpeed+" biome="+surfaceState.Biome);
                 var nativeWarpPosition=flight.Position(v);var nativeHome=FlightGlobals.GetHomeBody().position-flight.Star.position;double nativeStart=Planetarium.GetUniversalTime();
                 flight.Settings.SurfaceWarpLimit=1000;
                 AccessTools.Method(typeof(TimeWarp),"btnSetHighRate").Invoke(TimeWarp.fetch,new object[]{5});

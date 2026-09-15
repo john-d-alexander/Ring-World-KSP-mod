@@ -14,6 +14,7 @@ namespace NivenRingworld
     }
     internal sealed class Settings
     {
+        private static bool warnedMultipleDefinitions;
         internal RingGeometry Geometry;
         internal TerrainGenerator Terrain;
         internal int TileResolution=32, TileRadius=3;
@@ -94,6 +95,7 @@ namespace NivenRingworld
         {
             var s=new Settings();var p=new RingParameters{SurfaceDensity=1000000};
             var nodes=GameDatabase.Instance.GetConfigNodes("NIVEN_RINGWORLD");
+            if(nodes.Length>1&&!warnedMultipleDefinitions){warnedMultipleDefinitions=true;Debug.LogWarning("[NivenRingworld] Multiple NIVEN_RINGWORLD definitions found. This release supports one habitat and uses the first definition; additional nodes do not spawn rings.");}
             if(nodes.Length>0)
             {
                 var n=nodes[0];

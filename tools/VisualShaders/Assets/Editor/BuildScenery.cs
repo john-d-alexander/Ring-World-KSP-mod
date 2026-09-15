@@ -16,7 +16,7 @@ public static class BuildScenery
         const string dest="Assets/Scenery";
         Directory.CreateDirectory(dest);
         var entries=new List<Entry>();
-        foreach(string directory in new[]{source,Path.Combine(root,"art/habitat-kit")})
+        foreach(string directory in new[]{source,Path.Combine(root,"art/habitat-kit"),Path.Combine(root,"art/city-kit")})
         {
             if(!File.Exists(Path.Combine(directory,"manifest.json")))continue;
             entries.AddRange(JsonUtility.FromJson<Catalog>(File.ReadAllText(Path.Combine(directory,"manifest.json"))).assets);

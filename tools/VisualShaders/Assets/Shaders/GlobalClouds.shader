@@ -12,9 +12,9 @@ Shader "NivenRingworld/GlobalClouds"
  #include "RingTerrainNoise.cginc"
  float4 _Size,_Local,_CloudHandoff,_WeatherState,_FrontDrift;
  float _DayPhase,_LocalAmount,_SegmentLength;float4 _LocalChart;
- struct a {float4 vertex:POSITION;float2 uv:TEXCOORD0;float2 field:TEXCOORD1;float2 chart:TEXCOORD2;};
- struct v {float4 vertex:SV_POSITION;float2 uv:TEXCOORD0;float2 field:TEXCOORD1;float2 chart:TEXCOORD2;};
- v vert(a i){v o;o.vertex=UnityObjectToClipPos(i.vertex);o.uv=i.uv;o.field=i.field;o.chart=i.chart;return o;}
+ struct a {float4 vertex:POSITION;float2 uv:TEXCOORD0;float2 field:TEXCOORD1;float2 chart:TEXCOORD2;float2 macro:TEXCOORD3;};
+ struct v {float4 vertex:SV_POSITION;float2 uv:TEXCOORD0;float2 field:TEXCOORD1;float2 chart:TEXCOORD2;float2 macro:TEXCOORD3;};
+ v vert(a i){v o;o.vertex=UnityObjectToClipPos(i.vertex);o.uv=i.uv;o.field=i.field;o.chart=i.chart;o.macro=i.macro;return o;}
  float4 frag(v i):SV_Target
  {
   float front=noise(i.uv+_FrontDrift.xy,800,1213);
@@ -31,7 +31,7 @@ Shader "NivenRingworld/GlobalClouds"
   // the transition, then return gradually to each distant region's own weather.
   amount=lerp(amount,_LocalAmount,_Local.w*(1-smoothstep(_CloudHandoff.y,_CloudHandoff.y*2+1,distanceToLocal)));
   float footprint=max(length(ddx(i.field)),length(ddy(i.field)))*64;
-  float cover=cloudCoverageLod(i.field*512000,amount,log2(max(.000001,footprint)));
+  float cover=cloudCoverageAt(i.field+_CloudOrigin.xy/512000,i.macro+_CloudMacroOrigin.xy,amount,log2(max(.000001,footprint)));
   float c=cover*cover;
   float opacity=1-(1-.3*c)*(1-.4*c)*(1-.3*c);
   opacity=1-pow(max(.001,1-opacity),1-near);

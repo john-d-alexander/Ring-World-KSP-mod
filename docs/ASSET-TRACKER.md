@@ -25,3 +25,8 @@ Existing registered model slots are `tree_broadleaf`, `tree_conifer`, `rural_bui
 Keep `.blend` sources outside GameData, inside the mod's `art/` folder. The first-party set uses Blender FBX to Unity prefab/AssetBundle exports; registered `.mu` models remain supported as overrides. See [BLENDER-ASSETS.md](BLENDER-ASSETS.md) for the source file, reproducible scripts, IDs, budgets and validation. Plan several silhouette variants with shared materials/atlases. Use simple trunk/building collision proxies; foliage, grass and litter should remain collision-free. Imported Unity LODGroups support local assets. Ground microdetail needs a batch/atlas adapter before swapping each blade for an individual imported GameObject.
 
 Far LOD currently draws terrain and water. It does not render every distant tree, ruin or pipe. Future city and forest impostors need their own distance/visibility budgets. Prioritize silhouette and shared materials over polygon density so the laptop remains the baseline.
+
+
+## Habitat and city expansion (2026-09-14)
+
+See [HABITAT-LIBRARY.md](HABITAT-LIBRARY.md) for the complete 45 additional asset kinds, per-LOD triangle counts, placement and collision limitations. Source kits: `art/habitat-kit` and `art/city-kit`.

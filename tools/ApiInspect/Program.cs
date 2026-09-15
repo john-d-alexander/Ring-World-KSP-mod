@@ -3,8 +3,29 @@ using System.IO;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Collections.Immutable;
+using System.Reflection.Metadata.Ecma335;
 
 using var file=File.OpenRead(args[0]);using var pe=new PEReader(file);var metadata=pe.GetMetadataReader();
+if(args.Length>2&&args[2]=="--field-users")
+{
+    foreach(var fieldHandle in metadata.FieldDefinitions)
+    {
+        var field=metadata.GetFieldDefinition(fieldHandle);if(!metadata.GetString(field.Name).Contains(args[1],StringComparison.OrdinalIgnoreCase))continue;
+        int token=MetadataTokens.GetToken(fieldHandle);
+        foreach(var typeHandle in metadata.TypeDefinitions)
+        {
+            var definition=metadata.GetTypeDefinition(typeHandle);
+            foreach(var methodHandle in definition.GetMethods())
+            {
+                var method=metadata.GetMethodDefinition(methodHandle);if(method.RelativeVirtualAddress==0)continue;
+                var il=pe.GetMethodBody(method.RelativeVirtualAddress).GetILBytes();
+                for(int i=0;i+4<il.Length;i++)if(il[i]>=0x7b&&il[i]<=0x80&&BitConverter.ToInt32(il,i+1)==token)
+                {Console.WriteLine(metadata.GetString(definition.Name)+"."+metadata.GetString(method.Name));break;}
+            }
+        }
+    }
+    return;
+}
 foreach(var handle in metadata.TypeDefinitions)
 {
     var type=metadata.GetTypeDefinition(handle);string name=metadata.GetString(type.Name);

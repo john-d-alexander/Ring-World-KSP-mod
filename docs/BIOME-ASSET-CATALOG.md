@@ -62,3 +62,8 @@ Live import slots: `tree_broadleaf`, `tree_conifer`, `rural_building`, `boulder`
 Future families: crashed floating-city disk sections, superconductive grid fragments, collapsed towers, primitive huts/enclosures/campfires/towers, rim access hatches/airlocks/elevators, maglev/transit ruins, flup outlets/pumps/sediment nozzles, exposed dark/live conduits. These are catalogued design targets, not implemented scatter systems.
 
 For each addition record: stable ID; applicable climate weights/final labels; density formula and independent salt; exclusions and slope/water tests; physical scale/pivot; model variants and material atlas; LOD distances and draw/vertex budget; collider policy; science/hazard behaviour; persistence/versioning impact; survey output and runtime test scene. Reuse existing slots where their transform contract fits; otherwise add a documented registry kind. Terrain or placement changes affecting existing craft require an explicit generator migration.
+
+
+## Habitat and city expansion (2026-09-14)
+
+See [HABITAT-LIBRARY.md](HABITAT-LIBRARY.md) for the complete 45 additional asset kinds, per-LOD triangle counts, placement and collision limitations. Source kits: `art/habitat-kit` and `art/city-kit`.

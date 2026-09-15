@@ -294,8 +294,8 @@ namespace NivenRingworld
                     else if(sample.Biome==Biome.Forest&&variation>.94)
                     {
                         string[] kinds={"dead_tree","stump","fallen_log","root_cluster","bush"};int which=(int)(settings.Terrain.Scatter(cellX,cellY,953)*kinds.Length)%kinds.Length;
-                        Vector3 size=which==0?new Vector3(3,6,3):which==1?new Vector3(2,1.2f,2):which==2?new Vector3(4,1,2):which==3?new Vector3(3,.6f,3):new Vector3(2,1.5f,2);
-                        TileProp(t,"Forest "+kinds[which],a,b,sample.Height+size.y*.5,size,scrithMaterial,PrimitiveType.Sphere,kinds[which]);
+                        Vector3 propSize=which==0?new Vector3(3,6,3):which==1?new Vector3(2,1.2f,2):which==2?new Vector3(4,1,2):which==3?new Vector3(3,.6f,3):new Vector3(2,1.5f,2);
+                        TileProp(t,"Forest "+kinds[which],a,b,sample.Height+propSize.y*.5,propSize,scrithMaterial,PrimitiveType.Sphere,kinds[which]);
                     }
                     else TileProp(t,"Weathered boulder",a,b,sample.Height+1,new Vector3(4,3,5),scrithMaterial,PrimitiveType.Sphere);
                 }
@@ -367,7 +367,8 @@ namespace NivenRingworld
             }
             else if(l.Kind=="city")
             {
-                Decor(l,"crashed_city_disk",650,0,new Vector3(220,55,220));Decor(l,"city_disk_fragment",650,230,new Vector3(110,30,100));Decor(l,"levitation_grid",450,340,new Vector3(70,3,60));Decor(l,"debris_beam",550,340,new Vector3(55,8,14));
+                Decor(l,"fallen_city",650,0,new Vector3(220,59,218));
+                Decor(l,"ruined_district",900,100,new Vector3(180,70,134));Decor(l,"city_arcology",850,-160,new Vector3(80,92,80));Decor(l,"city_concourse",400,-150,new Vector3(120,34,34));Decor(l,"city_disk_fragment",650,230,new Vector3(110,30,100));Decor(l,"levitation_grid",450,340,new Vector3(70,3,60));Decor(l,"debris_beam",550,340,new Vector3(55,8,14));
             }
             else
             {

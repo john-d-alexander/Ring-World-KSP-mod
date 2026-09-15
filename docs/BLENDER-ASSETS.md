@@ -45,3 +45,8 @@ python art/first-set/validate_sources.py
 ```
 
 The generator only replaces its two named Ringworld scenes; hand edits to those scenes must be saved in another source file before rebuilding. Geometry counts/bounds are recorded in `manifest.json`. Unity import validation checks three LOD meshes per prefab, metre-scale Y-up geometry and tree ground pivots. The KSP smoke test checks all eight prefabs, supported materials/textures, runtime bounds, static collision proxies and downward contact rays, and renders each LOD to `validation/ksp-lod0.png` through `ksp-lod2.png`. It restores the normal game plugin afterward. This test is an isolated asset review, not a forest-density benchmark or a flight/EVA collision endurance test.
+
+
+## Habitat and city expansion (2026-09-14)
+
+See [HABITAT-LIBRARY.md](HABITAT-LIBRARY.md) for the complete 45 additional asset kinds, per-LOD triangle counts, placement and collision limitations. Source kits: `art/habitat-kit` and `art/city-kit`.

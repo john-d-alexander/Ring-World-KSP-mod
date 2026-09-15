@@ -1,0 +1,407 @@
+[
+  {
+    "path": "art\\habitat-kit\\exports\\grass_patch_01.fbx",
+    "sha256": "a87d50308e1199af79b11d92eda7f3af1f0e97ec4065cd3ba8d29e20ed4d3ebc",
+    "triangles": [
+      36,
+      20,
+      10
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\reed_patch_01.fbx",
+    "sha256": "8ee85153faadb6168bf1c9b6ce97d54b045fef4a55e73d3f6e4647e8db2b6015",
+    "triangles": [
+      504,
+      280,
+      140
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\fern_patch_01.fbx",
+    "sha256": "f87a02ed2b35bd31b1f96c2dbf4416d85f567702fca0b578fb5e8fea9ccee841",
+    "triangles": [
+      936,
+      360,
+      180
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\desert_scrub_01.fbx",
+    "sha256": "45379a8a3d3985f0a9cea6f53c4933d51228057ae9c5d13d68d7e43e8f6242d9",
+    "triangles": [
+      576,
+      220,
+      110
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\bush_01.fbx",
+    "sha256": "2703d7e4d6be8e2303068a18943d1e2e8fcb68a7321578b1e068a50a2b7aeec9",
+    "triangles": [
+      576,
+      220,
+      110
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\mirror_sunflower_01.fbx",
+    "sha256": "bf39cddb4630c4af813c9efe176d3bb04b5bf28c97a3edf69761f5a890b65e91",
+    "triangles": [
+      184,
+      136,
+      84
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\root_cluster_01.fbx",
+    "sha256": "605848ba3886bc564c87b3ded06624945355ab10213a0ed8b291c1889edd2c94",
+    "triangles": [
+      156,
+      108,
+      64
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\dead_tree_01.fbx",
+    "sha256": "89e6cd6844f53068f687e62bd488d461b91b1d92b72460fe1043f55177bd078b",
+    "triangles": [
+      268,
+      188,
+      112
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\stump_01.fbx",
+    "sha256": "e438339cc04a3c5078cca0a496813c173718efd7a79220d6e716914fc26360af",
+    "triangles": [
+      156,
+      108,
+      64
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\fallen_log_01.fbx",
+    "sha256": "c69c2c4390386bc1f2a90d7af4b8f920214f5e2fafc6910b7234c050d65f9fcc",
+    "triangles": [
+      92,
+      76,
+      16
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\driftwood_01.fbx",
+    "sha256": "f79f1f61c1fb0807419647fc66c01936127454d2c5b6dc272c30a62c7b7564fd",
+    "triangles": [
+      92,
+      76,
+      16
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\leaf_litter_01.fbx",
+    "sha256": "1adea858939a56af1d7bd669519bfb4145a246fd4786fbbc38afc7c5a2df9730",
+    "triangles": [
+      128,
+      72,
+      32
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\mushrooms_01.fbx",
+    "sha256": "84ca78a558b79a9fe568bc4e2a2fc879cdd136b49ddeab7ec761737b837dcb56",
+    "triangles": [
+      320,
+      144,
+      72
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\pebble_cluster_01.fbx",
+    "sha256": "6af74fa64fbe9b8bab9a9e4acea160c4afa69fd4e5533b35884413fc787b6c8b",
+    "triangles": [
+      392,
+      80,
+      32
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\scrith_outcrop_01.fbx",
+    "sha256": "30c98e3fc0d4b2bd3de61716e79728b53f02d7d32b80cfb2c1d5becb86a5d620",
+    "triangles": [
+      96,
+      80,
+      20
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\conduit_live_01.fbx",
+    "sha256": "1e822efb9815f29c8d8904e076e7e6018b7c324f142027be346ce2f56733cd09",
+    "triangles": [
+      180,
+      132,
+      84
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\conduit_dark_01.fbx",
+    "sha256": "4daa04257b9e46b67783e4c2789f5eb5c36ec0e8865493fcd6c20987eeb8ec93",
+    "triangles": [
+      180,
+      132,
+      84
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\levitation_grid_01.fbx",
+    "sha256": "364d0e18e7a6ecdef4ad10e7208238685819b375d95f7564ce967f09a20704ad",
+    "triangles": [
+      564,
+      388,
+      244
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\debris_beam_01.fbx",
+    "sha256": "bd0e61a26e0943079cee24f402e45c5a4610c557ca8308969922db77ae065ee0",
+    "triangles": [
+      96,
+      72,
+      48
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\city_disk_fragment_01.fbx",
+    "sha256": "9c0b4fc735291fafe98c732c572e4c0d927df4012798ce9f16b0c58461e68914",
+    "triangles": [
+      276,
+      180,
+      96
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\crashed_city_disk_01.fbx",
+    "sha256": "34f072282360710a67469d43f267e6c658121aa82181233c48a8fcbc2be3fe82",
+    "triangles": [
+      268,
+      172,
+      88
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\ruin_tower_01.fbx",
+    "sha256": "e0c336f81fcd4cd7664af618a2976b48a1e62045670489924cda878c7bf87d3c",
+    "triangles": [
+      336,
+      276,
+      276
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\habitat_block_01.fbx",
+    "sha256": "eed1416853e6ef35d8ede4d9cd33bc61cbd791fb092ca107b446300273cb274d",
+    "triangles": [
+      360,
+      360,
+      360
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\stone_enclosure_01.fbx",
+    "sha256": "0b3a6d63c972d3c32b4c0b3e343a11770604aaac9bc7c67697fb42484bb100ec",
+    "triangles": [
+      320,
+      120,
+      80
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\watchtower_01.fbx",
+    "sha256": "7980022ebc52e43e5c683c50b2675160ee73e7ec179e3b2374b0c3d5e2388a68",
+    "triangles": [
+      232,
+      196,
+      160
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\campfire_01.fbx",
+    "sha256": "7642398317edd68eb0b491b671f31d310e7d38c98de9965a27ae2a4746a6ed9a",
+    "triangles": [
+      148,
+      118,
+      98
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\bridge_segment_01.fbx",
+    "sha256": "2b48e2515495242ffff5ab97057d3f9c5e59fa497e38d61f0b5bf1843c4af21a",
+    "triangles": [
+      108,
+      108,
+      108
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\research_station_01.fbx",
+    "sha256": "d23924f3f4b669a3a9925c5ee32d04262f10962bd8c13a81b4af11c16510dffb",
+    "triangles": [
+      176,
+      144,
+      120
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\flup_outlet_01.fbx",
+    "sha256": "ca05956a77a6cf7cda546016b08e5d3163c97b4f24694779e17a640e3c5e2fe6",
+    "triangles": [
+      516,
+      356,
+      236
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\sediment_nozzle_01.fbx",
+    "sha256": "b1d0e346032eef52e56b19e5c5fa85ef07f62e448cb1174ae36444376ca2fa95",
+    "triangles": [
+      516,
+      356,
+      236
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\transit_tube_01.fbx",
+    "sha256": "3887f4faa2781fca2ba0b1f8e22dc7909b40fd3f8877539ebf0aeae85c8a5a8b",
+    "triangles": [
+      516,
+      356,
+      236
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\rim_hatch_01.fbx",
+    "sha256": "a534dd3c44e82691deb84f32a8db77016d06abf810a29af540f82e65898a9fd9",
+    "triangles": [
+      276,
+      212,
+      84
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\rim_airlock_01.fbx",
+    "sha256": "2ae222ecfa11e2accae03ff040af1dd6aa93a167314b7e64e2ab995369588529",
+    "triangles": [
+      264,
+      200,
+      72
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\elevator_base_01.fbx",
+    "sha256": "0ef2fb36dd304a65e92ff0310c52166f5917cf8b9d47f78895972fcb19abec7f",
+    "triangles": [
+      92,
+      92,
+      92
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\terminal_gantry_01.fbx",
+    "sha256": "6184d42da2e2010977cb73cb5834e05478564190d91981806c43699b20180eff",
+    "triangles": [
+      92,
+      92,
+      92
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\maglev_segment_01.fbx",
+    "sha256": "72d6fc727a27c0d68fb694562fff1c9bcee6f9ee9aff6a5ded7133998a6c46e9",
+    "triangles": [
+      168,
+      120,
+      96
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\transport_causeway_01.fbx",
+    "sha256": "01e66869e18ec2f0413b3e2673775eeac3747d4d48a7e8a55f1097ea1198419f",
+    "triangles": [
+      168,
+      120,
+      96
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\maintenance_platform_01.fbx",
+    "sha256": "405034c8ac7bc40b0c1cde7ee8315211a0dd0da44b0ae0baa9287acffb0358ba",
+    "triangles": [
+      96,
+      96,
+      96
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\pump_station_01.fbx",
+    "sha256": "3282c32937bda4eed7e30dad9b882df835b9769703bd9b9e2af22d6b9c99b2bb",
+    "triangles": [
+      400,
+      256,
+      136
+    ]
+  },
+  {
+    "path": "art\\habitat-kit\\exports\\roof_machinery_01.fbx",
+    "sha256": "09e5b2ba5ee3ac394c5d43edff199278017250079e8883849185ef1913580fc6",
+    "triangles": [
+      400,
+      256,
+      136
+    ]
+  },
+  {
+    "path": "art\\city-kit\\exports\\floating_city_01.fbx",
+    "sha256": "6d83eafe360a704c681fe153909a442a77f5df926ac286406a867303e97b09df",
+    "triangles": [
+      9628,
+      3024,
+      684
+    ]
+  },
+  {
+    "path": "art\\city-kit\\exports\\fallen_city_01.fbx",
+    "sha256": "181dcfdca3904ae92f2f77e3bf5f3f086116eadc8ee454c00e8215854211cabe",
+    "triangles": [
+      9152,
+      2740,
+      512
+    ]
+  },
+  {
+    "path": "art\\city-kit\\exports\\city_arcology_01.fbx",
+    "sha256": "2e456def08dc39953338eec1716bf76992dc9286f5d8fe6b20b3cf1a89146dff",
+    "triangles": [
+      3568,
+      1572,
+      280
+    ]
+  },
+  {
+    "path": "art\\city-kit\\exports\\ruined_district_01.fbx",
+    "sha256": "ca98b7f36c1ecdaf94cff936af387734d3caed33376245060c3c8dbf70ee1ab2",
+    "triangles": [
+      508,
+      348,
+      104
+    ]
+  },
+  {
+    "path": "art\\city-kit\\exports\\city_concourse_01.fbx",
+    "sha256": "96372e934ac1d475f1e09564c588d3c2979efd8b5a74150958a48a0d469455b2",
+    "triangles": [
+      252,
+      252,
+      132
+    ]
+  }
+]

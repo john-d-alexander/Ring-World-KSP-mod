@@ -16,9 +16,10 @@ namespace NivenRingworld
             if(shader==null||!shader.isSupported)return;
             material=new Material(shader);material.SetTexture("_Noise",bundle.LoadAsset<Texture3D>("Assets/CloudNoise.asset"));
             root=new GameObject("Ringworld global cloud shell");root.layer=10;root.transform.SetParent(parent,false);
-            const int n=16384;var vertices=new Vector3[n*4];var uv=new Vector2[n*4];var field=new Vector2[n*4];var chart=new Vector2[n*4];var triangles=new int[n*6];
+            const int n=16384;var vertices=new Vector3[n*4];var uv=new Vector2[n*4];var field=new Vector2[n*4];var chart=new Vector2[n*4];var macro=new Vector2[n*4];var triangles=new int[n*6];
             var geometry=new RingGeometry(s.Geometry.P); // Parent supplies the scaled-ring rotation.
             double period=s.Geometry.P.Circumference/Math.Round(s.Geometry.P.Circumference/512000);
+            double macroPeriod=s.Geometry.P.Circumference/Math.Round(s.Geometry.P.Circumference/32768000);
             for(int i=0;i<n;i++)
             {
                 double a=i*s.Geometry.P.Circumference/n,span=s.Geometry.P.Circumference/n;
@@ -30,10 +31,11 @@ namespace NivenRingworld
                     uv[i*4+j]=new Vector2((float)(along/s.Geometry.P.Circumference),(float)(across/s.Geometry.P.Width+.5));
                     field[i*4+j]=new Vector2((float)(phase+(j/2)*span/period),(float)(across/512000));
                     chart[i*4+j]=new Vector2(i,(float)((j/2)*span));
+                    macro[i*4+j]=new Vector2((float)(RingGeometry.Wrap(a/macroPeriod,1)+(j/2)*span/macroPeriod),(float)(across/32768000));
                 }
                 int k=i*4,t=i*6;triangles[t]=k;triangles[t+1]=k+1;triangles[t+2]=k+2;triangles[t+3]=k+1;triangles[t+4]=k+3;triangles[t+5]=k+2;
             }
-            mesh=new Mesh{name="Continuous full-ring clouds",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};mesh.vertices=vertices;mesh.uv=uv;mesh.uv2=field;mesh.uv3=chart;mesh.triangles=triangles;mesh.RecalculateBounds();
+            mesh=new Mesh{name="Continuous full-ring clouds",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};mesh.vertices=vertices;mesh.uv=uv;mesh.uv2=field;mesh.uv3=chart;mesh.uv4=macro;mesh.triangles=triangles;mesh.RecalculateBounds();
             root.AddComponent<MeshFilter>().sharedMesh=mesh;root.AddComponent<MeshRenderer>().sharedMaterial=material;
         }
         internal void Update(Settings s,RingworldFlight flight,CelestialBody star,double time)

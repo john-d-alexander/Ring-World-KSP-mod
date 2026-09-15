@@ -11,3 +11,8 @@ Local coverage fades over 40–72% of the available local cloud range (capped at
 There is one additional global draw and 32,768 cloud triangles, with no colliders or CPU cloud-mesh rebuild per frame. This is not a claim of constant FPS on every laptop. The Windows/D3D11 visual bundle must be available; an unsupported/missing shader retains the pre-existing reduced visual fallback.
 
 Build shaders with `build-visuals.ps1`. `smoke-test.ps1 -GlobalCloudsOnly` checks the exported shader, all longitude seams, daylight/night response, the local handoff and the off setting. Its isolated render images live in `artifacts/validation/global-clouds/`. Flight weather/warp checks remain available with `-WeatherOnly`.
+
+
+## Broken cloud banks
+
+Local and scaled renderers now share a 32,768 km macro coverage field in addition to 512 km fine detail. Independently wrapped double-precision origins keep both fields anchored to the rotating ring with wind drift. The scaled mesh carries a separate continuous macro chart. Cloud amount controls coverage thresholds; large clear regions remain when fine noise averages out at long range. This adds two filtered texture samples, without additional geometry or 3D textures.

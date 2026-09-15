@@ -18,9 +18,17 @@ namespace NivenRingworld
             double y=RingGeometry.Wrap(across+time*s.CloudWind*.1875,512000);
             return new Vector3((float)(x+s.Terrain.Scatter(1,0,1249)*512000),(float)(y+s.Terrain.Scatter(2,0,1249)*512000),(float)(altitude+s.Terrain.Scatter(3,0,1249)*64000));
         }
+        internal static Vector3 MacroOrigin(Settings s,double along,double across,double time)
+        {
+            const double scale=32768000;
+            double period=s.Geometry.P.Circumference/Math.Round(s.Geometry.P.Circumference/scale);
+            return new Vector3((float)(RingGeometry.Wrap((along-time*s.CloudWind)/period,1)+s.Terrain.Scatter(1,0,1259)),
+                (float)(RingGeometry.Wrap((across+time*s.CloudWind*.1875)/scale,1)+s.Terrain.Scatter(2,0,1259)),0);
+        }
         internal static WeatherSample Apply(Material material,Settings s,double along,double across,double altitude,double time)
         {
             var weather=s.Weather(along,across,time);
+            material.SetVector("_CloudMacroOrigin",MacroOrigin(s,along,across,time));
             material.SetVector("_CloudOrigin",Origin(s,along,across,altitude,time));material.SetFloat("_CloudAmount",(float)weather.Cloud);
             float flash=s.LightningEnabled&&TimeWarp.CurrentRate<=10?(float)RingWeather.Lightning(s.Terrain,time,weather.Storm):0;
             material.SetFloat("_Lightning",flash*.25f);return weather;

@@ -15,10 +15,13 @@ namespace NivenRingworld
             var obj=GameObject.Find("Ringworld global cloud shell");if(obj==null)throw new Exception("Global cloud renderer missing");
             var mesh=obj.GetComponent<MeshFilter>().sharedMesh;var material=obj.GetComponent<MeshRenderer>().sharedMaterial;
             if(mesh.vertexCount!=65536||!material.shader.isSupported)throw new Exception("Invalid cloud shell mesh/shader");
-            var field=mesh.uv2;
+            var field=mesh.uv2;var macro=mesh.uv4;
+            if(macro.Length!=mesh.vertexCount)throw new Exception("Macro cloud chart missing");
             for(int i=0;i<16384;i++)
             {
                 float error=Mathf.Repeat(field[i*4+2].x-field[((i+1)%16384)*4].x+.5f,1)-.5f;
+                float macroError=Mathf.Repeat(macro[i*4+2].x-macro[((i+1)%16384)*4].x+.5f,1)-.5f;
+                if(Mathf.Abs(macroError)>.00002f)throw new Exception("Macro cloud seam at "+i);
                 if(Mathf.Abs(error)>.00002f)throw new Exception("Cloud field seam at segment "+i+": "+error);
             }
             var cameraObj=new GameObject("Cloud validation camera");var camera=cameraObj.AddComponent<Camera>();camera.enabled=false;

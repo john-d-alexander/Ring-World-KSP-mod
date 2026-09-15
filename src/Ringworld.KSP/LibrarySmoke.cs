@@ -30,12 +30,12 @@ namespace NivenRingworld
                 if(active.Count==8){Capture(camera,target,Path.Combine(output,"ksp-library-"+(page++)+".png"));foreach(var item in active){item.SetActive(false);UnityEngine.Object.Destroy(item);}active.Clear();}
             }
             if(active.Count>0)Capture(camera,target,Path.Combine(output,"ksp-library-"+page+".png"));
-            if(count!=40)throw new Exception("Expected 40 library assets, got "+count);
+            if(count!=45)throw new Exception("Expected 45 library assets, got "+count);
             var batch=new BatchedScenery(root.transform);batch.Reset();
             foreach(string kind in new[]{"grass_patch","reed_patch","fern_patch","mirror_sunflower","leaf_litter","pebble_cluster","desert_scrub","mushrooms"})
                 if(!batch.Add(kind,1,Vector3.zero,Vector3.up,Vector3.one,0,32))throw new Exception("Ground batching "+kind);
             batch.Finish();if(batch.Count!=8)throw new Exception("Ground batch count");batch.Dispose();
-            Debug.Log("[RingworldSmoke] PASS habitat-library: 40 assets / 120 LOD meshes / eight ground batch adapters");
+            Debug.Log("[RingworldSmoke] PASS habitat-library: 45 assets / 135 LOD meshes / eight ground batch adapters");
             camera.targetTexture=null;target.Release();UnityEngine.Object.Destroy(target);UnityEngine.Object.Destroy(cameraObj);UnityEngine.Object.Destroy(lamp);UnityEngine.Object.Destroy(root);SceneryAssets.Release();
         }
         private static void Capture(Camera camera,RenderTexture target,string path)

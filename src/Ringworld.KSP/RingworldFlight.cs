@@ -37,12 +37,14 @@ namespace NivenRingworld
         private Vector2 scroll;
         private Vector2 panelScroll;
         internal float arrivalHeight=300;
-        private bool visible=true,transferring;
+        private bool visible,transferring;
+        private RingToolbar toolbar;
+        internal static bool SandboxControls { get { return HighLogic.CurrentGame!=null&&HighLogic.CurrentGame.Mode==Game.Modes.SANDBOX; } }
         private int destination;
         private int panelTab;
         private readonly RingSettingsPanel settingsPanel=new RingSettingsPanel();
         private ConfigNode boundOptions;
-        private string status="Fly toward the ring for automatic arrival, or use the expedition transport below.";
+        private string status="Fly toward the ring for automatic arrival. Alt+R or the ring toolbar button opens this panel.";
         private float nextCapture;
         private const string WarpLock="NivenRingworld.Warp";
         private RingworldScenario State { get { return RingworldScenario.Instance; } }
@@ -117,6 +119,8 @@ namespace NivenRingworld
                 groundDetails=new GroundDetails(Settings);groundWeather=new AmbientGroundWeather(Settings);
                 atmosphere=new AtmosphereRenderer(Settings);
                 StockIntegration.Install();
+                window.x=Mathf.Max(10,Screen.width-window.width-70);
+                toolbar=new RingToolbar(value=>visible=value);
                 trajectory=gameObject.AddComponent<RingTrajectory>();
                 GameEvents.onCrewOnEva.Add(OnCrewOnEva);
                 Debug.Log("[NivenRingworld] Flight controller ready; R="+Settings.Geometry.P.Radius);
@@ -135,7 +139,7 @@ namespace NivenRingworld
         public void Update()
         {
             if(State!=null&&Settings!=null&&boundOptions!=State.GetOptions())ApplyOptions(State.GetOptions(),true);
-            if(Input.GetKey(KeyCode.LeftAlt)&&Input.GetKeyDown(KeyCode.R))visible=!visible;
+            if(Input.GetKey(KeyCode.LeftAlt)&&Input.GetKeyDown(KeyCode.R)){visible=!visible;if(toolbar!=null)toolbar.SetSelected(visible);}
             AdoptNearbyActiveVessel();
             if(Settings!=null&&Star!=null&&!Active) Settings.Geometry.OrientationRadians=Settings.Geometry.P.Omega*Planetarium.GetUniversalTime();
             if(!Active||Settings==null){
@@ -368,7 +372,7 @@ namespace NivenRingworld
             surface.Update(position,Star.position,true);
             Physics.SyncTransforms();
             State.Vessels[id].Restored=true;
-            transferring=false;status="Ring frame active. Alt+R opens expedition controls and settings.";
+            transferring=false;status="Ring frame active. Alt+R opens the ring information panel.";
             FlightCamera.SetMode(FlightCamera.Modes.FREE);
             Debug.Log("[NivenRingworld] Expedition entered at "+Settings.Geometry.Coordinates(position).Along);
         }
@@ -517,24 +521,27 @@ namespace NivenRingworld
         public void OnGUI()
         {
             if(weatherEffects!=null)weatherEffects.DrawVeil();
-            if(!visible||Settings==null||(visuals!=null&&visuals.PhotoActive))return;
-            window=GUILayout.Window(19700114,window,DrawWindow,"Niven Ringworld | Orbital arrival");
+            if(!visible||(toolbar!=null&&!toolbar.UiVisible)||Settings==null||(visuals!=null&&visuals.PhotoActive))return;
+            window.x=Mathf.Clamp(window.x,0,Mathf.Max(0,Screen.width-window.width));
+            window.y=Mathf.Clamp(window.y,0,Mathf.Max(0,Screen.height-100));
+            window=GUILayout.Window(19700114,window,DrawWindow,"Niven Ringworld");
         }
         private void DrawWindow(int id)
         {
             panelScroll=GUILayout.BeginScrollView(panelScroll,GUILayout.Height(Mathf.Max(240,Mathf.Min(610,Screen.height-150))));
             if(weatherEffects!=null&&Owns(FlightGlobals.ActiveVessel))GUILayout.Label("Weather: "+RingCloudField.Describe(weatherEffects.Current));
-            panelTab=GUILayout.Toolbar(panelTab,new[]{"Expedition","Settings"});
+            if(SandboxControls)panelTab=GUILayout.Toolbar(panelTab,new[]{"Expedition","Settings"});else panelTab=0;
             if(panelTab==1){settingsPanel.Draw(this);GUILayout.EndScrollView();GUI.DragWindow(new Rect(0,0,10000,25));return;}
-            GUILayout.Label("RINGWORLD  /  1:10 scale");
+            GUILayout.Label("RINGWORLD");
+            GUILayout.Label("Tangential speed: "+(Settings.Geometry.P.Omega*Settings.Geometry.P.Radius/1000).ToString("N2")+" km/s");
             GUILayout.Label("Radius "+(Settings.Geometry.P.Radius/1000).ToString("N0")+" km   |   Width "+(Settings.Geometry.P.Width/1000).ToString("N0")+" km");
             var v=FlightGlobals.ActiveVessel;
             if(Active&&v!=null&&v.mainBody==Star)
             {
                 var p=Settings.Geometry.Coordinates(Position(v));var terrain=Settings.Terrain.Sample(p.Along,p.Across);
                 GUILayout.Label("Above ground: "+(p.Altitude-terrain.Height).ToString("N1")+" m   |   "+terrain.Biome);
-                GUILayout.Label("Ring speed: "+Velocity(v).Length.ToString("N1")+" m/s   |   g: "+Settings.Geometry.Acceleration(Position(v),new DVec(),Star.gravParameter).Length.ToString("F3"));
-                GUILayout.Label("Spinward: "+(p.Along/1000).ToString("N1")+" km\nAcross: "+(p.Across/1000).ToString("N1")+" km   |   Tiles: "+surface.TileCount+" | LOD: "+surface.LodCount+" (queued "+surface.LodPending+")");
+                GUILayout.Label("Surface-relative speed: "+Velocity(v).Length.ToString("N1")+" m/s   |   g: "+Settings.Geometry.Acceleration(Position(v),new DVec(),Star.gravParameter).Length.ToString("F3"));
+                GUILayout.Label("Spinward: "+(p.Along/1000).ToString("N1")+" km\nAcross: "+(p.Across/1000).ToString("N1")+" km"+(SandboxControls?"   |   Tiles: "+surface.TileCount+" | LOD: "+surface.LodCount+" (queued "+surface.LodPending+")":""));
                 GUILayout.Label("Air: "+v.atmDensity.ToString("F4")+" kg/m³  |  "+v.staticPressurekPa.ToString("F2")+" kPa  |  Mach "+v.mach.ToString("F2"));
                 GUILayout.Label("Local light: "+(100*Settings.Geometry.Daylight(p.Along,Planetarium.GetUniversalTime())).ToString("F0")+"%");
             }
@@ -545,27 +552,31 @@ namespace NivenRingworld
                 GUILayout.Label(visuals.Status);
             }
             if(trajectory!=null)GUILayout.Label(trajectory.Status);
-            scroll=GUILayout.BeginScrollView(scroll,GUILayout.Height(190));
-            for(int i=0;i<Settings.Terrain.Landmarks.Count;i++)
-                if(GUILayout.Toggle(destination==i,Settings.Terrain.Landmarks[i].Name))destination=i;
-            GUILayout.EndScrollView();
-            GUILayout.Label(Settings.Terrain.Landmarks[destination].Description);
-            GUILayout.Label("Arrival height: "+arrivalHeight.ToString("F0")+" m above ground / water");
-            arrivalHeight=GUILayout.HorizontalSlider(arrivalHeight,60,2000);
-            GUI.enabled=!transferring&&v!=null&&State!=null;
-            if(GUILayout.Button(Active?"Relocate above selected site":"Begin expedition at selected site"))Visit();
-            if(GUILayout.Button("Random terrain test location (spin-matched)"))VisitRandomTerrain();
-            GUILayout.Label("Random visit: dry procedural terrain, at the arrival height above ground. Fly the descent; this is not an automatic landing.");
-            if(GUILayout.Button("Training: set up a spin-matched approach"))StartCoroutine(TrainingApproach());
-            if(Active&&GUILayout.Button("Leave ring frame for spaceflight"))Leave();
-            GUI.enabled=true;
-            GUILayout.Label("Science: fit the RW-1 Surveyor, then use its part menu. Land with engines/legs; descent starts at rest.");
+            if(SandboxControls)
+            {
+                scroll=GUILayout.BeginScrollView(scroll,GUILayout.Height(190));
+                for(int i=0;i<Settings.Terrain.Landmarks.Count;i++)
+                    if(GUILayout.Toggle(destination==i,Settings.Terrain.Landmarks[i].Name))destination=i;
+                GUILayout.EndScrollView();
+                GUILayout.Label(Settings.Terrain.Landmarks[destination].Description);
+                GUILayout.Label("Arrival height: "+arrivalHeight.ToString("F0")+" m above ground / water");
+                arrivalHeight=GUILayout.HorizontalSlider(arrivalHeight,60,2000);
+                GUI.enabled=!transferring&&v!=null&&State!=null;
+                if(GUILayout.Button(Active?"Relocate above selected site":"Begin expedition at selected site"))Visit();
+                if(GUILayout.Button("Random terrain test location (spin-matched)"))VisitRandomTerrain();
+                GUILayout.Label("Random visit: dry procedural terrain, at the arrival height above ground. Fly the descent; this is not an automatic landing.");
+                if(GUILayout.Button("Training: set up a spin-matched approach"))StartCoroutine(TrainingApproach());
+                if(Active&&GUILayout.Button("Leave ring frame for spaceflight"))Leave();
+                GUI.enabled=true;
+            }
+            GUILayout.Label("Science: fit the RW-1 Surveyor, then use its part menu.");
             GUILayout.Label(status);
             GUILayout.EndScrollView();
             GUI.DragWindow(new Rect(0,0,10000,25));
         }
         public void OnDestroy()
         {
+            if(toolbar!=null){toolbar.Dispose();toolbar=null;}
             if(visuals!=null){visuals.EndPhoto();Destroy(visuals);}
             if(weatherEffects!=null)weatherEffects.Dispose();
             if(FlightGlobals.fetch!=null)Capture();GameEvents.onCrewOnEva.Remove(OnCrewOnEva);InputLockManager.RemoveControlLock(WarpLock);
