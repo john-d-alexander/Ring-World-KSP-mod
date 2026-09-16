@@ -1,5 +1,7 @@
 # Habitat and city asset inventory
 
+Expanded by 31 assets in `art/landmark-kit/`; total library now 84 prefabs and 252 LOD meshes. See [the landmark catalog](LANDMARK-INVENTORY.md) and [placement/contact details](LANDMARK-ASSETS.md). The table below records the earlier habitat/city sets.
+
 Original Blender assets; three LOD meshes per prefab. First-pass stylized art, not final canonical replicas. Sources, FBX exports, manifests and review images are retained under art/.
 
 | Family | Asset kind | LOD triangles (0 / 1 / 2) | Collision |
@@ -59,3 +61,9 @@ Close vegetation uses a bounded merged mesh (32 laptop / 64 high-quality instanc
 Export convention: centered unit bounds for the new kits; runtime dimensions supply metres. Blender +Z is baked to Unity +Y with FBX_SCALE_ALL, use_space_transform and bake_space_transform. Unity import and in-game checks verify upright bounds and three LODs.
 
 Next art work: collision meshes for accessible city decks, damaged disk variants, interiors, distinctive settlement styles, rim elevator detail, material/texture refinement and animated industrial props. No biological hazards or operational pumps are implied by the meshes.
+
+## Colossus extension (1.0.1)
+
+Eight additional original Blender models / 24 LOD meshes bring the combined library to **92 prefabs / 276 LOD meshes** and 33 architectural placements. The 80 km gate, 120 km causeway, floating city plate, flup mouth, memory spire, broken halo, atmosphere harp and engine reliquary are catalogued in [COLOSSI-AND-FORESTS.md](COLOSSI-AND-FORESTS.md). Sources and previews: `art/colossus-kit/`. Rebuild with `python tools/blender_bridge.py --script art/colossus-kit/build_colossi.py`, then `./build-scenery.ps1`.
+
+Continuous runtime canopy patches replace the former seven-tree-clump scattering limit. The old grove assets remain in the registry for artists and future placements.

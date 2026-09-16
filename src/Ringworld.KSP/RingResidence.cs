@@ -1,0 +1,113 @@
+using System;
+using HarmonyLib;
+using Ringworld.Core;
+using UnityEngine;
+namespace NivenRingworld
+{
+    internal static class RingResidence
+    {
+        private static ConfigNode cachedOptions;private static Settings cachedSettings;
+        internal static bool UpdateContact(RingworldFlight f,Vessel v)
+        {
+            if(!f.Owns(v))return false;
+            if(v.packed)return v.Landed;
+            bool contact=f.surfaceWarp.Anchored(v);
+            if(v.parts!=null)foreach(var part in v.parts)if(part!=null)contact|=part.GroundContact||part.PermanentGroundContact;
+            v.Landed=contact;v.Splashed=false;
+            if(contact)
+            {
+                v.situation=Vessel.Situations.LANDED;
+                v.landedAt="Ringworld";v.displaylandedAt="Ringworld";
+            }
+            else if(v.landedAt=="Ringworld") {v.landedAt="";v.displaylandedAt="";}
+            return contact;
+        }
+        internal static bool Saved(Vessel v,out VesselRecord record)
+        {
+            record=null;var s=RingworldScenario.Instance;
+            return v!=null&&s!=null&&s.Vessels.TryGetValue(v.id.ToString(),out record);
+        }
+        internal static void UpdateBookkeeping(Vessel v,Settings settings,CelestialBody star,DVec position,DVec velocity,double epoch)
+        {
+            double now=Planetarium.GetUniversalTime(),elapsed=now-epoch;var g=settings.Geometry;
+            v.orbit.UpdateFromStateVectors(ConvertVector.Orbit(ConvertVector.Ksp(g.ToInertialPosition(position,elapsed))),ConvertVector.Orbit(ConvertVector.Ksp(g.ToInertialVelocity(position,velocity,elapsed))),star,now);
+        }
+        internal static void HoldSaved(Vessel v,VesselRecord r)
+        {
+            if(!r.Landed||v.orbitDriver==null)return;
+            var s=RingworldScenario.Instance;var f=RingworldFlight.Instance;
+            if(cachedSettings==null||cachedOptions!=s.GetOptions()){cachedOptions=s.GetOptions();cachedSettings=Settings.Load();cachedSettings.Apply(cachedOptions);}
+            var settings=f!=null&&f.Settings!=null?f.Settings:cachedSettings;
+            var star=v.mainBody;if(star==null)return;
+            double epoch=f!=null&&f.FrameInUse?f.FrameEpoch:Planetarium.GetUniversalTime();
+            double angle=settings.Geometry.P.Omega*(epoch-r.Epoch);
+            var p=RingGeometry.Rotate(r.Position,angle);
+            UpdateBookkeeping(v,settings,star,p,new DVec(),epoch);
+            v.orbitDriver.pos=ConvertVector.Ksp(p);v.orbitDriver.vel=Vector3d.zero;
+            v.SetPosition(star.position+ConvertVector.Ksp(p),true);
+            v.SetRotation(Quaternion.AngleAxis((float)(angle*180/Math.PI),Vector3.up)*r.Rotation,false);
+            v.Landed=true;v.situation=Vessel.Situations.LANDED;v.landedAt="Ringworld";v.displaylandedAt="Ringworld";
+        }
+    }
+    [HarmonyPatch(typeof(Vessel),"getCorrectedLandedAltitude")]
+    internal static class RingResidentAltitude
+    {
+        private static bool Prefix(Vessel __instance,double alt,ref double __result)
+        {VesselRecord r;if(!RingResidence.Saved(__instance,out r))return true;__result=alt;return false;}
+    }
+    // Stock unpacking would orient a LANDED vessel against the Sun's sphere.
+    // Preserve the truthful landed status, but bypass that one spherical branch.
+    [HarmonyPatch(typeof(Vessel),"GoOffRails")]
+    internal static class RingResidentUnpack
+    {
+        private static void Prefix(Vessel __instance,out bool __state)
+        {
+            VesselRecord r;__state=__instance.Landed&&RingResidence.Saved(__instance,out r);
+            if(__state)__instance.Landed=false;
+        }
+        private static void Postfix(Vessel __instance,bool __state)
+        {
+            if(__state)__instance.Landed=true;
+            VesselRecord r;var f=RingworldFlight.Instance;
+            if(!__instance.packed&&f!=null&&RingResidence.Saved(__instance,out r))
+            {
+                Krakensbane.ResetVelocityFrame(true);
+                __instance.SetWorldVelocity(ConvertVector.Ksp(RingGeometry.Rotate(r.Velocity,f.Settings.Geometry.P.Omega*(f.FrameEpoch-r.Epoch))));
+            }
+        }
+    }
+    [HarmonyPatch(typeof(FlightGlobals),"ClearToSave",new[]{typeof(bool)})]
+    internal static class RingSavePermission
+    {
+        private static bool Prefix(ref ClearToSaveStatus __result)
+        {
+            var f=RingworldFlight.Instance;var v=FlightGlobals.ActiveVessel;
+            if(f==null||!f.Owns(v)||!v.Landed)return true;
+            if(v.isEVA&&v.evaController!=null&&v.evaController.OnALadder)return true;
+            if(!f.surfaceWarp.CanAdvance(f,true))return true;
+            f.Capture();__result=ClearToSaveStatus.CLEAR;return false;
+        }
+    }
+    [HarmonyPatch(typeof(OrbitDriver),"UpdateOrbit")]
+    internal static class RingResidentOrbit
+    {
+        private static bool Prefix(OrbitDriver __instance)
+        {
+            var v=__instance.vessel;VesselRecord r;
+            if(v==null||!RingResidence.Saved(v,out r))return true;
+            var f=RingworldFlight.Instance;
+            if(!v.packed)
+            {
+                if(f==null||!f.Owns(v))return true;
+                var p=f.Position(v);var speed=f.Velocity(v);
+                // Keep a valid inertial osculating orbit for stock persistence and spawned parts.
+                // A stationary rotating-frame velocity otherwise produces a degenerate solar orbit.
+                RingResidence.UpdateBookkeeping(v,f.Settings,f.Star,p,speed,f.FrameEpoch);
+                __instance.pos=ConvertVector.Ksp(p);__instance.vel=ConvertVector.Ksp(speed);return false;
+            }
+            if(!r.Landed)return true;
+            if(f!=null&&f.surfaceWarp.Anchored(v))return true;
+            RingResidence.HoldSaved(v,r);return false;
+        }
+    }
+}

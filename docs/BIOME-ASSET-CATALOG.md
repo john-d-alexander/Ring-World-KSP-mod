@@ -1,5 +1,7 @@
 # Combined biome and asset catalog
 
+The expanded Blender library is now 84 prefabs / 252 LOD meshes. The authoritative new architecture dimensions, triangle budgets, site mappings and woodland budgets are in [LANDMARK-ASSETS.md](LANDMARK-ASSETS.md) and [LANDMARK-INVENTORY.md](LANDMARK-INVENTORY.md). The existing ecology/noise distributions below are unchanged. The runtime forest supplement now uses continuous merged canopy patches; [COLOSSI-AND-FORESTS.md](COLOSSI-AND-FORESTS.md) records the exact seed salts, density formula, exclusions, LOD thresholds and contact range. Eight colossal landmarks add original 8–80 km-high structures; the existing climate/biome distributions below remain unchanged.
+
 Applies to generator 4. This is the development reference, not a runtime configuration file. `Ecology.cs`, `Terrain.cs`, `SurfaceStreamer.cs`, `GroundDetails.cs`, and `AmbientGroundWeather.cs` are the current implementation. Keep this catalog and the frequency survey in sync when adding biomes or scatter rules. Existing saves keep their generator version.
 
 ## Distribution and appearance
@@ -20,33 +22,33 @@ These coefficients are not area percentages or guaranteed tree probabilities. Sa
 
 | Final biome | Sampled surface share, three seeds | Terrain / placement override | Current assets and details | Planned assets |
 |---|---:|---|---|---|
-| Grassland | 26.52–26.79% | Meadow dominates dry ordinary land | Grass, occasional mirror sunflowers, climate-weighted trees, boulders; rural clusters possible | Grass species, flowering meadow plants, shrub and hominine dwelling families |
-| Forest | 23.28–23.53% | Forest dominates dry ordinary land | Broadleaf/conifer silhouettes, grass and leaf litter, boulders, pollen | Irregular tree species, roots, logs, mushrooms, fern and leaf atlases |
-| Desert | 9.42–9.65% | Desert dominates; dunes enabled when desert weight > .3 | Sand patches, sparse climate trees, boulders, drifting dust; rural clusters possible | Scrub, dry wood, desert hut families, dune material detail |
-| Snow | 22.82–23.07% | Cold family, plus snow treatment at high elevation | Stones and sparse climate trees | Cold scrub, snow/ice material detail, hardy conifers |
-| Mountain | 15.43–15.59% | Highland family or engineered named mountains | Stones, climate-weighted trees, boulders | Rock strata, talus, engineered scrith faces |
-| Ocean | .162–.163% | Broad-noise depressions / two named Great Oceans | Water surface, sandy shore tint, dry shoreline pebbles | Surf, beach gravel, driftwood; coastal settlements |
-| Lake | .305–.332% | Analytic catchment basins / small pond mask | Water surface, dry bank stones and tint | Reeds, muddy banks, aquatic plants |
-| River | .177–.184% | Warped analytic channels and tributary forms | Water ribbons, bank stones and shore tint | Reed beds, gravel bars, bridges, riverbank villages |
-| Wetland | .601–.609% | Near-water terrain classification | Dry ground cover / climate trees when not wet | Rushes, mud flats, wetland shrubs |
-| Scrith | .407–.420% | Erosion mask / named excavation | Grey surface treatment; micro-cover suppressed | Polished plates, seams, exposed conductive grids |
-| Road | .177–.193% | 65 m half-width ancient corridor mask on dry terrain | Surface colour; micro-cover suppressed; climate trees can still occur under current scenery rules | Road edges, broken paving, junctions and bridge modules |
+| Grassland | 26.52â€“26.79% | Meadow dominates dry ordinary land | Grass, occasional mirror sunflowers, climate-weighted trees, boulders; rural clusters possible | Grass species, flowering meadow plants, shrub and hominine dwelling families |
+| Forest | 23.28â€“23.53% | Forest dominates dry ordinary land | Broadleaf/conifer silhouettes, grass and leaf litter, boulders, pollen | Irregular tree species, roots, logs, mushrooms, fern and leaf atlases |
+| Desert | 9.42â€“9.65% | Desert dominates; dunes enabled when desert weight > .3 | Sand patches, sparse climate trees, boulders, drifting dust; rural clusters possible | Scrub, dry wood, desert hut families, dune material detail |
+| Snow | 22.82â€“23.07% | Cold family, plus snow treatment at high elevation | Stones and sparse climate trees | Cold scrub, snow/ice material detail, hardy conifers |
+| Mountain | 15.43â€“15.59% | Highland family or engineered named mountains | Stones, climate-weighted trees, boulders | Rock strata, talus, engineered scrith faces |
+| Ocean | .162â€“.163% | Broad-noise depressions / two named Great Oceans | Water surface, sandy shore tint, dry shoreline pebbles | Surf, beach gravel, driftwood; coastal settlements |
+| Lake | .305â€“.332% | Analytic catchment basins / small pond mask | Water surface, dry bank stones and tint | Reeds, muddy banks, aquatic plants |
+| River | .177â€“.184% | Warped analytic channels and tributary forms | Water ribbons, bank stones and shore tint | Reed beds, gravel bars, bridges, riverbank villages |
+| Wetland | .601â€“.609% | Near-water terrain classification | Dry ground cover / climate trees when not wet | Rushes, mud flats, wetland shrubs |
+| Scrith | .407â€“.420% | Erosion mask / named excavation | Grey surface treatment; micro-cover suppressed | Polished plates, seams, exposed conductive grids |
+| Road | .177â€“.193% | 65 m half-width ancient corridor mask on dry terrain | Surface colour; micro-cover suppressed; climate trees can still occur under current scenery rules | Road edges, broken paving, junctions and bridge modules |
 | Ruins | Below survey resolution | Named city/outpost/terminal pads | Existing procedural buildings; no ground micro-cover | Crashed city disks, towers, levitation grids, debris belts |
 | Rimwall | Below survey resolution | Ribbon edge / wall infrastructure | Near wall collision mesh, distant wall geometry, named terminal | Hatches, elevators, airlocks, transit/maglev ruins |
 
 ## Terrain variables
 
-Ordinary v4 height = 100 + heightMultiplier * min(100, 10 + 60*hills + 5*detail + .008*mountainContribution + .15*dunes), before channel/basin/landmark overrides. Height multiplier is a saved new-world control (.25–3). Giant mountains are engineered/named features; the ordinary Highland label does not imply kilometre-high mountain relief.
+Ordinary v4 height = 100 + heightMultiplier * min(100, 10 + 60*hills + 5*detail + .008*mountainContribution + .15*dunes), before channel/basin/landmark overrides. Height multiplier is a saved new-world control (.25â€“3). Giant mountains are engineered/named features; the ordinary Highland label does not imply kilometre-high mountain relief.
 
-River catchments use 131,072 m cells deformed by 180,000/145,000 m noise fields, with up to 45,000/35,000 m coordinate displacements. Channel width is 260 + 340*noise metres. Basin lakes use elliptical radii about 2,700–4,500 m along and 2,000–3,400 m across. Small ponds use 4,096 m cells, candidate probability .28*pondAmount, radius 90–320 m and an elliptical cross-axis. Pond amount is a saved new-world control (0–2). None of these constitutes global hydrological connectivity or simulated water flow.
+River catchments use 131,072 m cells deformed by 180,000/145,000 m noise fields, with up to 45,000/35,000 m coordinate displacements. Channel width is 260 + 340*noise metres. Basin lakes use elliptical radii about 2,700â€“4,500 m along and 2,000â€“3,400 m across. Small ponds use 4,096 m cells, candidate probability .28*pondAmount, radius 90â€“320 m and an elliptical cross-axis. Pond amount is a saved new-world control (0â€“2). None of these constitutes global hydrological connectivity or simulated water flow.
 
 Named pads/mountains/oceans and roads override the ordinary climate labels. Scrith exposure is a visual erosion mask, not a separately simulated soil layer. Adding a biome requires deciding its precedence relative to water, roads and landmarks, not merely adding another enum value.
 
 ## Scatter rules and budgets
 
-* Local scenery: 64 jittered candidates per 1,024 m tile. Native KSP Terrain Scatters must be enabled. A separate hash is compared against the native factor (0–1). Tree probability uses climate TreeCover * 1,100 m grove noise * forestDensity (0–2). Conifer versus broadleaf uses 18,000 m noise > .5; height is 8 + 12*variation metres. If no tree was chosen, variation > .9 can select a boulder. These gates share random variables, so multiply-and-round density estimates are not exact.
-* Rural clusters: a tile-centre Grassland or Desert label and hash > .97; up to five 18×24 m buildings, each 5–24 m high. Further dry/road checks can reduce the count. Buildings do not follow the foliage toggle. Dedicated river/coast villages are not implemented.
-* Micro-cover: native density gate, 25–250 m range (default/laptop 75), hidden above 80 m clearance. Jitter spacing = max(4, range/20) metres, hard cap 2,200 clumps, one mesh, no colliders or shadow casting. Placement uses actual terrain collider raycasts, skips slopes steeper than an up-normal dot of .75, wet samples, Ruins, Scrith, Rimwall and Road.
+* Local scenery: 64 jittered candidates per 1,024 m tile. Native KSP Terrain Scatters must be enabled. A separate hash is compared against the native factor (0â€“1). Tree probability uses climate TreeCover * 1,100 m grove noise * forestDensity (0â€“2). Conifer versus broadleaf uses 18,000 m noise > .5; height is 8 + 12*variation metres. If no tree was chosen, variation > .9 can select a boulder. These gates share random variables, so multiply-and-round density estimates are not exact.
+* Rural clusters: a tile-centre Grassland or Desert label and hash > .97; up to five 18Ã—24 m buildings, each 5â€“24 m high. Further dry/road checks can reduce the count. Buildings do not follow the foliage toggle. Dedicated river/coast villages are not implemented.
+* Micro-cover: native density gate, 25â€“250 m range (default/laptop 75), hidden above 80 m clearance. Jitter spacing = max(2.5, range/24) metres, hard caps of 2,200 clumps and fewer than 60,000 vertices per mesh, no colliders or shadow casting. Placement uses actual terrain collider raycasts, skips slopes steeper than an up-normal dot of .75, wet samples, Ruins, Scrith, Rimwall and Road.
 * Detail precedence: shoreline/Mountain/Snow stones first; then sunflower patches where meadow weight > .35 and 1,400 m noise > .58; then leaf litter under detected canopies or forest weight > .45 with the density sub-gate; then sand when desert weight > .55; otherwise grass. Mirror flowers are visual only, without beam damage.
 * Airborne detail: one mesh, at most 48 billboards, 10 Hz updates, within 30 m of dry ground. Dust when desert weight > .35, otherwise pollen weighted by forest*.4. Separate Ringworld toggle; no physical wind.
 * Far LOD draws terrain/water and the coarse ring/walls. It does not populate distant trees, cities or machinery. The default is one generated block per frame with 8 subdivisions. Completed blocks appear immediately; the coarse ring supplies a distant fallback during generation.
@@ -67,3 +69,15 @@ For each addition record: stable ID; applicable climate weights/final labels; de
 ## Habitat and city expansion (2026-09-14)
 
 See [HABITAT-LIBRARY.md](HABITAT-LIBRARY.md) for the complete 45 additional asset kinds, per-LOD triangle counts, placement and collision limitations. Source kits: `art/habitat-kit` and `art/city-kit`.
+
+## Denser close vegetation (2026-09-15)
+
+Inspired by the grouped vegetation and openings in Steven Vincent Johnson's *Approaching Dawn on Ringworld* (https://www.dennisantinori.com/RingworldRPG/14109.html). This is visual inspiration, not copied artwork or a claim that every biome should be forested.
+
+Ground-cover acceptance multiplies native scatter density by .35 + .65 times 38-metre noise (salt 853). Each cheap grass clump contains 12 blades on Laptop, 18 on higher visual presets, distributed within a 0.9 m disk and projected onto the contacted terrain triangle. Height, direction and tint vary deterministically. Vertex budgeting bounds work even at maximum detail radius; these meshes have no colliders or cast shadows.
+
+The detailed-asset gate rises from 4% times native density to 24% of accepted candidates inside 60 m, with 64 merged Blender assets on Laptop or 128 on higher presets, additionally bounded to 60,000 vertices. Slots include grass, ferns, mushrooms, litter, reeds, desert scrub, pebbles and mirror sunflowers. Existing native scatter disable/density controls still apply. Buildings, established tree positions, physics and terrain heights are unchanged. The distant LOD still does not draw individual vegetation.
+
+## Distant biome rendering (1.0.2)
+
+Forest uses the same `BiomePresentation.ForestMargin` stand mask for near trunks/crowns and intermediate crown aggregates. Beyond aggregate range it uses the `BiomeAppearance` canopy-cover/height/colour descriptor in ordinary terrain LOD meshes, including scaled-space terrain. See COLOSSI-AND-FORESTS.md for budgets and extension points. Biome boundaries follow climate and stand noise; streamed tile boundaries do not define biome shape. Future special biomes should add a descriptor and, if needed, a bounded intermediate mesh builder rather than spawning full-detail assets across the entire horizon.

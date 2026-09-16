@@ -7,7 +7,8 @@ namespace NivenRingworld
     {
         private bool initialized,dynamicWeather,trajectory,particles,fullRingDetail,rainEnabled,lightningEnabled;
         private string seed,range,height,forest,day,haze,cloud,diameter,width,gravity,wall,density,prediction,warp,ponds,detailDistance,message="";
-        private int quality,budget,visualQuality,waterQuality;
+        private int quality,budget,visualQuality,waterQuality,forestQuality;
+        private bool presetOpen;private string presetLabel="Custom";
         private string weatherPeriod,weatherVariation,stormChance,cloudWind,rainDensity;
         private string cloudSteps,airSteps,cloudRange,cloudShadow,exposure,waveHeight,photoSamples;
         private static string N(double n){return n.ToString("0.#########",CultureInfo.InvariantCulture);}
@@ -24,25 +25,28 @@ namespace NivenRingworld
                 diameter=N(s.Geometry.P.Radius/500);width=N(s.Geometry.P.Width/1000);gravity=N(s.Geometry.P.Gravity);wall=N(s.Geometry.P.WallHeight/1000);density=N(s.Geometry.P.SurfaceDensity);prediction=N(s.PredictionSeconds/60);warp=N(s.SurfaceWarpLimit);ponds=N(s.PondAmount);trajectory=s.ShowTrajectory;
                 detailDistance=N(s.DetailDistance);particles=s.AmbientParticles;
                 weatherPeriod=N(s.WeatherPeriod/3600);weatherVariation=N(s.WeatherVariation);stormChance=N(s.StormChance);cloudWind=N(s.CloudWind);rainDensity=N(s.RainDensity);rainEnabled=s.RainEnabled;lightningEnabled=s.LightningEnabled;fullRingDetail=s.FullRingDetail;visualQuality=s.VisualQuality;waterQuality=s.WaterQuality;cloudSteps=N(s.CloudSteps);airSteps=N(s.AtmosphereSteps);cloudRange=N(s.CloudRange/1000);cloudShadow=N(s.CloudShadow);exposure=N(s.AtmosphereExposure);waveHeight=N(s.WaveHeight);photoSamples=N(s.PhotoSamples);
-                quality=s.LodResolution==8?0:s.LodResolution==16?1:2;budget=s.GenerationBudget-1;initialized=true;
+                presetLabel=RingQualityPresets.Match(s);forestQuality=s.ForestQuality;quality=s.LodResolution==8?0:s.LodResolution==16?1:2;budget=s.GenerationBudget-1;initialized=true;
             }
             GUILayout.Label("Settings are stored with this save.");
-            if(GUILayout.Button("Workstation horizon preset: 1,000,000 km")){range="1000000";quality=2;budget=1;visualQuality=2;waterQuality=2;cloudSteps="128";airSteps="64";fullRingDetail=true;}
-            if(GUILayout.Button("Laptop preset: 160,000 km / 75 m ground detail")){range="160000";quality=0;budget=0;detailDistance="75";visualQuality=0;waterQuality=0;fullRingDetail=false;}
-            range=Field("Terrain horizon distance (200 to 2,000,000 km)",range);
+            if(GUILayout.Button("Quality preset: "+presetLabel+"  v"))presetOpen=!presetOpen;
+            if(presetOpen)for(int i=0;i<RingQualityPresets.Names.Length;i++)
+                if(GUILayout.Button(RingQualityPresets.Names[i]))
+                {var options=s.Save();RingQualityPresets.Apply(options,i);flight.ApplyOptions(options,false);presetOpen=false;message="Preset applied. Save your game to keep it.";return;}
+            GUILayout.Label("Selecting a preset applies its rendering settings immediately. Individual edits below use Apply settings.");
+            range=Field("Terrain horizon distance (km; minimum 200)",range);
             fullRingDetail=GUILayout.Toggle(fullRingDetail,"Full-ring surface detail: distant land, oceans and clouds");
             GUILayout.Label("No distance cutoff for this coarse surface layer. Photo mode enables it temporarily. Detailed terrain uses the horizon distance above.");
             GUILayout.Label(StockGraphics.Description);
             GUILayout.Label("Ringworld atmosphere quality (independent of stock planets)");
-            int chosen=GUILayout.Toolbar(visualQuality,new[]{"Laptop","High","Ultra"});
+            int chosen=GUILayout.Toolbar(visualQuality,new[]{"Simple","Half-resolution","Full-resolution"});
             if(chosen!=visualQuality){visualQuality=chosen;cloudSteps=chosen==2?"128":"64";airSteps=chosen==2?"64":"32";}
-            GUILayout.Label("High: half-resolution volumetrics. Ultra: full-resolution. Texture, AA and ordinary shadows follow KSP settings.");
+            GUILayout.Label("Simple uses the lightweight atmosphere. Half/full-resolution use volumetrics. Texture, AA and ordinary shadows follow KSP settings.");
             cloudSteps=Field("Cloud ray steps (32 to 256)",cloudSteps);
             airSteps=Field("Atmosphere integration steps (16 to 96)",airSteps);
             cloudRange=Field("Volumetric cloud distance (30 to 500 km)",cloudRange);
             cloudShadow=Field("Cloud self-shadow strength (0 to 1)",cloudShadow);
             exposure=Field("Atmosphere brightness (0.25 to 2)",exposure);
-            GUILayout.Label("Ringworld water quality");waterQuality=GUILayout.Toolbar(waterQuality,new[]{"Laptop","Reflective","Waves"});
+            GUILayout.Label("Ringworld water quality");waterQuality=GUILayout.Toolbar(waterQuality,new[]{"Simple","Reflective","Waves"});
             waveHeight=Field("Visual wave amplitude (0 to 2 m)",waveHeight);
             GUILayout.Label("Waves are visual; buoyancy uses the mean water level. Reflections approximate the sky, not nearby objects.");
             photoSamples=Field("Photo accumulation samples (1 to 64)",photoSamples);
@@ -52,7 +56,10 @@ namespace NivenRingworld
             particles=GUILayout.Toggle(particles,"Local airborne dust and pollen");
             GUILayout.Label("Distant mesh quality");quality=GUILayout.Toolbar(quality,new[]{"Low (8)","Balanced (16)","High (32)"});
             GUILayout.Label("New mesh blocks per frame");budget=GUILayout.Toolbar(budget,new[]{"1","2","3","4"});
-            GUILayout.Label("Near ground retains collision detail. Far terrain/water use scaled space. Small buildings and trees are nearby only; the full ring and rim walls have a coarse global model.");
+            GUILayout.Label("Near ground retains collision detail. Far terrain/water use scaled space. Small buildings are nearby only; forests have their own distant LOD; the full ring and rim walls have a coarse global model.");
+            GUILayout.Label("Biome features: forests");
+            forestQuality=GUILayout.Toolbar(forestQuality,new[]{"Economy","Low","High","Ultra"});
+            GUILayout.Label("Economy: quarter-count simple nearby crowns; distant canopy surface only. Low/High/Ultra add progressively denser distant crown meshes. Tree contacts and world generation are unchanged.");
             bool worldUnlocked=state.Vessels.Count==0&&state.Discoveries.Count==0;
             GUI.enabled=worldUnlocked;
             seed=Field("World seed (blank chooses a random seed)",seed);
@@ -85,13 +92,13 @@ namespace NivenRingworld
             if(GUILayout.Button("Apply settings"))
             {
                 double r,h,f,d,a,c,di,wi,gr,wa,de,pr,wr,po,dd,cs,ats,cr,sh,ex,wh,ps,wp,wv,sc,cw,rd;int resolved;
-                if(!Number(weatherPeriod,1.0/6,168,out wp)||!Number(weatherVariation,0,1,out wv)||!Number(stormChance,0,1,out sc)||!Number(cloudWind,0,100,out cw)||!Number(rainDensity,0,1,out rd)||!Number(cloudSteps,32,256,out cs)||!Number(airSteps,16,96,out ats)||!Number(cloudRange,30,500,out cr)||!Number(cloudShadow,0,1,out sh)||!Number(exposure,.25,2,out ex)||!Number(waveHeight,0,2,out wh)||!Number(photoSamples,1,64,out ps)||!Number(range,200,2000000,out r)||!Number(height,.25,3,out h)||!Number(forest,0,2,out f)||!Number(day,1.0/60,720,out d)||!Number(haze,0,2,out a)||!Number(cloud,0,100,out c)||!Number(diameter,2000000,200000000,out di)||!Number(width,10000,di/4,out wi)||!Number(wall,60,1000,out wa)||!Number(gravity,1,30,out gr)||!Number(density,0,100000000,out de)||!Number(prediction,1,1440,out pr)||!Number(warp,10,10000,out wr)||!Number(ponds,0,2,out po)||!Number(detailDistance,25,250,out dd))
+                if(!Number(weatherPeriod,1.0/6,168,out wp)||!Number(weatherVariation,0,1,out wv)||!Number(stormChance,0,1,out sc)||!Number(cloudWind,0,100,out cw)||!Number(rainDensity,0,1,out rd)||!Number(cloudSteps,32,256,out cs)||!Number(airSteps,16,96,out ats)||!Number(cloudRange,30,500,out cr)||!Number(cloudShadow,0,1,out sh)||!Number(exposure,.25,2,out ex)||!Number(waveHeight,0,2,out wh)||!Number(photoSamples,1,64,out ps)||!Number(range,200,double.MaxValue/1000,out r)||!Number(height,.25,3,out h)||!Number(forest,0,2,out f)||!Number(day,1.0/60,720,out d)||!Number(haze,0,2,out a)||!Number(cloud,0,100,out c)||!Number(diameter,2000000,200000000,out di)||!Number(width,10000,di/4,out wi)||!Number(wall,60,1000,out wa)||!Number(gravity,1,30,out gr)||!Number(density,0,100000000,out de)||!Number(prediction,1,1440,out pr)||!Number(warp,10,10000,out wr)||!Number(ponds,0,2,out po)||!Number(detailDistance,25,250,out dd))
                 {message="Enter finite numbers within the displayed ranges (use a decimal point).";return;}
                 if(string.IsNullOrWhiteSpace(seed))resolved=worldUnlocked?BitConverter.ToInt32(Guid.NewGuid().ToByteArray(),0):s.Geometry.P.Seed;
                 else if(!int.TryParse(seed,NumberStyles.Integer,CultureInfo.InvariantCulture,out resolved)){message="Seed must be a signed 32-bit integer or blank.";return;}
                 var n=s.Save();
                 n.SetValue("weatherPeriod",N(wp*3600),true);n.SetValue("weatherVariation",N(wv),true);n.SetValue("stormChance",N(sc),true);n.SetValue("cloudWind",N(cw),true);n.SetValue("rainDensity",N(rd),true);n.SetValue("rainEnabled",rainEnabled,true);n.SetValue("lightningEnabled",lightningEnabled,true);
-                n.SetValue("fullRingDetail",fullRingDetail,true);n.SetValue("visualQuality",visualQuality,true);n.SetValue("waterQuality",waterQuality,true);n.SetValue("cloudSteps",(int)cs,true);n.SetValue("atmosphereSteps",(int)ats,true);n.SetValue("cloudRange",N(cr*1000),true);n.SetValue("cloudShadow",N(sh),true);n.SetValue("atmosphereExposure",N(ex),true);n.SetValue("waveHeight",N(wh),true);n.SetValue("photoSamples",(int)ps,true);
+                n.SetValue("forestQuality",forestQuality,true);n.SetValue("fullRingDetail",fullRingDetail,true);n.SetValue("visualQuality",visualQuality,true);n.SetValue("waterQuality",waterQuality,true);n.SetValue("cloudSteps",(int)cs,true);n.SetValue("atmosphereSteps",(int)ats,true);n.SetValue("cloudRange",N(cr*1000),true);n.SetValue("cloudShadow",N(sh),true);n.SetValue("atmosphereExposure",N(ex),true);n.SetValue("waveHeight",N(wh),true);n.SetValue("photoSamples",(int)ps,true);
                 n.SetValue("lodRange",N(r*1000));n.SetValue("lodResolution",new[]{8,16,32}[quality]);n.SetValue("generationBudget",budget+1);
                 n.SetValue("haze",N(a));n.SetValue("cloudAmount",N(c/100));n.SetValue("dynamicWeather",dynamicWeather);
                 n.SetValue("detailDistance",N(dd),true);n.SetValue("ambientParticles",particles,true);

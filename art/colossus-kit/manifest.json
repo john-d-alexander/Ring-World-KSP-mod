@@ -1,0 +1,220 @@
+{
+  "assets": [
+    {
+      "id": "continent_crown_01",
+      "kind": "continent_crown",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        48000,
+        12000,
+        48000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 33376
+        },
+        {
+          "level": 1,
+          "triangles": 6344
+        },
+        {
+          "level": 2,
+          "triangles": 1380
+        }
+      ],
+      "theme": "city",
+      "placement": "seeded-cell"
+    },
+    {
+      "id": "rim_gate_titan_01",
+      "kind": "rim_gate_titan",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        28000,
+        80000,
+        16000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 688
+        },
+        {
+          "level": 1,
+          "triangles": 400
+        },
+        {
+          "level": 2,
+          "triangles": 256
+        }
+      ],
+      "theme": "rim",
+      "placement": "seeded-cell"
+    },
+    {
+      "id": "skyway_leviathan_01",
+      "kind": "skyway_leviathan",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        120000,
+        18000,
+        10000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 792
+        },
+        {
+          "level": 1,
+          "triangles": 792
+        },
+        {
+          "level": 2,
+          "triangles": 792
+        }
+      ],
+      "theme": "city",
+      "placement": "seeded-cell"
+    },
+    {
+      "id": "world_flup_mouth_01",
+      "kind": "world_flup_mouth",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        60000,
+        22000,
+        26000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 8772
+        },
+        {
+          "level": 1,
+          "triangles": 3540
+        },
+        {
+          "level": 2,
+          "triangles": 1212
+        }
+      ],
+      "theme": "spill",
+      "placement": "seeded-cell"
+    },
+    {
+      "id": "scrith_memory_spire_01",
+      "kind": "scrith_memory_spire",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        9000,
+        45000,
+        9000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 4944
+        },
+        {
+          "level": 1,
+          "triangles": 1992
+        },
+        {
+          "level": 2,
+          "triangles": 696
+        }
+      ],
+      "theme": "arrival",
+      "placement": "seeded-cell"
+    },
+    {
+      "id": "broken_city_halo_01",
+      "kind": "broken_city_halo",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        90000,
+        8000,
+        90000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 3576
+        },
+        {
+          "level": 1,
+          "triangles": 1560
+        },
+        {
+          "level": 2,
+          "triangles": 672
+        }
+      ],
+      "theme": "city",
+      "placement": "seeded-cell"
+    },
+    {
+      "id": "atmosphere_harp_01",
+      "kind": "atmosphere_harp",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        36000,
+        50000,
+        12000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 1336
+        },
+        {
+          "level": 1,
+          "triangles": 1032
+        },
+        {
+          "level": 2,
+          "triangles": 896
+        }
+      ],
+      "theme": "scrith",
+      "placement": "seeded-cell"
+    },
+    {
+      "id": "rim_engine_reliquary_01",
+      "kind": "rim_engine_reliquary",
+      "family": "colossi",
+      "collider": "surface",
+      "sizeMetres": [
+        42000,
+        65000,
+        32000
+      ],
+      "lods": [
+        {
+          "level": 0,
+          "triangles": 9572
+        },
+        {
+          "level": 1,
+          "triangles": 3956
+        },
+        {
+          "level": 2,
+          "triangles": 1452
+        }
+      ],
+      "theme": "rim",
+      "placement": "seeded-cell"
+    }
+  ]
+}

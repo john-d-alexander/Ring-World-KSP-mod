@@ -1,18 +1,25 @@
-# Full-ring cloud rendering
+# Full-ring clouds: seeded fBm coverage
 
-Clouds now have their own transparent scaled-space ribbon at a representative 5.5 km cloud altitude, independent of the full-ring terrain-detail setting. They are visible wherever the ring's inner surface is visible: flight, distant planetary views, map and tracking station. The opaque hull and rim walls can still occlude them. Setting Ringworld atmosphere off or cloud amount to zero removes this layer.
+The distant cloud ribbon remains visible from flight, other planetary views, map and tracking station. It sits at a representative 5.5 km altitude, with 16,384 segments and 32,768 triangles. Atmosphere off or cloud amount zero disables it.
 
-The old cloud tint painted into DistantSurface has been removed. GlobalClouds uses the same seeded 3-D noise texture, 512 km periodic coverage function and universal-time wind offsets as the laptop cloud decks and GPU volumetric atmosphere. Each of 16,384 ribbon segments has its own small, unwrapped cloud coordinate interval, rather than computing small cloud features from a circumference-sized float. Adjacent intervals agree modulo one, including the longitude seam. Texture mip selection filters subpixel clouds on the distant arc.
+## Generation and coverage
 
-Global weather follows the CPU weather model's temporal blend, seeded regional noise, storm threshold and severity-to-cloud mapping on the GPU. Near the player it blends to the exact CPU weather sample used by local rendering. The cloud ribbon receives the same twenty moving night bands and day-phase parameter as the ring surface. This is inexpensive shading, not ray-traced shadowing.
+Coverage now uses an original seeded gradient-Perlin implementation with quintic interpolation, five fBm octaves (4,000 km down to 250 km), and low-frequency domain warping. Hashes use the complete 32-bit world seed. It no longer tiles the previous 512 km or 32,768 km coverage textures. Longitude repeats only at the ring's actual circumference; the across-axis hash domain exceeds the physical ring width by orders of magnitude.
 
-Local coverage fades over 40–72% of the available local cloud range (capped at 180 km). The global layer fades in over the complementary interval, using camera distance to the cloud band. Optical-opacity weighting avoids a hard switch on the laptop decks. The High/Ultra renderer fades its volumetric density over the same interval. Cloud positions and major coverage features are shared; the global sheet remains an approximation of the volume's depth and small billows, so this is a gradual representation change rather than identical geometry at all distances.
+Distant/fake clouds target approximately 50% coverage, measured as coverage-field values above 0.5. This is a statistical surface-area target, not a promise that half of every view is white. Smooth edges and translucent cloud shading reduce average opacity. Weather lightly shifts distant coverage; local weather is not capped at 50% and can remain clear or overcast. Across the existing handoff band, the field blends to the local weather's amount.
 
-There is one additional global draw and 32,768 cloud triangles, with no colliders or CPU cloud-mesh rebuild per frame. This is not a claim of constant FPS on every laptop. The Windows/D3D11 visual bundle must be available; an unsupported/missing shader retains the pre-existing reduced visual fallback.
+Integer lattice cells and fractional offsets are carried separately, with double-precision CPU origins, so local movement does not lose precision at large ring longitudes. Both renderers evaluate the same field with universal-time wind and ring rotation. Fine 3-D erosion still uses the existing noise texture for volumetric cloud shape; that texture no longer determines repeated large cloud banks. Distant fBm octaves are filtered when smaller than a pixel.
 
-Build shaders with `build-visuals.ps1`. `smoke-test.ps1 -GlobalCloudsOnly` checks the exported shader, all longitude seams, daylight/night response, the local handoff and the off setting. Its isolated render images live in `artifacts/validation/global-clouds/`. Flight weather/warp checks remain available with `-WeatherOnly`.
+This follows the gradient-noise, multiscale fBm and frequency-filtering concepts in [PBRT: Noise](https://www.pbr-book.org/3ed-2018/Texture/Noise). [OpenSimplex2](https://github.com/KdotJPG/OpenSimplex2) was also reviewed as an alternative. No third-party noise implementation or art assets were copied; Perlin was chosen to retain explicit cylindrical seam handling and cell/fraction precision.
 
+## Map layering
 
-## Broken cloud banks
+The cloud shell faces inward only. An analytic ray/hull test prevents far-side clouds and terrain bleeding through the outer hull when scaled-space depth values collapse together; views into the opening above the rim remain possible.
 
-Local and scaled renderers now share a 32,768 km macro coverage field in addition to 512 km fine detail. Independently wrapped double-precision origins keep both fields anchored to the rotating ring with wind drift. The scaled mesh carries a separate continuous macro chart. Cloud amount controls coverage thresholds; large clear regions remain when fine noise averages out at long range. This adds two filtered texture samples, without additional geometry or 3D textures.
+The base ribbon renders first, streamed terrain second, transparent clouds afterward. The scaled terrain uses a small depth bias. Night shading is evaluated from the same shadow-square phase in each layer; matching shadow multipliers on terrain and clouds is algebraically equivalent to darkening their final composite. There is no extra coplanar shadow mesh to z-fight.
+
+Distant terrain no longer has deep crack-cover skirts. The quadtree limits cell curvature error and culls outside the ring before subdividing. Map/tracking use a shallower hull mesh without the extra flight-camera safety burial. Flight retains that margin to keep the distant fallback out of the local ground.
+
+## Validation
+
+Build shaders with `build-visuals.ps1`. `smoke-test.ps1 -GlobalCloudsOnly` samples a 128,000 km square coverage field on the GPU, checks roughly 45–55% cloudy samples, tests that offsets of 512 km and 32,768 km do not repeat it, and verifies ring seams, day/night shading and optical handoff. `-MapOnly` also checks skirt-free scaled chunks, large-distance save roundtrips and wall camera constraints, and captures inside/outside map views. These fixtures are not a guarantee of every camera/quality combination or constant laptop FPS.

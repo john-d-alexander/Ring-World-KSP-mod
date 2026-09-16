@@ -1,19 +1,44 @@
-// Periodic double-precision origins are supplied by RingCloudField.
+// Seeded gradient Perlin fBm. Only the full circumference wraps in longitude.
+// Integer cell + fractional origin avoids float precision loss near the observer.
 sampler3D _Noise;
-float3 _CloudOrigin,_CloudMacroOrigin;
-float _CloudAmount,_Lightning;
-float cloudCoverageAt(float2 micro,float2 macro,float amount,float lod)
+float3 _CloudOrigin;
+float4 _CoverageOrigin;
+float _CloudAmount,_Lightning,_CoveragePeriod,_CoverageScaleX;float2 _CoverageSeed;
+uint cloudHash(int2 p,int salt)
 {
-    float3 q=float3(micro,0),m=float3(macro,0);
-    float n=.55*tex3Dlod(_Noise,float4(q,max(0,lod))).r+.30*tex3Dlod(_Noise,float4(q*2,max(0,lod+1))).g+.15*tex3Dlod(_Noise,float4(q*8,max(0,lod+3))).b;
-    // Large cloud banks and clear regions survive the averaging of fine cloud detail.
-    float bank=.7*tex3Dlod(_Noise,float4(m,max(0,lod-6))).r+.3*tex3Dlod(_Noise,float4(m*2,max(0,lod-5))).b;
-    float region=smoothstep(.65-.30*amount,.80-.30*amount,bank);
-    float detail=smoothstep(.48-.18*amount,.64-.18*amount,n);
-    return amount<=0?0:region*detail;
+    uint h=(uint)p.x*0x8da6b343u^(uint)p.y*0xd8163841u^((uint)_CoverageSeed.x|((uint)_CoverageSeed.y<<16))^(uint)salt;
+    h^=h>>16;h*=0x7feb352du;h^=h>>15;h*=0x846ca68bu;return h^(h>>16);
 }
-float cloudCoverageLod(float2 p,float amount,float lod)
+float cloudGradient(uint h,float2 p)
 {
-    return cloudCoverageAt((p+_CloudOrigin.xy)/512000,p/32768000+_CloudMacroOrigin.xy,amount,lod);
+    uint k=h&7u;
+    if(k==0)return p.x;if(k==1)return -p.x;if(k==2)return p.y;if(k==3)return -p.y;
+    return (k==4?p.x+p.y:k==5?p.x-p.y:k==6?-p.x+p.y:-p.x-p.y)*.70710678;
 }
-float cloudCoverage(float2 p){return cloudCoverageLod(p,_CloudAmount,-10);}
+float cloudPerlin(float2 cell,float2 fraction,int frequency,int salt)
+{
+    float2 p=fraction*frequency;int2 c=(int2)round(cell)*frequency+(int2)floor(p);float2 f=frac(p);
+    int period=(int)_CoveragePeriod*frequency;c.x=(c.x%period+period)%period;int next=(c.x+1)%period;
+    int yp=1048576*frequency;c.y=(c.y%yp+yp)%yp;int yn=(c.y+1)%yp;
+    float2 q=f*f*f*(f*(f*6-15)+10);
+    return lerp(lerp(cloudGradient(cloudHash(c,salt),f),cloudGradient(cloudHash(int2(next,c.y),salt),f-float2(1,0)),q.x),
+        lerp(cloudGradient(cloudHash(int2(c.x,yn),salt),f-float2(0,1)),cloudGradient(cloudHash(int2(next,yn),salt),f-1),q.x),q.y);
+}
+float cloudCoverageAt(float2 cell,float2 fraction,float amount,float footprint)
+{
+    float2 warp=float2(cloudPerlin(cell,fraction,1,8191),cloudPerlin(cell,fraction,1,13171))*.7;
+    float sum=0,weight=1,total=0;
+    [unroll] for(int octave=0;octave<5;octave++)
+    {
+        int frequency=1<<octave;
+        float filter=1-smoothstep(.35,1.5,footprint*frequency);
+        sum+=weight*filter*cloudPerlin(cell,fraction+warp,frequency,1970+octave*1013);
+        total+=weight;weight*=.5;
+    }
+    float n=saturate(.5+sum/total*1.5);
+    return amount<=0?0:smoothstep(.42+(.5-amount)*.24,.58+(.5-amount)*.24,n);
+}
+float cloudCoverage(float2 p)
+{
+    return cloudCoverageAt(_CoverageOrigin.xy,_CoverageOrigin.zw+p*float2(_CoverageScaleX,1.0/4000000),_CloudAmount,0);
+}

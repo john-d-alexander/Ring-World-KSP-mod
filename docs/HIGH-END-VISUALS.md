@@ -1,5 +1,9 @@
 # Ringworld high-end visuals and photo mode — 0.9
 
+## Current controls (1.0.3)
+
+The old Laptop/High/Ultra atmosphere buttons are now labelled Simple/Half-resolution/Full-resolution. Water Laptop is now Simple. Use the new overall quality preset dropdown to apply coordinated settings; see [QUALITY-PRESETS.md](QUALITY-PRESETS.md). The historical implementation description below retains the old quality names.
+
 ## Using it
 
 Open the Ringworld panel → Settings. Atmosphere quality has Laptop, High and Ultra modes, independently of stock planet settings. Apply settings to persist your choices with this save. Laptop remains the default. High uses a half-width/half-height optical buffer; Ultra uses full viewport resolution. Both integrate three-dimensional cloud density on the GPU, with direct-light self-shadowing, soft density edges and per-pixel Rayleigh/Mie atmosphere. High defaults to 64 cloud and 32 atmosphere samples; Ultra defaults to 128/64. Individual sample counts, cloud distance (30–500 km), self-shadow strength and atmosphere brightness are adjustable. Weather settings and their new evolving state are described in [WEATHER-AND-NIGHT.md](WEATHER-AND-NIGHT.md).
@@ -54,6 +58,6 @@ The original renderer already has moving cloud-front coverage, controlled by **M
 
 The distant colour map uses the terrain seed, its gradient hash and climate palette, and the two Great Ocean basin centres. These are coarse representations: coast shapes, minor waterways, the height field and small islands are not exact replicas of local terrain. High-frequency climate noise is filtered when smaller than a pixel. Distant clouds are flat weather colour, not volumetric clouds across the full circumference. They follow cloud amount; moving fronts animate their phase. Twenty day/night bands use the same UT-driven square cadence as local daylight, including when full-ring detail is off. This shader does not add distant buildings or tree geometry. Those require dedicated simplified assets in the later Blender pass.
 
-Detailed terrain remains governed by **Terrain horizon distance**, up to 2,000,000 km, and its subdivision setting. The global colour layer fills the view beyond that range. Existing floor burial and closed rim-wall geometry are retained so the coarse ribbon does not pass through the camera or fight with local ground.
+Detailed terrain remains governed by **Terrain horizon distance**, with no fixed upper setting cap, and its subdivision setting. The global colour layer fills the view beyond that range. Existing floor burial and closed rim-wall geometry are retained so the coarse ribbon does not pass through the camera or fight with local ground.
 
 The supplied painting is an artistic composition. At the default physical dimensions, the width is approximately 1% of the radius: the arc narrows quickly in a wide-angle camera. More rendering distance cannot make that physically narrow arc as broad as the painting. Camera framing, atmospheric visibility and the chosen ring dimensions all affect its appearance. Clear sky removes cloud obstruction; atmospheric haze and foreground geometry can still obscure low-angle parts of the arc. This is a first distant-surface pass, not a reproduction of the painting.

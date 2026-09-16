@@ -11,6 +11,7 @@ namespace NivenRingworld
         {
             var s=Settings.Load();s.CloudAmount=.8;s.DynamicWeather=false;s.FullRingDetail=false;
             var parent=new GameObject("Global cloud validation");var bundle=RingVisualAssets.Acquire();
+            CheckCoverage(s,bundle);
             var clouds=new GlobalClouds(parent.transform,s,bundle);clouds.Update(s,null,null,0);
             var obj=GameObject.Find("Ringworld global cloud shell");if(obj==null)throw new Exception("Global cloud renderer missing");
             var mesh=obj.GetComponent<MeshFilter>().sharedMesh;var material=obj.GetComponent<MeshRenderer>().sharedMaterial;
@@ -19,7 +20,9 @@ namespace NivenRingworld
             if(macro.Length!=mesh.vertexCount)throw new Exception("Macro cloud chart missing");
             for(int i=0;i<16384;i++)
             {
-                float error=Mathf.Repeat(field[i*4+2].x-field[((i+1)%16384)*4].x+.5f,1)-.5f;
+                double cells=Math.Round(s.Geometry.P.Circumference/RingCloudField.CoverageScale);
+                double difference=field[i*4+2].x+macro[i*4+2].x-field[((i+1)%16384)*4].x-macro[((i+1)%16384)*4].x;
+                float error=(float)(difference-Math.Round(difference/cells)*cells);
                 float macroError=Mathf.Repeat(macro[i*4+2].x-macro[((i+1)%16384)*4].x+.5f,1)-.5f;
                 if(Mathf.Abs(macroError)>.00002f)throw new Exception("Macro cloud seam at "+i);
                 if(Mathf.Abs(error)>.00002f)throw new Exception("Cloud field seam at segment "+i+": "+error);
@@ -34,13 +37,50 @@ namespace NivenRingworld
             float dayPhase=(float)RingGeometry.Wrap(20*.0123-.5,1);material.SetFloat("_DayPhase",dayPhase);
             double day=Capture(camera,target,Path.Combine(output,"day.png"));
             material.SetFloat("_DayPhase",(float)(20*.0123));double night=Capture(camera,target,Path.Combine(output,"night.png"));
-            material.SetFloat("_DayPhase",dayPhase);material.SetVector("_Local",new Vector4(.0123f,.5f,5500,1));material.SetFloat("_LocalAmount",(float)s.Weather(along,0,0).Cloud);material.SetVector("_CloudHandoff",RingCloudField.Handoff(s,false));
+            material.SetFloat("_DayPhase",dayPhase);material.SetVector("_Local",new Vector4(.0123f,.5f,5500,1));material.SetFloat("_LocalAmount",(float)(.5+(s.CloudAmount-.5)*.1));material.SetVector("_CloudHandoff",RingCloudField.Handoff(s,false));
             double span=s.Geometry.P.Circumference/16384,sector=Math.Floor(along/span);material.SetFloat("_SegmentLength",(float)span);material.SetVector("_LocalChart",new Vector4((float)sector,(float)(along-sector*span),0,5500));
             double transition=Capture(camera,target,Path.Combine(output,"handoff.png"));
             if(day<.01||night>day*.4||transition>=day*.98)throw new Exception("Cloud shading/handoff failed: "+day+" / "+night+" / "+transition);
+            material.SetVector("_Local",Vector4.zero);
+            cameraObj.transform.position=ConvertVector.Unity(s.Geometry.Position(along,0,-1000000)*ScaledSpace.InverseScaleFactor);
+            cameraObj.transform.LookAt(ConvertVector.Unity(s.Geometry.Position(along,0,5500)*ScaledSpace.InverseScaleFactor),Vector3.up);
+            camera.farClipPlane=(float)(s.Geometry.P.Radius*3*ScaledSpace.InverseScaleFactor);
+            double exterior=Capture(camera,target,Path.Combine(output,"exterior.png"));
+            if(exterior>.0001)throw new Exception("Clouds visible through outer hull: "+exterior);
+            Debug.Log("[RingworldSmoke] CLOUD EXTERIOR luminance="+exterior);
             s.CloudAmount=0;clouds.Update(s,null,null,0);if(obj.activeSelf)throw new Exception("Cloud off setting ignored");
             Debug.Log("[RingworldSmoke] PASS global-clouds-only: 16384 continuous UV segments; day="+day+" night="+night+" handoff="+transition+"; low-detail and off settings OK");
             camera.targetTexture=null;target.Release();UnityEngine.Object.Destroy(target);UnityEngine.Object.Destroy(cameraObj);clouds.Dispose();UnityEngine.Object.Destroy(parent);RingVisualAssets.Release();
+        }
+        private static void CheckCoverage(Settings s,AssetBundle bundle)
+        {
+            var shader=bundle.LoadAsset<Shader>("Assets/Shaders/CloudCoverageProbe.shader");
+            if(shader==null||!shader.isSupported)throw new Exception("Cloud fBm probe unavailable");
+            var mat=new Material(shader);RingCloudField.Apply(mat,s,0,0,0,0);mat.SetFloat("_CloudAmount",.5f);mat.SetVector("_CoverageOrigin",new Vector4(8000,12,.37f,.23f));
+            var target=new RenderTexture(1024,1024,0,RenderTextureFormat.ARGB32,RenderTextureReadWrite.Linear);
+            Func<float,Color32[]> sample=offset=>
+            {
+                mat.SetFloat("_ProbeOffset",offset);Graphics.Blit(null,target,mat);
+                var old=RenderTexture.active;RenderTexture.active=target;var image=new Texture2D(1024,1024,TextureFormat.RGBA32,false,true);
+                image.ReadPixels(new Rect(0,0,1024,1024),0,0);image.Apply();RenderTexture.active=old;var colors=image.GetPixels32();
+                if(offset==0){string folder=Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath,"../artifacts/validation/global-clouds"));Directory.CreateDirectory(folder);File.WriteAllBytes(Path.Combine(folder,"fbm-coverage.png"),image.EncodeToPNG());}
+                UnityEngine.Object.Destroy(image);return colors;
+            };
+            var original=sample(0);
+            var origin=mat.GetVector("_CoverageOrigin");mat.SetVector("_CoverageOrigin",origin+new Vector4(-.002f,-.002f,0,0));
+            var rounded=sample(0);mat.SetVector("_CoverageOrigin",origin);
+            for(int i=0;i<original.Length;i++)if(original[i].r!=rounded[i].r)throw new Exception("Interpolated integer cloud cell changed the pattern");
+            int covered=0;foreach(var color in original)if(color.r>127)covered++;
+            double coverage=(double)covered/original.Length;
+            if(coverage<.45||coverage>.55)throw new Exception("Distant cloud coverage not about 50%: "+coverage);
+            foreach(float offset in new[]{512000f,32768000f})
+            {
+                var shifted=sample(offset);double difference=0;for(int i=0;i<original.Length;i++)difference+=Math.Abs(original[i].r-shifted[i].r)/(255.0*original.Length);
+                if(difference<.03)throw new Exception("Clouds repeat at old texture period "+offset);
+                Debug.Log("[RingworldSmoke] CLOUD FBM offset="+offset+" meanDifference="+difference);
+            }
+            Debug.Log("[RingworldSmoke] CLOUD FBM coverage="+coverage);
+            target.Release();UnityEngine.Object.Destroy(target);UnityEngine.Object.Destroy(mat);
         }
         private static double Capture(Camera camera,RenderTexture target,string path)
         {

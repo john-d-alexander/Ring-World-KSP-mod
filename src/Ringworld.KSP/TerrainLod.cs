@@ -12,28 +12,31 @@ namespace NivenRingworld
     {
         private sealed class Patch
         {
-            internal GameObject Root;internal Mesh Mesh,WaterMesh;internal DVec Anchor;internal double Phase;internal bool Scaled;internal Texture2D Texture;
+            internal bool Retired;internal IEnumerator<Mesh> CanopyWork;internal GameObject Root;internal Mesh Mesh,WaterMesh,CanopyMesh;internal DVec Anchor;internal double Phase;internal bool Scaled;internal Texture2D Texture;
         }
         private AssetBundle visualBundle;private bool nightShader;
-        private readonly Settings settings;private readonly Material material,farMaterial,waterMaterial;
+        private readonly Settings settings;private readonly Material material,farMaterial,waterMaterial,forestMaterial;
         private readonly Dictionary<string,Patch> patches=new Dictionary<string,Patch>();
+        private readonly Queue<Patch> canopyPending=new Queue<Patch>();
+        internal int CanopyPending {get{return canopyPending.Count;}}
         private HashSet<string> wanted=new HashSet<string>();
         private List<LodBlock> pending=new List<LodBlock>();
-        private long lastX=long.MinValue,lastY;
+        private long lastX=long.MinValue,lastY;private double plannedAlong;
         internal int Count {get{return patches.Count;}}
         internal int Pending {get{return pending.Count;}}
+        internal int BuiltScaledCount {get{int count=0;foreach(var p in patches.Values)if(p.Scaled)count++;return count;}}
         internal int ScaledCount {get{int count=0;foreach(var p in patches.Values)if(p.Scaled&&p.Root.activeSelf)count++;return count;}}
-        internal TerrainLod(Settings s,Material m,Material water){settings=s;material=m;waterMaterial=water;farMaterial=new Material(m);farMaterial.color=Color.black;farMaterial.EnableKeyword("_EMISSION");farMaterial.SetColor("_EmissionColor",Color.white);farMaterial.SetFloat("_Glossiness",0);
+        internal TerrainLod(Settings s,Material m,Material water,Material forest){settings=s;material=m;waterMaterial=water;forestMaterial=forest;farMaterial=new Material(m);farMaterial.color=Color.black;farMaterial.EnableKeyword("_EMISSION");farMaterial.SetColor("_EmissionColor",Color.white);farMaterial.SetFloat("_Glossiness",0);
             visualBundle=RingVisualAssets.Acquire();var shader=visualBundle!=null?visualBundle.LoadAsset<Shader>("Assets/Shaders/TerrainNight.shader"):null;
-            if(shader!=null&&shader.isSupported){farMaterial.shader=shader;nightShader=true;}
+            if(shader!=null&&shader.isSupported){farMaterial.shader=shader;farMaterial.renderQueue=2010;nightShader=true;}
         }
         internal void Update(double along,double across)
         {
             long x=(long)Math.Floor(along/settings.TileSize),y=(long)Math.Floor(across/settings.TileSize);
             if(x!=lastX||y!=lastY)
             {
-                lastX=x;lastY=y;wanted.Clear();pending.Clear();
-                foreach(var b in TerrainLodPlan.Create(along,across,settings.TileSize,settings.TileRadius,settings.LodRange))
+                lastX=x;lastY=y;plannedAlong=along;wanted.Clear();pending.Clear();
+                foreach(var b in TerrainLodPlan.Create(along,across,settings.TileSize,settings.TileRadius,Math.Min(settings.LodRange,settings.Geometry.P.Circumference/2+settings.Geometry.P.Width),settings.Geometry.P.Width/2,settings.Geometry.P.Circumference/2,Math.Sqrt(8*settings.Geometry.P.Radius*250)*settings.LodResolution))
                 {
                     if(b.Y>=settings.Geometry.P.Width/2||b.Y+b.Size<=-settings.Geometry.P.Width/2)continue;
                     wanted.Add(b.Key);if(!patches.ContainsKey(b.Key))pending.Add(b);
@@ -51,9 +54,29 @@ namespace NivenRingworld
                 var remove=new List<string>();foreach(var kv in patches)if(!wanted.Contains(kv.Key))remove.Add(kv.Key);
                 foreach(var key in remove){Destroy(patches[key]);patches.Remove(key);}
             }
+            // Yield between canopy rows; never spend a whole dense forest block
+            // sampling terrain in one frame. Mesh publication stays on Unity's thread.
+            var clock=System.Diagnostics.Stopwatch.StartNew();int steps=0;
+            while(canopyPending.Count>0&&steps++<8*settings.GenerationBudget&&clock.Elapsed.TotalMilliseconds<2*settings.GenerationBudget)
+            {
+                var p=canopyPending.Peek();
+                if(p.Retired){canopyPending.Dequeue();continue;}
+                bool more=p.CanopyWork.MoveNext();var mesh=more?p.CanopyWork.Current:null;
+                if(!more||mesh!=null)
+                {
+                    canopyPending.Dequeue();p.CanopyWork.Dispose();p.CanopyWork=null;
+                    if(mesh!=null)
+                    {
+                        p.CanopyMesh=mesh;var canopy=new GameObject("Ring biome LOD canopy");canopy.layer=15;canopy.transform.SetParent(p.Root.transform,false);
+                        canopy.AddComponent<MeshFilter>().sharedMesh=mesh;var cr=canopy.AddComponent<MeshRenderer>();cr.sharedMaterial=forestMaterial;cr.shadowCastingMode=ShadowCastingMode.Off;cr.receiveShadows=false;
+                    }
+                }
+            }
         }
         private Patch Build(LodBlock b)
         {
+            // Near canopy resolves stand edges and low crown relief; far blocks retain
+            // an area-filtered biome colour/height without individual tree draws.
             int n=settings.LodResolution;int count=(n+1)*(n+1);
             var p=new Patch{Root=new GameObject("Ring terrain LOD "+b.Key),Anchor=settings.Geometry.Position(b.X,b.Y,0),Phase=settings.Geometry.OrientationRadians};
             p.Scaled=b.Size>=65536&&b.DistanceSquared(lastX*settings.TileSize,lastY*settings.TileSize)>250000.0*250000;
@@ -63,11 +86,12 @@ namespace NivenRingworld
             var vertices=new List<Vector3>(count+4*(n+1));var uv=new List<Vector2>(vertices.Capacity);var longitude=new List<Vector2>(vertices.Capacity);var triangles=new List<int>();
             for(int y=0;y<=n;y++)for(int x=0;x<=n;x++)
             {
-                double a=b.X+b.Size*x/n,c=b.Y+b.Size*y/n;double rawAcross=c;c=Math.Max(-settings.Geometry.P.Width/2,Math.Min(settings.Geometry.P.Width/2,c));var s=settings.Terrain.Sample(a,Math.Max(-settings.Geometry.P.Width/2+.01,Math.Min(settings.Geometry.P.Width/2-.01,c)));
-                double h=(s.Wet?s.WaterHeight+.5:s.Height)-.2;
+                double a=Math.Max(plannedAlong-settings.Geometry.P.Circumference/2,Math.Min(plannedAlong+settings.Geometry.P.Circumference/2,b.X+b.Size*x/n)),c=b.Y+b.Size*y/n;double rawAcross=c;c=Math.Max(-settings.Geometry.P.Width/2,Math.Min(settings.Geometry.P.Width/2,c));var s=settings.Terrain.Sample(a,Math.Max(-settings.Geometry.P.Width/2+.01,Math.Min(settings.Geometry.P.Width/2-.01,c)));
+                var appearance=BiomePresentation.Sample(settings.Terrain,a,c,s,b.Size/n,Math.Min(2,settings.ForestDensity*StockGraphics.Scatter));
+                double h=(s.Wet?s.WaterHeight+.5:s.Height+(b.Size>ForestCanopy.MaximumDistantBlock(settings)?appearance.CanopyHeight:0))-.2;
                 vertices.Add(ConvertVector.Unity(settings.Geometry.Position(a,c,h)-p.Anchor));
                 wet[y*(n+1)+x]=s.Wet;waterUv[y*(n+1)+x]=new Vector2(s.Wet?(float)Math.Max(0,s.WaterHeight-s.Height):0,0);
-                uv.Add(new Vector2((x+.5f)/(n+1),(y+.5f)/(n+1)));longitude.Add(new Vector2((float)(a/settings.Geometry.P.Circumference),0));colors[y*(n+1)+x]=TerrainTint.Color(s);
+                uv.Add(new Vector2((x+.5f)/(n+1),(y+.5f)/(n+1)));longitude.Add(new Vector2((float)(a/settings.Geometry.P.Circumference),0));colors[y*(n+1)+x]=TerrainTint.WithCanopy(s,appearance);
                 if(x<n&&y<n&&rawAcross<settings.Geometry.P.Width/2&&rawAcross+b.Size/n>-settings.Geometry.P.Width/2){int i=y*(n+1)+x;triangles.AddRange(new[]{i,i+n+1,i+1,i+1,i+n+1,i+n+2});}
             }
             var f=RingworldFlight.Instance;
@@ -92,7 +116,7 @@ namespace NivenRingworld
             }
             // Render-only skirts conceal T-junction gaps; physical ground is exclusively
             // the fine streamed collision mesh, never these large-distance triangles.
-            for(int edge=0;edge<4;edge++)
+            for(int edge=0;!p.Scaled&&edge<4;edge++)
             {
                 int previous=-1,previousTop=-1;
                 for(int k=0;k<=n;k++)
@@ -108,7 +132,12 @@ namespace NivenRingworld
             p.Texture=TerrainTint.Texture(n+1,colors);
             p.Mesh=new Mesh{name="Adaptive ring terrain block"};p.Mesh.SetVertices(vertices);p.Mesh.SetUVs(0,uv);p.Mesh.SetUVs(1,longitude);p.Mesh.SetTriangles(triangles,0);p.Mesh.RecalculateNormals();p.Mesh.RecalculateBounds();
             p.Root.AddComponent<MeshFilter>().sharedMesh=p.Mesh;var renderer=p.Root.AddComponent<MeshRenderer>();renderer.sharedMaterial=p.Scaled?farMaterial:material;var block=new MaterialPropertyBlock();block.SetTexture("_MainTex",p.Texture);if(p.Scaled)block.SetTexture("_EmissionMap",p.Texture);renderer.SetPropertyBlock(block);
-            renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;return p;
+            renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;
+            if(!p.Scaled&&b.Size<=ForestCanopy.MaximumDistantBlock(settings))
+            {
+                p.CanopyWork=ForestCanopy.DistantMesh(settings,b,p.Anchor,p.Phase);canopyPending.Enqueue(p);
+            }
+            return p;
         }
         internal void Reposition(Vector3d star)
         {
@@ -118,7 +147,8 @@ namespace NivenRingworld
             if(MapView.MapIsEnabled&&PlanetariumCamera.Camera!=null)
             {
                 var camera=ScaledSpace.ScaledToLocalSpace(PlanetariumCamera.Camera.transform.position)-star;
-                interior=settings.Geometry.Coordinates(ConvertVector.Core(camera)).Altitude>=TerrainGenerator.MinimumHeight;
+                var view=settings.Geometry.Coordinates(ConvertVector.Core(camera));
+                interior=view.Altitude>=TerrainGenerator.MinimumHeight||Math.Abs(view.Across)>settings.Geometry.P.Width/2;
             }
             foreach(var p in patches.Values)
             {
@@ -129,8 +159,8 @@ namespace NivenRingworld
                 p.Root.transform.rotation=Quaternion.AngleAxis((float)(delta*180/Math.PI),Vector3.up);
             }
         }
-        private static void Destroy(Patch p){UnityEngine.Object.Destroy(p.Root);UnityEngine.Object.Destroy(p.Mesh);if(p.WaterMesh!=null)UnityEngine.Object.Destroy(p.WaterMesh);UnityEngine.Object.Destroy(p.Texture);}
-        public void Dispose(){foreach(var p in patches.Values)Destroy(p);patches.Clear();UnityEngine.Object.Destroy(farMaterial);if(visualBundle!=null)RingVisualAssets.Release();}
+        private static void Destroy(Patch p){p.Retired=true;if(p.CanopyWork!=null){p.CanopyWork.Dispose();p.CanopyWork=null;}UnityEngine.Object.Destroy(p.Root);UnityEngine.Object.Destroy(p.Mesh);if(p.CanopyMesh!=null)UnityEngine.Object.Destroy(p.CanopyMesh);if(p.WaterMesh!=null)UnityEngine.Object.Destroy(p.WaterMesh);UnityEngine.Object.Destroy(p.Texture);}
+        public void Dispose(){foreach(var p in patches.Values)Destroy(p);patches.Clear();canopyPending.Clear();UnityEngine.Object.Destroy(farMaterial);if(visualBundle!=null)RingVisualAssets.Release();}
         internal void Light(float light){if(!nightShader)farMaterial.SetColor("_EmissionColor",new Color(light,light,light));}
     }
 }

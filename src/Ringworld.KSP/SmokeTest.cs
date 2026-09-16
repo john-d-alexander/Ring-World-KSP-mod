@@ -26,12 +26,12 @@ namespace NivenRingworld
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-global-clouds-only")>=0)
             {
                 try{GlobalCloudSmoke.Run();if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-scenery-only")>=0){ScenerySmoke.Run();LibrarySmoke.Run();}}catch(Exception ex){Fail("Global clouds/assets: "+ex);yield break;}
-                running=false;Application.Quit();yield break;
+                if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-map-only")<0){running=false;Application.Quit();yield break;}
             }
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-scenery-only")>=0)
             {
                 try{ScenerySmoke.Run();LibrarySmoke.Run();}catch(Exception ex){Fail("Scenery: "+ex);yield break;}
-                running=false;Application.Quit();yield break;
+                if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-landmarks-only")<0&&Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-gear-only")<0){running=false;Application.Quit();yield break;}
             }
             foreach(var dialog in UnityEngine.Object.FindObjectsOfType<WhatsNewDialog>())HarmonyLib.AccessTools.Method(typeof(WhatsNewDialog),"Dismiss").Invoke(dialog,null);
             folder="RingworldSmoke-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
@@ -41,7 +41,7 @@ namespace NivenRingworld
             foreach(var scenario in node.GetNodes("SCENARIO"))if((scenario.GetValue("name")??"").StartsWith("Tutorial"))node.RemoveNode(scenario);
             var state=node.GetNode("FLIGHTSTATE");
             foreach(var vessel in state.GetNodes("VESSEL"))if(vessel.GetValue("type")=="SpaceObject")state.RemoveNode(vessel);
-            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-weather-only")>=0)
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-weather-only")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-residence-only")>=0)
             {
                 // A single flat-bottomed command pod isolates rendering tests from articulated crash debris.
                 foreach(var vessel in state.GetNodes("VESSEL"))
@@ -56,10 +56,25 @@ namespace NivenRingworld
             game.Mode=Game.Modes.SANDBOX;game.startScene=GameScenes.FLIGHT;HighLogic.SaveFolder=folder;HighLogic.CurrentGame=game;
             game.Parameters.Flight.CanEVA=true;
             game.AddProtoScenarioModule(typeof(RingworldScenario),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION);
-            game.Start();
+            game.AddProtoScenarioModule(typeof(Expansions.Serenity.DeployedScience.Runtime.DeployedScience),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION,GameScenes.EDITOR);
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-gear-only")>=0)
+            {
+                var craft=Path.Combine(KSPUtil.ApplicationRootPath,"saves","default","Ships","VAB","Auto-Saved Ship.craft");
+                var craftCopy=Path.Combine(KSPUtil.ApplicationRootPath,"saves",folder,"GearRegression.craft");
+                File.Copy(craft,craftCopy);
+                game.flightState.protoVessels.Clear();game.startScene=GameScenes.SPACECENTER;game.Start();
+                while(HighLogic.LoadedScene!=GameScenes.SPACECENTER)yield return null;yield return new WaitForSecondsRealtime(8);
+                FlightDriver.StartWithNewLaunch(craftCopy,"Squad/Flags/default","LaunchPad",VesselCrewManifest.FromConfigNode(ConfigNode.Load(craftCopy)));
+            }
+            else game.Start();
             while(!HighLogic.LoadedSceneIsFlight||RingworldFlight.Instance==null||FlightGlobals.ActiveVessel==null||FlightGlobals.ActiveVessel.packed)yield return null;
             var v=FlightGlobals.ActiveVessel;
             Debug.Log("[RingworldSmoke] FLIGHT READY "+v.vesselName);
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-gear-only")>=0&&RingworldScenario.Instance==null)
+            {
+                var gearScenario=HighLogic.CurrentGame.AddProtoScenarioModule(typeof(RingworldScenario),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION);
+                AccessTools.Method(typeof(ScenarioRunner),"LoadModules",new[]{typeof(ProtoScenarioModule)}).Invoke(ScenarioRunner.Instance,new object[]{gearScenario});
+            }
             while(RingworldScenario.Instance==null)yield return null;
             Debug.Log("[RingworldSmoke] SCENARIO READY");
             // This harness tests an unpowered impact with a damage-immune fixture.
@@ -93,7 +108,22 @@ namespace NivenRingworld
                 Debug.Log("[RingworldSmoke] TOOLBAR stock button present; Sandbox/Career/Science and F2 gates passed; API rejects orbital vessel");
             }
             catch(Exception ex){Fail("Toolbar/API: "+ex);yield break;}
-            flight.ApplyOptions(RingworldScenario.Instance.GetOptions(),true);
+            var smokeOptions=RingworldScenario.Instance.GetOptions().CreateCopy();smokeOptions.SetValue("seed",-739779896,true);
+            flight.ApplyOptions(smokeOptions,true);
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-gear-only")>=0)
+            {
+                yield return GearSmoke.Run(flight,Fail);
+                if(running)Debug.Log("[RingworldSmoke] PASS gear-only");
+                if(running&&Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-guidance-only")>=0)
+                {yield return GuidanceSmoke.Run(RingworldFlight.Instance,Fail);if(running)Debug.Log("[RingworldSmoke] PASS guidance-only");}
+                if(running&&Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-landmarks-only")>=0)
+                {CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;yield return LandmarkSmoke.Run(RingworldFlight.Instance,Fail);if(running)Debug.Log("[RingworldSmoke] PASS landmarks-only");}
+                if(running){Debug.Log("[RingworldSmoke] PASS combined gear regression");running=false;Application.Quit();}yield break;
+            }
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-landmarks-only")>=0){yield return LandmarkSmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS landmarks-only");running=false;Application.Quit();}yield break;}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-stability-only")>=0){yield return StabilitySmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS stability-only");running=false;Application.Quit();}yield break;}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-guidance-only")>=0){yield return GuidanceSmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS guidance-only");running=false;Application.Quit();}yield break;}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-residence-only")>=0){yield return ResidenceSmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS residence-only");running=false;Application.Quit();}yield break;}
             int worldSeed=flight.Settings.Geometry.P.Seed;
             var optionCopy=flight.Settings.Save();var optionCheck=Settings.Load();optionCheck.Apply(optionCopy);
             if(optionCheck.Geometry.P.Seed!=worldSeed||optionCheck.LodRange!=160000000||optionCheck.LodResolution!=8){Fail("Save settings roundtrip failed");yield break;}
@@ -332,6 +362,16 @@ namespace NivenRingworld
             Debug.Log("[RingworldSmoke] PACKED COAST seconds="+coastDuration+" positionError="+coastError);
             if(coastDuration<30||coastError>20){Fail("Packed coast differs from fine-step numerical reference");yield break;}
             while(v.packed)yield return null;
+            flight.arrivalHeight=400000;flight.Visit();while(!flight.Ready)yield return null;
+            v.SetWorldVelocity(ConvertVector.Ksp(flight.Settings.Geometry.Up(flight.Position(v))*-1000));flight.Leave();
+            MapView.EnterMapView();yield return new WaitForSeconds(1);PlanetariumCamera.fetch.SetDistance(25000);yield return new WaitForSeconds(8);
+            if(flight.trajectory.EncounterCount<1){Fail("Ring entry marker missing");yield break;}
+            int hiddenOrbitLines=0;var orbitGetter=AccessTools.PropertyGetter(typeof(OrbitRendererBase),"orbit");
+            foreach(var renderer in UnityEngine.Object.FindObjectsOfType<OrbitRendererBase>())
+                if(ReferenceEquals(orbitGetter.Invoke(renderer,null),flight.trajectory.PredictedOrbit)&&renderer.OrbitLine!=null)
+                {if(renderer.OrbitLine.active){Fail("Replaced solar orbit mesh remains visible");yield break;}hiddenOrbitLines++;}
+            Debug.Log("[RingworldSmoke] ENCOUNTER count="+flight.trajectory.EncounterCount+" hiddenOrbitLines="+hiddenOrbitLines);
+            ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldEncounter.png"));yield return new WaitForSeconds(1);MapView.ExitMapView();
             flight.arrivalHeight=230000;flight.Visit();
             while(!flight.Ready||v.mainBody!=flight.Star)yield return null;
             var geom=flight.Settings.Geometry;
@@ -343,6 +383,42 @@ namespace NivenRingworld
             if(flight.trajectory.PointCount<10){Fail("Numerical map trajectory did not render");yield break;}
             ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldTrajectory.png"));
             yield return new WaitForSeconds(1);
+            int previousBudget=flight.Settings.GenerationBudget;flight.Settings.GenerationBudget=4;
+            float mapChunksDeadline=Time.realtimeSinceStartup+60;
+            while(flight.BuiltScaledLodCount<4&&Time.realtimeSinceStartup<mapChunksDeadline)yield return new WaitForSecondsRealtime(.25f);
+            flight.Settings.GenerationBudget=previousBudget;
+            try
+            {
+                var options=flight.Settings.Save();options.SetValue("lodRange","5000000000000");var roundtrip=Settings.Load();roundtrip.Apply(options);
+                if(roundtrip.LodRange!=5000000000000)throw new Exception("Render distance still capped");
+                int scaled=0;foreach(var meshFilter in Resources.FindObjectsOfTypeAll<MeshFilter>())
+                    if(meshFilter.gameObject.layer==10&&meshFilter.sharedMesh!=null&&meshFilter.sharedMesh.name=="Adaptive ring terrain block")
+                    {scaled++;meshFilter.gameObject.SetActive(true);if(meshFilter.sharedMesh.vertexCount!=(flight.Settings.LodResolution+1)*(flight.Settings.LodResolution+1))throw new Exception("Scaled terrain still has deep skirts");}
+                if(scaled==0)throw new Exception("No scaled terrain to validate");
+                foreach(int side in new[]{-1,1})
+                {
+                    var target=(Vector3)(flight.Star.position+ConvertVector.Ksp(geom.Position(0,side*(geom.P.Width/2-20),100)));
+                    var desired=(Vector3)(flight.Star.position+ConvertVector.Ksp(geom.Position(0,side*(geom.P.Width/2+100),100)));
+                    var constrained=flight.ConstrainCamera(desired,target,3);
+                    double across=geom.Coordinates(ConvertVector.Core((Vector3d)constrained-flight.Star.position)).Across;
+                    if(side*across>geom.P.Width/2+8)throw new Exception("Camera crossed rim wall");
+                }
+                var testCameraObject=new GameObject("Map depth regression camera");var testCamera=testCameraObject.AddComponent<Camera>();testCamera.enabled=false;testCamera.cullingMask=1<<10;
+                testCamera.clearFlags=CameraClearFlags.SolidColor;testCamera.backgroundColor=new Color(.02f,.025f,.04f);testCamera.nearClipPlane=.01f;testCamera.farClipPlane=10000000;
+                var render=new RenderTexture(1280,720,24);testCamera.targetTexture=render;
+                var location=geom.Coordinates(flight.Position(v));
+                foreach(double altitude in new[]{2000000.0,-2000000.0,geom.P.Radius*.5})
+                {
+                    testCamera.transform.position=(Vector3)ScaledSpace.LocalToScaledSpace(flight.Star.position+ConvertVector.Ksp(geom.Position(location.Along,0,altitude)));
+                    testCamera.transform.LookAt((Vector3)ScaledSpace.LocalToScaledSpace(flight.Star.position+ConvertVector.Ksp(geom.Position(location.Along+4000000,0,0))),Vector3.up);
+                    testCamera.Render();var old=RenderTexture.active;RenderTexture.active=render;var picture=new Texture2D(1280,720,TextureFormat.RGB24,false);
+                    picture.ReadPixels(new Rect(0,0,1280,720),0,0);picture.Apply();RenderTexture.active=old;
+                    File.WriteAllBytes(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldMapDepth-"+altitude.ToString("F0")+".png"),picture.EncodeToPNG());UnityEngine.Object.Destroy(picture);
+                }
+                testCamera.targetTexture=null;render.Release();UnityEngine.Object.Destroy(render);UnityEngine.Object.Destroy(testCameraObject);
+                Debug.Log("[RingworldSmoke] MAP DEPTH skirt-free scaled chunks="+scaled+"; rim camera constraints and uncapped setting passed");
+            }
+            catch(Exception ex){Fail("Map depth/walls: "+ex);yield break;}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-map-only")>=0)
             {Debug.Log("[RingworldSmoke] PASS map-only");yield return new WaitForSeconds(1);running=false;Application.Quit();yield break;}
             MapView.ExitMapView();
@@ -400,8 +476,23 @@ namespace NivenRingworld
             p=flight.Settings.Geometry.Coordinates(flight.Position(v));var terrain=flight.Settings.Terrain.Sample(p.Along,p.Across);
             double agl=p.Altitude-terrain.Height;
             Debug.Log("[RingworldSmoke] SETTLED agl="+agl+" speed="+v.obt_velocity.magnitude+" parts="+v.parts.Count);
+            float settleDeadline=Time.realtimeSinceStartup+90,settleReport=0;
+            while(!flight.surfaceWarp.CanAdvance(flight)&&Time.realtimeSinceStartup<settleDeadline)
+            {
+                if(Time.realtimeSinceStartup>=settleReport)
+                {
+                    settleReport=Time.realtimeSinceStartup+5;
+                    Debug.Log("[RingworldSmoke] SETTLING rootAngular="+v.rootPart.rb.angularVelocity.magnitude+" surfaceSpeed="+flight.Velocity(v).Length+" "+flight.surfaceWarp.Status);
+                }
+                yield return new WaitForSecondsRealtime(.25f);
+            }
             double warpStart=Planetarium.GetUniversalTime();var warpPosition=flight.Position(v);var homeBefore=FlightGlobals.GetHomeBody().position-flight.Star.position;
-            if(!flight.surfaceWarp.CanAdvance(flight)){Fail("Resting expedition rejected surface warp");yield break;}
+            if(!flight.surfaceWarp.CanAdvance(flight)){Fail("Resting expedition rejected surface warp: "+flight.surfaceWarp.Status+" localSpeed="+flight.Velocity(v).Length);yield break;}
+            var poseStates=(System.Collections.Generic.Dictionary<Vessel,RingRestPose>)AccessTools.Field(typeof(RingSurfaceWarp),"restPoses").GetValue(flight.surfaceWarp);
+            RingRestPose restPose;if(poseStates.TryGetValue(v,out restPose))Debug.Log("[RingworldSmoke] REST POSE translation="+restPose.PositionError+" angleDegrees="+restPose.AngleError);
+            var originalAngular=v.rootPart.rb.angularVelocity;v.rootPart.rb.angularVelocity=Vector3.up*.2f;
+            if(flight.surfaceWarp.CanAdvance(flight)){Fail("Rest gate accepted a rotating root");yield break;}
+            v.rootPart.rb.angularVelocity=originalAngular;
             flight.surfaceWarp.Rate=1000;
             yield return new WaitForSeconds(2);
             if(!v.packed||TimeWarp.CurrentRate<100){Fail("Stock rails warp did not engage");yield break;}
@@ -435,8 +526,18 @@ namespace NivenRingworld
             yield return new WaitForSeconds(1);
             flight.Capture();var saved=new ConfigNode("SCENARIO");RingworldScenario.Instance.OnSave(saved);
             Debug.Log("[RingworldSmoke] SAVE vessel records="+saved.GetNodes("VESSEL").Length);
+            if(!v.Landed||v.situation!=Vessel.Situations.LANDED||FlightGlobals.ClearToSave(false)!=ClearToSaveStatus.CLEAR){Fail("Ring residence is not saveable as landed");yield break;}
+            var stockExperiment=v.rootPart.FindModuleImplementing<ModuleScienceExperiment>();
+            if(stockExperiment==null)stockExperiment=(ModuleScienceExperiment)v.rootPart.AddModule("ModuleScienceExperiment");
+            AccessTools.Field(typeof(ModuleScienceExperiment),"situation").SetValue(stockExperiment,ScienceUtil.GetExperimentSituation(v));stockExperiment.experimentID="crewReport";stockExperiment.experiment=ResearchAndDevelopment.GetExperiment("crewReport");
+            var scienceRoutine=(IEnumerator)AccessTools.Method(typeof(ModuleScienceExperiment),"OnScienceCompleteDelay").Invoke(stockExperiment,null);
+            while(scienceRoutine.MoveNext())yield return scienceRoutine.Current;
+            var stockSubject=(ScienceSubject)AccessTools.Field(typeof(ModuleScienceExperiment),"subject").GetValue(stockExperiment);
+            if(stockSubject==null||!stockSubject.id.Contains("Ringworld_")||stockSubject.title.Contains("over the Sun")){Fail("Stock instrument did not get ring science subject");yield break;}
+            Debug.Log("[RingworldSmoke] STOCK SCIENCE "+stockSubject.id+" title="+stockSubject.title);
+            foreach(var dialog in UnityEngine.Object.FindObjectsOfType<KSP.UI.Screens.Flight.Dialogs.ExperimentsResultDialog>())UnityEngine.Object.Destroy(dialog.gameObject);
             saved.Save(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldSmoke-scenario.cfg"));
-            if(agl< -10||agl>100||v.obt_velocity.magnitude>10){Fail("Surface did not settle");yield break;}
+            if(agl< -10||agl>100||flight.Velocity(v).Length>10){Fail("Surface did not settle");yield break;}
             // Validate KSP's science container and subject registration using a temporary survey module.
             var scanner=(ModuleRingSurvey)v.rootPart.AddModule("ModuleRingSurvey");scanner.Survey();
             Debug.Log("[RingworldSmoke] SCIENCE stored="+scanner.GetScienceCount());
@@ -587,6 +688,24 @@ namespace NivenRingworld
             InputLockManager.RemoveControlLock("RingworldSmoke.Camera");
             ScreenCapture.CaptureScreenshot(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldEva.png"));
             yield return new WaitForSeconds(1);
+            deadline=Time.realtimeSinceStartup+240;
+            yield return GroundScienceSmoke.Run(flight,Fail);if(!running)yield break;
+            // Exercise actual game serialization and a scene roundtrip, not only scenario OnLoad.
+            flight.Capture();var residentId=eva.vessel.id;var residentPosition=flight.Position(eva.vessel);
+            var residentGame=HighLogic.CurrentGame.Updated();
+            GamePersistence.SaveGame(residentGame,"persistent",folder,SaveMode.OVERWRITE);
+            HighLogic.LoadScene(GameScenes.SPACECENTER);
+            while(HighLogic.LoadedScene!=GameScenes.SPACECENTER)yield return null;
+            yield return new WaitForSecondsRealtime(5);
+            var reload=GamePersistence.LoadGame("persistent",folder,true,false);int residentIndex=reload.flightState.protoVessels.FindIndex(pv=>pv.vesselID==residentId);
+            if(residentIndex<0){Fail("Resident missing from saved game");yield break;}
+            FlightDriver.StartAndFocusVessel(reload,residentIndex);
+            while(!HighLogic.LoadedSceneIsFlight||RingworldFlight.Instance==null||!RingworldFlight.Instance.Ready)yield return null;
+            yield return new WaitForSeconds(5);
+            flight=RingworldFlight.Instance;var resident=FlightGlobals.ActiveVessel;
+            double residenceError=(flight.Position(resident)-residentPosition).Length;
+            Debug.Log("[RingworldSmoke] RESIDENCE KSC roundtrip error="+residenceError+" landed="+resident.Landed+" id="+resident.id);
+            if(resident.id!=residentId||residenceError>5||!resident.Landed){Fail("Residence scene roundtrip failed");yield break;}
             Debug.Log("[RingworldSmoke] PASS");
             yield return new WaitForSeconds(2);running=false;Application.Quit();
         }
@@ -715,3 +834,8 @@ namespace NivenRingworld
     }
 }
 #endif
+
+
+
+
+

@@ -50,3 +50,13 @@ The generator only replaces its two named Ringworld scenes; hand edits to those 
 ## Habitat and city expansion (2026-09-14)
 
 See [HABITAT-LIBRARY.md](HABITAT-LIBRARY.md) for the complete 45 additional asset kinds, per-LOD triangle counts, placement and collision limitations. Source kits: `art/habitat-kit` and `art/city-kit`.
+
+## Landmark expansion
+
+The release kit adds 31 assets / 93 LOD meshes; the combined bundle contains 84 prefabs. Sources and review scenes: `art/landmark-kit/Ringworld-Landmarks.blend`. Rebuild with `tools/blender_bridge.py --script art/landmark-kit/build_landmarks.py`, then run `python art/landmark-kit/catalog.py` and `build-scenery.ps1`. Unity validates the additional FBX handedness conversion against bark-mesh vertices when creating grove trunk capsules. See LANDMARK-ASSETS.md and LANDMARK-INVENTORY.md.
+
+## Colossus extension (1.0.1)
+
+Eight additional original Blender models / 24 LOD meshes bring the combined library to **92 prefabs / 276 LOD meshes** and 33 architectural placements. The 80 km gate, 120 km causeway, floating city plate, flup mouth, memory spire, broken halo, atmosphere harp and engine reliquary are catalogued in [COLOSSI-AND-FORESTS.md](COLOSSI-AND-FORESTS.md). Sources and previews: `art/colossus-kit/`. Rebuild with `python tools/blender_bridge.py --script art/colossus-kit/build_colossi.py`, then `./build-scenery.ps1`.
+
+Continuous runtime canopy patches replace the former seven-tree-clump scattering limit. The old grove assets remain in the registry for artists and future placements.

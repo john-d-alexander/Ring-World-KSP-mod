@@ -1,83 +1,37 @@
-# Niven Ringworld Expedition — KSP 1.12.5
+# Niven Ringworld Expedition 1.0.3 — KSP 1.12.5
 
-## First Blender scenery set
+A Larry Niven-inspired, star-encircling habitat with a landable rotating interior, procedural terrain, atmosphere, science and persistent expeditions. The default world uses one-tenth of the published linear ring dimensions. Original geography and architecture are interpretations of the setting.
 
-Eight original low-poly assets now replace the local broadleaf/conifer, boulder and rural-building placeholders. Each has three LOD meshes and simple collision proxies; all share a 512px atlas. Editable sources and previews are in `art/first-set/`. See the [asset guide and rebuild instructions](docs/BLENDER-ASSETS.md). This first set is stylized; detailed Ringworld structures and distant forest/city impostors remain future work.
+## Install and play
 
-## Version 0.9 weather and night update
+Close KSP and copy the ZIP's `GameData/NivenRingworld` into your KSP `GameData`. The included `GameData/000_Harmony` is the HarmonyKSP dependency; keep a single compatible installation if other mods already provide it. Restart after updating DLLs. No Kopernicus or downloaded art pack is required. The supported release target is KSP 1.12.5 on Windows x64 / Direct3D 11.
 
-Continuous UT-driven cloud drift replaces timed cloud rebuilds. Shared weather can evolve from fair skies to visual rain/thunderstorms, with separate controls and quality-scaled precipitation. Daytime starfield suppression preserves celestial renderers. Moving analytical night bands apply to the whole ring, including the low-detail setting and scaled terrain. See [weather, warp and night visibility](docs/WEATHER-AND-NIGHT.md).
+Build and launch a lander with enough thrust for approximately 1 g. The stock toolbar's ring icon, or Left Alt+R, opens the Ringworld panel. Sandbox exposes site relocation, a random terrain visit and a spin-matched training approach; Science and Career show flight information without those development controls. A relocation starts above the terrain at rest relative to the ring: **you must brake and land it**.
 
-## Version 0.8 visual update
+For ordinary orbital arrival, enter the annular region near the ring. The mod preserves your velocity; it does not supply free braking. An unmatched solar trajectory encounters hundreds of km/s of air-relative motion and is destructive. Leaving the rotating frame restores the corresponding inertial motion, not a shortcut back to Kerbin.
 
-Optional High/Ultra GPU volumetric clouds and atmospheric scattering, independent Ringworld water quality with animated waves, and a frozen tiled photo renderer. A full-ring surface detail option adds seeded distant land/ocean/cloud colour beyond the terrain horizon. Photo mode waits for finer terrain LOD and restores normal settings on resume. Laptop remains the default. See [high-end visuals and photo mode](docs/HIGH-END-VISUALS.md).
+When settled on dry ground, use **KSP's stock time-warp controls**. Universal time and the other celestial bodies advance normally. Save and return to the Space Center through the ordinary controls. **Revert Flight intentionally discards progress.** Airborne/physics warp in the ring frame is not supported.
 
-## Version 0.7 development update
+## Release contents
 
-Stock warp controls now support resting ring expeditions through native rails anchoring. Terrain has explicit friction, ground-contact craft share EVA camera-shake suppression, and re-entry effects use ring-relative airflow. Coarse hull geometry is moved below the terrain, walls have closed thickness, and LOD blocks publish progressively. See [stock warp and rendering](docs/STOCK-WARP-AND-RENDERING.md) and the [combined biome/asset catalog](docs/BIOME-ASSET-CATALOG.md).
+- Ring-relative centrifugal/Coriolis dynamics, local atmosphere and automatic frame entry/departure.
+- Local navball cues, SAS direction targets, altimeter and vertical-speed gauge, parachute deployment gates and numerical map encounter preview.
+- Landed residence, pause-menu saving, reload through the Space Center, Ringworld science subjects and tested deployed-science anchoring.
+- Seeded terrain, smooth climate biomes, rivers, lakes, oceans, mountains, roads, grass, stones and continuous forest canopies.
+- A full scaled ring with closed dark rim walls, moving night bands and sparse procedural cloud coverage; optional high-quality local volumetric clouds, water waves and frozen photo rendering.
+- **92 Blender-authored scenery prefabs / 276 LOD meshes**. Thirty-three architectural placements include floating palaces, ruined cities and eight new colossi: an **80 km rim gate**, **120 km causeway** and **48 km floating city plate**. Machinery is scenery, not an operational simulation.
 
-## Version 0.6 development update
+See [release notes](docs/RELEASE-1.0.2.md), [colossi and continuous forests](docs/COLOSSI-AND-FORESTS.md), [landmark designs and placement](docs/LANDMARK-ASSETS.md), [dimensions/triangle inventory](docs/LANDMARK-INVENTORY.md), and the [combined biome catalog](docs/BIOME-ASSET-CATALOG.md).
 
-Smooth climate-blended biomes for new worlds, shallow ordinary relief, batched grass/shore stones/litter, visual sunflower patches and local dust/pollen. Graphics follow KSP's native settings. The laptop preset now includes 75 m ground detail. A random procedural-site button transfers the craft with ring-matched velocity for rendering inspection.
+## Settings and performance
 
-Read [biomes, graphics and random visits](docs/BIOMES-AND-GRAPHICS.md), the [Blender asset tracker](docs/ASSET-TRACKER.md), and the existing [physics/warp contract](docs/ORBITS-WARP-AND-ASSETS.md). Older saves retain their terrain generator; use a new Sandbox save for v4 terrain.
+Laptop is the default Ringworld visual preset. KSP's native texture quality, anti-aliasing, shadows and terrain-scatter controls are respected. High/Ultra provide separate Ringworld cloud/water quality; photo mode can render a refined still without requiring a playable high-quality frame rate.
 
-An experimental, source-included KSP 1 mod implementing a **1:10 linear-scale, star-encircling ring habitat**. This is an early playable-physics prototype, not a finished planet pack or a complete recreation of the novels.
+Terrain LOD distance accepts a finite numeric value without the old two-million-km cap. Work and mesh budgets remain bounded, and only the physical ring extent is generated. A distant macro surface supplies the full outline; it is not detailed terrain everywhere. Large landmarks stream separately: the original kit uses 60 km, colossi 250 km plus their extent; small scenery remains within the near-terrain tiles. Initial distant-terrain generation takes time.
 
-The development game is `template_instance` beside this file. The included **HarmonyKSP 2.2.1.0** library applies scoped stock-compatibility patches. No Kopernicus, ModuleManager, or downloaded art packs are required. The survey instrument references the thermometer model in your own KSP installation; no game assets are redistributed.
+Dense forests use merged canopy patches with three LODs and pooled trunk colliders only near loaded vessels. KSP scatter density and Ringworld forest density control their population. See the forest catalog for exact budgets and validation notes for measured performance.
 
-## Play
-
-1. Start `template_instance/KSP_x64.exe`. Create a **Sandbox** save for initial testing.
-2. Build and launch a small rocket lander with landing legs, sufficient thrust for 1 g, and the **RW-1 Ringworld Surveyor** from the Science category. Bring a transmitter and electrical power for science transmission. Rockets are supported by stock propulsion; atmospheric aircraft are not yet fully supported.
-3. The **Niven Ringworld** flight panel opens automatically. **Left Alt+R** toggles it.
-4. To test orbital entry, choose a site and click **Training: set up a spin-matched approach**. This explicitly places the craft at 250 km with a 1 km/s descent and matched tangential motion. Entry then happens automatically near 210 km above the floor datum; air starts at 60 km. Fly and brake the descent. For direct surface exploration, choose **Explorer's landing field** and click **Begin expedition**. This relocates the current craft to 300 m above the ring by default; the height slider allows 60–2,000 m. Control your descent: it begins at rest and falls under approximately 1 g. This is not an automatic landing.
-5. Use the panel's **Above ground** and **Ring speed** readouts. During an active expedition, the stock altimeter reports ring ground/water clearance and speed cues use the ring-relative frame.
-6. Land, drive, explore the nearby abandoned city or scrith excavation, and right-click the RW-1 to **Survey Ringworld**. Data can be reviewed, transmitted through a stock antenna, transferred through stock science containers, or recovered after return to a stock body.
-7. The destination list provides expedition relocation to distant sites. These jumps are an exploration aid; the distances are genuinely enormous. Use stock high time warp after settling on dry terrain. Ring craft use a custom surface anchor while KSP advances the universal clock; airborne ring flight remains at 1x.
-
-**Leaving the ring frame** converts the loaded expedition craft to inertial velocity, including the ring's approximately **386 km/s** surface speed. This is physically well above solar escape speed. It is not a return-to-Kerbin shortcut.
-
-## Clear sky and save settings (v0.4.0)
-
-The Ringworld panel now has **Expedition / Settings** tabs (Alt+R shows the panel). Clear air transmits the ring and Sun: the previous nearly opaque daytime sky overlay has been removed. Cloud amount, moving weather fronts, haze and shadow-square day length are adjustable.
-
-Terrain horizon distance reaches **160,000 km**, with 8/16/32-segment quality levels and a laptop preset. Coarse distant blocks use scaled space; nearby ground retains collision detail. This is not 160,000 km of detailed ground or buildings. New worlds use warped gradient noise and spatial colour textures. Blank configured seeds generate once per new save and are then persisted. Old expeditions preserve their original seed and terrain algorithm.
-
-Read [settings and horizon details](docs/SETTINGS-AND-HORIZON.md) for controls, migration and limits. World-generation controls lock after the first expedition; rendering and weather remain adjustable. Laptop frame rates have not been certified.
-
-## Ground and EVA fixes
-
-The original 0.2.0 floor was a zero-thickness collision sheet. Loaded terrain tiles now have a closed collision shell, rendered sides and an underside. The default underside lies 1,300 m below the height datum, including 100 m beneath the deepest modeled ocean floor. `structuralThickness` controls that minimum foundation; it is an implementation setting, not an asserted book measurement. Collision coverage remains local to the streamed tiles.
-
-The camera checks both collider obstructions and the height of its near clipping plane above the terrain triangles. EVA spawning inherits the parent craft's rotating frame before the active-vessel switch. Frame ownership persists for the whole loaded scene, so entering EVA cannot subtract the ring's spin velocity a second time. Kerbal ground detection, movement orientation and ragdoll gravity now use the ring surface.
-
-Restart KSP after installing an updated DLL. To retry an EVA that already suffered the old velocity fault, load a save from before that incident; the patch does not rewrite a craft's already-corrupted trajectory.
-
-## Terrain and flight refinement (v0.3.0)
-
-Adaptive terrain LOD replaces the sparse distant backdrop with nested blocks out to about 2,000 km. Seeded mountain ranges, foothills, dunes, variable-width rivers and lakes, road corridors, forest clustering and irregular rural buildings add more regional variation. Distant geometry takes several seconds to build after relocation. The same height function drives distant terrain and physical ground.
-
-Camera clearance now includes water. EVA chase orientation uses the ring frame, and the stock flight altimeter shows clearance above ring ground/water without changing orbital altitude. Clouds use an advected procedural opacity texture over uneven layers; twenty shadow squares drive the configured three-hour light cycle. See [terrain and LOD notes](docs/TERRAIN-LOD.md) for design, source references and remaining visual limitations.
-
-Terrain away from named-site pads changes in this version. An old wilderness surface save may need relocation above a destination to avoid intersecting the new terrain. EVA walking transitions now use local horizontal velocity instead of the stock Sun-relative speed cache. Ring navball markers and speed use the same local physics frame; see [validation](docs/VALIDATION.md) for real-key and rapid-reversal test results.
-
-## Included systems
-
-- Double-precision cylindrical coordinates and a floating-origin-aware surface renderer.
-- A visible full ring and twenty shadow-square models in scaled space.
-- Streamed collision meshes, an inward-facing floor, rim walls, and visual terrain extending to 2,000 km.
-- Seeded hills, ridges, mountains, grasslands, forests, deserts, snow, carved river channels, basin lakes, and large oceans.
-- Procedural trees, rocks, rural buildings, abandoned city blocks, roof machinery, window belts, causeways, and research plinths.
-- Named exploration sites inspired by the books, with original geography and report text.
-- Centrifugal and Coriolis terms, stellar gravity, automatic arrival/departure with rotation phase and per-rigidbody velocity conversion, and approximate water buoyancy.
-- Dry-air pressure, density, sound speed and native FlightIntegrator drag/lift inputs; stock shock/convection calculations using local ring air.
-- An inward-facing atmospheric shell with numerical Rayleigh/Mie single scattering and three textured, uneven procedural cloud decks around 4.3-7 km. Cloud decks are translucent geometry, not a weather simulation.
-- Saved ring positions, velocities, orientations, and discoveries; science data uses stock `ScienceData` and subject diminishing returns.
-
-For an ordinary solar trajectory, fly into the ribbon near its 15.3-billion-metre radius. No speed is gifted on entry: an unmatched solar orbit encounters roughly 386 km/s of relative air motion. The ring can be approached from the central opening or above a rim. Entry occurs within 50 km of a rim edge and from -50 km to 210 km relative to the floor datum; departure uses wider boundaries to avoid repeated switching. Warp is reduced when a linear look-ahead predicts the approach. Extreme warp steps and untested multi-vessel missions remain experimental.
-
-Read [known limitations](docs/KNOWN-LIMITATIONS.md) before treating an expedition as a long-running save. In particular, stock EVA orientation, aircraft aerodynamics, background vessels, precision during frame transitions, and stock landing/recovery semantics require further validation and integration.
+Blank seeds resolve once per new save. Existing saves retain their seed and terrain algorithm. Do not change world dimensions or terrain generation underneath an established expedition. Rendering and weather can be changed independently. See [settings](docs/SETTINGS-AND-HORIZON.md), [high-end visuals](docs/HIGH-END-VISUALS.md), and [weather/night](docs/WEATHER-AND-NIGHT.md).
 
 ## Scale
 
@@ -86,46 +40,53 @@ Read [known limitations](docs/KNOWN-LIMITATIONS.md) before treating an expeditio
 | Radius | 15,300,000 km |
 | Ribbon width | 160,500 km |
 | Rim-wall height | 160 km |
-| Centrifugal acceleration at floor datum | 9.72 m/s² |
-| Rotation period, derived from radius and acceleration | 249,282.88 s / 69.245 h |
-| Surface tangential velocity | 385.637 km/s |
-| Illumination cycle | 3 h, configurable gameplay adaptation |
+| Floor acceleration | 9.72 m/sÂ² |
+| Rotation period | 249,282.88 s / 69.245 h |
+| Surface tangential speed | 385.637 km/s |
+| Illumination cycle | 3 hours, configurable adaptation |
 
-This is a **one-tenth linear scale**, not a promise that every stellar property and atmospheric dimension is also one-tenth. The ring surrounds the stock Sun. The published dimensions, adaptations, and bibliography are recorded in [canon and scale](docs/CANON-AND-SCALE.md).
+The stock Sun remains the native reference body. The ring's influence boundary is annular, not a native spherical SOI. Science subjects identify Ringworld, but the archive may group them under the Sun. See [canon/scale](docs/CANON-AND-SCALE.md) and [residence/encounters](docs/RESIDENCE-AND-ENCOUNTERS.md).
 
-## Build and install
+## Validation and limits
 
-Requires a .NET SDK (the project was developed with .NET 10) and your installed KSP 1.12.5 assemblies.
+The release checks include 90,859 core assertions, real KSP pause-menu save, five damage-enabled warp cycles through 1,000×, stock SAS/parachute gates, flight/EVA/camera tests, powered deployed science, scene reload, asset imports/contact rays and live woodland streaming. Exact logs, fixture assumptions and measurements are in [VALIDATION.md](docs/VALIDATION.md).
+
+This does not certify arbitrary fleets, every mod combination, every aircraft or docking configuration, detailed building interiors, or unloaded atmospheric trajectories. Water buoyancy is approximate; the coast preview ends at atmosphere entry. Read [known limitations](docs/KNOWN-LIMITATIONS.md) and [mod interoperability](docs/MOD-INTEROPERABILITY.md). Back up saves before upgrading. A new DLL cannot reconstruct a craft already destroyed or corrupted in an older version.
+
+## Development and Blender sources
+
+All work stays in this project. The development game is `template_instance`. Editable art is under `art/first-set`, `art/habitat-kit`, `art/city-kit` and `art/landmark-kit`; the latest scene is `art/landmark-kit/Ringworld-Landmarks.blend`. The runtime ZIP contains compiled assets, not Blender or game files.
+
+With a .NET SDK and your KSP 1.12.5 installation:
 
 ```powershell
-.\build.ps1 -Install
-# Or use another KSP copy:
+.\build.ps1 -Install -Package
+# Another game installation:
 .\build.ps1 -KspRoot 'D:\Games\KSP' -Install
+.\smoke-test.ps1 -StabilityOnly
+.\smoke-test.ps1 -SceneryOnly -LandmarksOnly
+.\smoke-test.ps1
+python tools/verify_release.py
 ```
 
-The script runs core checks, compiles the plugin for .NET Framework 4.7.2, installs `GameData/NivenRingworld` and the included `GameData/000_Harmony` dependency, and creates `artifacts/NivenRingworld-0.3.0.zip`. It does not copy the proprietary game into the archive. Close the game before rebuilding an installed DLL.
+The build runs core checks, compiles .NET Framework 4.7.2 plugins and stages the distributable. Smoke tests use isolated saves and restore the normal plugin afterward. Blender uses `tools/blender_bridge.py` on localhost port 9876; rebuilding the asset bundle requires the Unity editor described in [BLENDER-ASSETS.md](docs/BLENDER-ASSETS.md). Player installations do not need these development tools.
 
-```powershell
-dotnet run --project tests/Ringworld.Tests -c Release -- artifacts/preview
-```
+## Uninstall and attribution
 
-This also exports an SVG terrain plan from the **actual C# terrain generator**. It is a diagnostic map, not an in-game screenshot.
+Return ring vessels to ordinary spaceflight first. Close KSP and remove `GameData/NivenRingworld`. Craft containing the RW-1 require the mod to load; other mods may still need Harmony. The save's custom state is in `RingworldScenario`.
 
-The game-level regression passed automatic orbital capture, inertial departure within 0.004 m/s of the expected velocity, native atmospheric values, a 49-part surface landing, science serialization, and saved-coordinate restoration. See [orbital arrival and atmosphere](docs/ORBITAL-ARRIVAL.md) for the frame model and training controls. See [validation details](docs/VALIDATION.md), including the damage-immune test fixture and remaining limitations. `smoke-test.ps1` reruns this test in the isolated instance and restores the normal build afterward.
-
-## Configuration and source
-
-`GameData/NivenRingworld/Settings.cfg` controls dimensions, seed, atmosphere, daylight period, and tile settings. Default collision coverage is a 7×7 grid of 1,024 m tiles, each subdivided 32×32. Do not change geometry or seed in a save containing ring expeditions; the coordinate save format does not migrate worlds.
-
-`src/Ringworld.Core` contains the portable geometry and terrain implementation. `src/Ringworld.KSP` connects it to Unity/KSP. `tests/Ringworld.Tests` checks the mathematical invariants. `tools/ApiInspect` reads assembly metadata without loading KSP into the .NET runtime.
-
-## Uninstall
-
-Return expedition vessels to ordinary spaceflight first. Close KSP, then remove only `GameData/NivenRingworld`. Craft containing the RW-1 will require the mod to load. Scenario data uses the `RingworldScenario` node in your save.
-
-## Attribution
-
-An unofficial fan project inspired by Larry Niven's *Ringworld*. Niven's names, fictional setting, and book text are not licensed by this project's software license. Original code and newly authored descriptions are included; no book passages, maps, cover art, or models are copied. See [LICENSE](LICENSE).
+An unofficial fan project inspired by Larry Niven's *Ringworld*. Original code, descriptions, textures and meshes are covered by [LICENSE](LICENSE); Niven's setting and names are not licensed by that software license. No book passages, cover art or proprietary game assemblies are redistributed.
 
 
-The stock ring toolbar button (or Alt+R) opens flight information; Sandbox additionally exposes testing transports and world settings. See [mod interoperability and the surface API](docs/MOD-INTEROPERABILITY.md), [global clouds](docs/GLOBAL-CLOUDS.md), and the [habitat/city asset inventory](docs/HABITAT-LIBRARY.md). Native Blender city sources and their preview are in `art/city-kit`.
+
+### 1.0.1 validation update
+
+The user's 38-part, eight-LT-2 craft passed natural-gravity touchdown, paused save, 1000x stock warp and Space Center/reload without a descent controller or crash immunity. Stock suspension now uses ring gravity. A bounded-pose check permits small attached-part joint chatter after one stable physics-second while retaining translation, root-rotation, contact and throttle guards. The stock vertical-speed gauge now uses the local ring normal. The complete flight/EVA/deployed-science regression passed after these changes. See [validation details](docs/VALIDATION.md) and [release notes](docs/RELEASE-1.0.1.md).
+
+### 1.0.2 scenery update
+
+The old square was the close-range tree footprint. Shared biome masks now drive detailed trees, progressively simplified crown clusters and distant canopy colour/height. Forests continue through the selected terrain LOD range. Colossi now use rare seeded cells across the ring, with a 600 km clearance around named landmarks instead of eight fixed landmark attachments. See [the updated catalog](docs/COLOSSI-AND-FORESTS.md).
+
+### 1.0.3 quality presets
+
+The Ringworld settings dropdown now applies eleven rendering presets, from Absolute Cow to Rotten Potato. Biome features has an independent Economy/Low/High/Ultra forest control; Economy uses simpler nearby crown groups and canopy-only distant forests. See [quality settings](docs/QUALITY-PRESETS.md) and [CKAN publishing instructions](docs/CKAN-PUBLISHING.md). This release has not been published to CKAN.

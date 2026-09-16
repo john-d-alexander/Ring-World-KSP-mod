@@ -12,7 +12,7 @@ namespace NivenRingworld
         {
             internal GameObject Root,Scenery;
             internal DVec Anchor;
-            internal long X,Y;internal Texture2D Texture;
+            internal long X,Y;internal int ForestQuality=-1;internal Texture2D Texture;
             internal double Phase;
             internal readonly List<Mesh> Meshes=new List<Mesh>();
         }
@@ -23,22 +23,27 @@ namespace NivenRingworld
         private string propSite="";
         private double propPhase;
         private readonly List<Quaternion> propRotations=new List<Quaternion>();
-        private readonly Material terrainMaterial,waterMaterial,buildingMaterial,scrithMaterial,leavesMaterial;
+        private readonly Material terrainMaterial,waterMaterial,buildingMaterial,scrithMaterial,leavesMaterial,forestMaterial;
         private readonly Texture2D palette;
         private readonly Shader simpleWaterShader;
         private TerrainLod lod;
+        private readonly LandmarkScenery landmarks;
         private float scatter=-1;
         private readonly PhysicMaterial groundFriction=new PhysicMaterial("Ringworld soil"){staticFriction=1f,dynamicFriction=.85f,bounciness=0,frictionCombine=PhysicMaterialCombine.Maximum,bounceCombine=PhysicMaterialCombine.Minimum};
-        internal void RebuildLod(){lod.Dispose();lod=new TerrainLod(settings,terrainMaterial,waterMaterial);}
+        internal void RebuildLod(){lod.Dispose();lod=new TerrainLod(settings,terrainMaterial,waterMaterial,forestMaterial);}
         private readonly GameObject sunlightObject;private readonly Light sunlight;
         internal int LodCount {get{return lod.Count;}}
+        internal int CanopyPending {get{return lod.CanopyPending;}}
+        internal int SceneryPending {get{int count=0;foreach(var t in tiles.Values)if(t.ForestQuality!=settings.ForestQuality)count++;return count;}}
         internal int LodPending {get{return lod.Pending;}}
         internal int ScaledLodCount {get{return lod.ScaledCount;}}
+        internal int BuiltScaledLodCount {get{return lod.BuiltScaledCount;}}
         internal int TileCount { get { return tiles.Count; } }
         internal SurfaceStreamer(Settings s)
         {
             settings=s;
             SceneryAssets.Acquire();
+            landmarks=new LandmarkScenery(s);
             // A one-row palette avoids requiring a proprietary Unity asset bundle.
             palette=new Texture2D(16,1,TextureFormat.RGBA32,false);palette.filterMode=FilterMode.Point;palette.wrapMode=TextureWrapMode.Clamp;
             Color[] colors={new Color(.02f,.18f,.29f),new Color(.07f,.30f,.40f),new Color(.10f,.36f,.43f),new Color(.28f,.37f,.19f),
@@ -50,9 +55,15 @@ namespace NivenRingworld
             sunlight.type=LightType.Directional;sunlight.cullingMask=1<<15;sunlight.color=new Color(1,.96f,.88f);sunlight.intensity=0;sunlight.shadows=LightShadows.Soft;sunlight.shadowBias=.05f;sunlight.shadowNormalBias=.4f;
             waterMaterial=Material(new Color(.07f,.31f,.42f));waterMaterial.SetFloat("_Glossiness",.8f);
             simpleWaterShader=waterMaterial.shader;
-            lod=new TerrainLod(settings,terrainMaterial,waterMaterial);
             buildingMaterial=Material(new Color(.64f,.60f,.48f));scrithMaterial=Material(new Color(.24f,.29f,.32f));
-            leavesMaterial=Material(new Color(.15f,.29f,.12f));
+            leavesMaterial=Material(new Color(.15f,.29f,.12f));leavesMaterial.SetFloat("_Glossiness",0);
+            var forestPrefab=SceneryAssets.DetailPrefab("canopy_broadleaf");
+            var forestRenderer=forestPrefab==null?null:forestPrefab.GetComponentInChildren<MeshRenderer>(true);
+            forestMaterial=forestRenderer==null?new Material(leavesMaterial):new Material(forestRenderer.sharedMaterial);
+            forestMaterial.SetFloat("_Glossiness",0);forestMaterial.SetFloat("_Metallic",0);
+            forestMaterial.SetFloat("_SpecularHighlights",0);forestMaterial.SetFloat("_GlossyReflections",0);
+            forestMaterial.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");forestMaterial.EnableKeyword("_GLOSSYREFLECTIONS_OFF");
+            lod=new TerrainLod(settings,terrainMaterial,waterMaterial,forestMaterial);
         }
         private static Material Material(Color c)
         {
@@ -62,7 +73,9 @@ namespace NivenRingworld
         }
         internal void Update(DVec observer,Vector3d star,bool immediate=false)
         {
-            if(scatter!=StockGraphics.Scatter){foreach(var tile in tiles.Values)RebuildScenery(tile);scatter=StockGraphics.Scatter;}
+            if(scatter!=StockGraphics.Scatter){foreach(var tile in tiles.Values)RebuildScenery(tile);if(scatter>=0)RebuildLod();scatter=StockGraphics.Scatter;}
+            // Quality changes rebuild at most one existing scenery tile each frame.
+            foreach(var tile in tiles.Values)if(tile.ForestQuality!=settings.ForestQuality){RebuildScenery(tile);break;}
             sunlight.shadows=QualitySettings.shadows==ShadowQuality.Disable?LightShadows.None:QualitySettings.shadows==ShadowQuality.HardOnly?LightShadows.Hard:LightShadows.Soft;
             RingPoint p=settings.Geometry.Coordinates(observer);
             var f=RingworldFlight.Instance;int waterQuality=f!=null&&f.visuals!=null&&f.visuals.PhotoActive?2:settings.WaterQuality;
@@ -109,6 +122,7 @@ namespace NivenRingworld
             if(id!=propSite){ClearProps();propSite=id;if(id!=""){propPhase=settings.Geometry.OrientationRadians;BuildProps(site);}}
             lod.Update(p.Along,p.Across);
             Reposition(star);
+            landmarks.Update(observer,star,groundFriction);
         }
         private double Across(double across){return Math.Max(-settings.Geometry.P.Width/2,Math.Min(settings.Geometry.P.Width/2,across));}
         private TerrainSample FloorSample(double along,double across)
@@ -159,7 +173,7 @@ namespace NivenRingworld
             sunlight.intensity=(float)(daylight*.5);lod.Light(light);
             terrainMaterial.color=new Color(light,light,light);buildingMaterial.color=new Color(.64f*light,.60f*light,.48f*light);
             waterMaterial.color=new Color(.07f*light,.31f*light,.42f*light);
-            scrithMaterial.color=new Color(.24f*light,.29f*light,.32f*light);leavesMaterial.color=new Color(.15f*light,.29f*light,.12f*light);
+            scrithMaterial.color=new Color(.24f*light,.29f*light,.32f*light);leavesMaterial.color=new Color(.15f*light,.29f*light,.12f*light);forestMaterial.color=new Color(light,light,light);
         }
         private Tile Build(long tx,long ty)
         {
@@ -174,7 +188,7 @@ namespace NivenRingworld
                 int i=y*(n+1)+x;double a=x0+size*x/n,b=Across(y0+size*y/n);
                 var sample=FloorSample(a,b);heights[i]=sample.Height;
                 vertices[i]=ConvertVector.Unity(settings.Geometry.Position(a,b,sample.Height)-t.Anchor);
-                uv[i]=new Vector2((x+.5f)/(n+1),(y+.5f)/(n+1));colors[i]=TerrainTint.Color(sample);
+                uv[i]=new Vector2((x+.5f)/(n+1),(y+.5f)/(n+1));colors[i]=TerrainTint.WithCanopy(sample,BiomePresentation.Sample(settings.Terrain,a,b,sample,size/n,settings.ForestDensity*StockGraphics.Scatter));
                 wet[i]=sample.Wet;
                 double water=double.IsNegativeInfinity(sample.WaterHeight)?sample.Height-1:sample.WaterHeight;
                 waterVerts[i]=ConvertVector.Unity(settings.Geometry.Position(a,b,water+.1)-t.Anchor);
@@ -252,12 +266,14 @@ namespace NivenRingworld
         }
         private void RebuildScenery(Tile t)
         {
+            t.ForestQuality=settings.ForestQuality;
             if(t.Scenery!=null)UnityEngine.Object.Destroy(t.Scenery);t.Scenery=new GameObject("Ring tile scenery");t.Scenery.transform.SetParent(t.Root.transform,false);
             double old=settings.Geometry.OrientationRadians;settings.Geometry.OrientationRadians=t.Phase;
             try{AddScenery(t,t.X*settings.TileSize,t.Y*settings.TileSize,settings.TileSize);}finally{settings.Geometry.OrientationRadians=old;}
         }
         private void AddScenery(Tile t,double x0,double y0,double size)
         {
+            AddForestGroves(t,x0,y0,size);
             for(int y=0;y<8&&StockGraphics.Scatter>0;y++)for(int x=0;x<8;x++)
             {
                 long cellX=t.X*8+x,cellY=t.Y*8+y;
@@ -315,6 +331,11 @@ namespace NivenRingworld
             }
         }
         private static void Add(List<int> a,int x,int y,int z){a.Add(x);a.Add(y);a.Add(z);}
+        private void AddForestGroves(Tile t,double x0,double y0,double size)
+        {
+            if(StockGraphics.Scatter<=0||settings.ForestDensity<=0)return;
+            t.Scenery.AddComponent<ForestCanopy>().Build(settings,x0,y0,size,t.Anchor,forestMaterial,groundFriction);
+        }
         private bool Prop(string name,double along,double across,double height,Vector3 size,Material mat,PrimitiveType shape=PrimitiveType.Cube,string assetKind=null)
         {
             var position=settings.Geometry.Position(along,across,height);
@@ -381,8 +402,10 @@ namespace NivenRingworld
         {
             foreach(var t in tiles.Values)Destroy(t);tiles.Clear();ClearProps();
             SceneryAssets.Release();
+            landmarks.Dispose();
             lod.Dispose();UnityEngine.Object.Destroy(groundFriction);UnityEngine.Object.Destroy(sunlightObject);
-            UnityEngine.Object.Destroy(terrainMaterial);UnityEngine.Object.Destroy(waterMaterial);UnityEngine.Object.Destroy(buildingMaterial);UnityEngine.Object.Destroy(scrithMaterial);UnityEngine.Object.Destroy(leavesMaterial);UnityEngine.Object.Destroy(palette);
+            UnityEngine.Object.Destroy(terrainMaterial);UnityEngine.Object.Destroy(waterMaterial);UnityEngine.Object.Destroy(buildingMaterial);UnityEngine.Object.Destroy(scrithMaterial);UnityEngine.Object.Destroy(leavesMaterial);UnityEngine.Object.Destroy(forestMaterial);UnityEngine.Object.Destroy(palette);
         }
     }
 }
+

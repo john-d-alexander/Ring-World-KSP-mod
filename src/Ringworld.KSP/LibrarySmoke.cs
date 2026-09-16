@@ -14,6 +14,15 @@ namespace NivenRingworld
             var lamp=new GameObject("Library test light");var light=lamp.AddComponent<Light>();light.type=LightType.Directional;light.intensity=1;light.cullingMask=1<<15;lamp.transform.rotation=Quaternion.Euler(50,145,0);
             var target=new RenderTexture(1400,1000,24);camera.targetTexture=target;string output=Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath,"../art/habitat-kit/validation"));Directory.CreateDirectory(output);
             int count=0,page=0;var active=new System.Collections.Generic.List<GameObject>();
+            int trees=0;
+            foreach(var entry in SceneryAssets.Catalog)if(entry.Key.StartsWith("tree_"))for(int i=0;i<entry.Value.Length;i++)
+            {
+                var tree=SceneryAssets.Create(entry.Key,i);tree.transform.SetParent(root.transform,false);
+                var group=tree.GetComponent<LODGroup>();if(group==null||group.GetLODs().Length!=3||tree.GetComponent<CapsuleCollider>()==null)throw new Exception("Tree LOD/trunk "+entry.Value[i]);
+                var bounds=group.GetLODs()[0].renderers[0].bounds;if(Math.Abs(bounds.min.y-root.transform.position.y)>.01||Math.Abs(bounds.size.y-1)>.02)throw new Exception("Tree up-axis/pivot "+entry.Value[i]);
+                tree.SetActive(false);UnityEngine.Object.Destroy(tree);trees++;
+            }
+            if(trees!=8)throw new Exception("Expected eight tree variants");
             foreach(var entry in SceneryAssets.Catalog)
             {
                 if(entry.Key.StartsWith("tree_")||entry.Key=="boulder"||entry.Key=="rural_building")continue;
@@ -25,17 +34,26 @@ namespace NivenRingworld
                 }
                 var bounds=lod.GetLODs()[0].renderers[0].bounds;if(Math.Abs(bounds.size.y-1)>.02)throw new Exception("Unit scale "+entry.Key+" "+bounds);
                 if(obj.GetComponentsInChildren<Rigidbody>().Length>0)throw new Exception("Unexpected rigidbody "+entry.Key);
+                if(entry.Key.StartsWith("canopy_")&&obj.GetComponents<CapsuleCollider>().Length!=7)throw new Exception("Grove trunk contacts "+entry.Key);
+                var meshContact=obj.GetComponent<MeshCollider>();
+                if(meshContact!=null&&!meshContact.convex)
+                {
+                    Physics.SyncTransforms();bool hit=false;
+                    for(int x=0;x<7;x++)for(int z=0;z<7;z++)
+                    {RaycastHit contact;hit|=meshContact.Raycast(new Ray(root.transform.position+new Vector3(-.45f+x*.15f,2,-.45f+z*.15f),Vector3.down),out contact,4);}
+                    if(!hit)throw new Exception("Landmark contact mesh ray misses "+entry.Key);
+                }
                 int index=count%8;obj.transform.localScale=Vector3.one*2;obj.transform.localPosition=new Vector3((1.5f-index%4)*3.2f,1,index<4?-2.4f:2.4f);lod.ForceLOD(0);active.Add(obj);count++;
                 Debug.Log("[RingworldSmoke] LIBRARY "+entry.Key+" 3 LODs, unit scale, material OK");
                 if(active.Count==8){Capture(camera,target,Path.Combine(output,"ksp-library-"+(page++)+".png"));foreach(var item in active){item.SetActive(false);UnityEngine.Object.Destroy(item);}active.Clear();}
             }
             if(active.Count>0)Capture(camera,target,Path.Combine(output,"ksp-library-"+page+".png"));
-            if(count!=45)throw new Exception("Expected 45 library assets, got "+count);
+            if(count!=80)throw new Exception("Expected 80 non-tree library assets, got "+count);
             var batch=new BatchedScenery(root.transform);batch.Reset();
             foreach(string kind in new[]{"grass_patch","reed_patch","fern_patch","mirror_sunflower","leaf_litter","pebble_cluster","desert_scrub","mushrooms"})
                 if(!batch.Add(kind,1,Vector3.zero,Vector3.up,Vector3.one,0,32))throw new Exception("Ground batching "+kind);
             batch.Finish();if(batch.Count!=8)throw new Exception("Ground batch count");batch.Dispose();
-            Debug.Log("[RingworldSmoke] PASS habitat-library: 45 assets / 135 LOD meshes / eight ground batch adapters");
+            Debug.Log("[RingworldSmoke] PASS habitat-library: 80 asset kinds / 240 LOD meshes / eight ground batch adapters");
             camera.targetTexture=null;target.Release();UnityEngine.Object.Destroy(target);UnityEngine.Object.Destroy(cameraObj);UnityEngine.Object.Destroy(lamp);UnityEngine.Object.Destroy(root);SceneryAssets.Release();
         }
         private static void Capture(Camera camera,RenderTexture target,string path)
@@ -45,3 +63,4 @@ namespace NivenRingworld
     }
 }
 #endif
+

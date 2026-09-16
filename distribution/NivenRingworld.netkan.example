@@ -1,0 +1,12 @@
+identifier: NivenRingworld
+name: Niven Ringworld Expedition
+abstract: A landable rotating Ringworld with procedural terrain, atmosphere and ring-relative flight.
+license: MIT
+$kref: '#/ckan/spacedock/REPLACE_WITH_MOD_ID'
+$vref: '#/ckan/ksp-avc'
+depends:
+  - name: Harmony2
+    min_version: 2.2.1.0
+install:
+  - file: GameData/NivenRingworld
+    install_to: GameData

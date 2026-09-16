@@ -7,7 +7,8 @@ using UnityEngine;
 
 public static class BuildScenery
 {
-    [Serializable] public class Entry { public string id,kind,collider; }
+    [Serializable] public class Trunk {public float x,y,z,height,radius;}
+    [Serializable] public class Entry { public string id,kind,collider; public Trunk[] trunks; }
     [Serializable] public class Catalog { public Entry[] assets; }
     public static void Run()
     {
@@ -16,7 +17,7 @@ public static class BuildScenery
         const string dest="Assets/Scenery";
         Directory.CreateDirectory(dest);
         var entries=new List<Entry>();
-        foreach(string directory in new[]{source,Path.Combine(root,"art/habitat-kit"),Path.Combine(root,"art/city-kit")})
+        foreach(string directory in new[]{source,Path.Combine(root,"art/habitat-kit"),Path.Combine(root,"art/city-kit"),Path.Combine(root,"art/landmark-kit"),Path.Combine(root,"art/colossus-kit")})
         {
             if(!File.Exists(Path.Combine(directory,"manifest.json")))continue;
             entries.AddRange(JsonUtility.FromJson<Catalog>(File.ReadAllText(Path.Combine(directory,"manifest.json"))).assets);
@@ -54,10 +55,25 @@ public static class BuildScenery
                 if(entry.kind.StartsWith("tree_")&&Mathf.Abs(bounds.min.y)>.001f)throw new Exception(entry.id+" invalid ground pivot: "+bounds);
                 int triangles=group[0].GetComponent<MeshFilter>().sharedMesh.triangles.Length/3;
                 report.Add(entry.id+" LOD"+i+" triangles="+triangles+" bounds="+bounds);
-                lods[i]=new LOD(new[]{.12f,.035f,.003f}[i],group);
+                lods[i]=new LOD(entry.collider=="surface"?new[]{.16f,.045f,.001f}[i]:new[]{.12f,.035f,.003f}[i],group);
             }
             var lodGroup=prefab.AddComponent<LODGroup>();lodGroup.SetLODs(lods);lodGroup.RecalculateBounds();
             // Simple contact shapes, independent of visual LOD. No leaf colliders.
+            if(entry.trunks!=null)foreach(var trunk in entry.trunks)
+            {
+                // Unity's FBX import also mirrors X for its handedness conversion.
+                var contact=prefab.AddComponent<CapsuleCollider>();contact.direction=1;contact.center=new Vector3(-trunk.x,trunk.y,trunk.z);contact.height=trunk.height;contact.radius=trunk.radius;
+                var visual=renderers.Single(r=>r.name.EndsWith("_LOD0"));var trunkMesh=visual.GetComponent<MeshFilter>().sharedMesh;
+                var vertices=trunkMesh.vertices;var uv=trunkMesh.uv;bool aligned=false;
+                for(int k=0;k<vertices.Length;k++)
+                {
+                    if(uv[k].x>=.25f||uv[k].y>=.25f)continue; // shared atlas bark tile
+                    var point=prefab.transform.InverseTransformPoint(visual.transform.TransformPoint(vertices[k]));
+                    var offset=point-contact.center;
+                    if(new Vector2(offset.x,offset.z).magnitude<contact.radius*1.6f&&Mathf.Abs(offset.y)<contact.height)aligned=true;
+                }
+                if(!aligned)throw new Exception(entry.id+" trunk collider does not align with FBX bark mesh: "+contact.center);
+            }
             if(entry.collider=="trunk")
             {
                 var collider=prefab.AddComponent<CapsuleCollider>();collider.direction=1;collider.center=new Vector3(0,.3f,0);collider.height=.6f;collider.radius=.035f;
@@ -78,7 +94,7 @@ public static class BuildScenery
             }
             else if(entry.collider!="none")
             {
-                var contact=prefab.AddComponent<MeshCollider>();contact.sharedMesh=renderers.Single(r=>r.name.EndsWith("_LOD2")).GetComponent<MeshFilter>().sharedMesh;contact.convex=true;
+                var contact=prefab.AddComponent<MeshCollider>();contact.sharedMesh=renderers.Single(r=>r.name.EndsWith("_LOD2")).GetComponent<MeshFilter>().sharedMesh;contact.convex=entry.collider!="surface";
                 // FBX applies axis conversion to child transforms; bake the proxy into root space.
                 var renderer=renderers.Single(r=>r.name.EndsWith("_LOD2"));var sourceMesh=contact.sharedMesh;
                 var proxy=UnityEngine.Object.Instantiate(sourceMesh);proxy.vertices=sourceMesh.vertices.Select(v=>prefab.transform.InverseTransformPoint(renderer.transform.TransformPoint(v))).ToArray();proxy.RecalculateBounds();

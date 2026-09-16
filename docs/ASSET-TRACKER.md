@@ -30,3 +30,13 @@ Far LOD currently draws terrain and water. It does not render every distant tree
 ## Habitat and city expansion (2026-09-14)
 
 See [HABITAT-LIBRARY.md](HABITAT-LIBRARY.md) for the complete 45 additional asset kinds, per-LOD triangle counts, placement and collision limitations. Source kits: `art/habitat-kit` and `art/city-kit`.
+
+## Landmark and woodland release set
+
+Completed: 31 additional Blender assets, 93 LOD meshes, 25 configured architectural placements and six vegetation prefabs. See LANDMARK-ASSETS.md and LANDMARK-INVENTORY.md for dimensions, budgets, lore distinctions, source files and limitations. Total shipped library: 84 prefabs / 252 LOD meshes. Operational machinery, NPCs, interiors and ring-wide building impostors remain future work.
+
+## Colossus extension (1.0.1)
+
+Eight additional original Blender models / 24 LOD meshes bring the combined library to **92 prefabs / 276 LOD meshes** and 33 architectural placements. The 80 km gate, 120 km causeway, floating city plate, flup mouth, memory spire, broken halo, atmosphere harp and engine reliquary are catalogued in [COLOSSI-AND-FORESTS.md](COLOSSI-AND-FORESTS.md). Sources and previews: `art/colossus-kit/`. Rebuild with `python tools/blender_bridge.py --script art/colossus-kit/build_colossi.py`, then `./build-scenery.ps1`.
+
+Continuous runtime canopy patches replace the former seven-tree-clump scattering limit. The old grove assets remain in the registry for artists and future placements.

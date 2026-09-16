@@ -8,6 +8,7 @@ namespace NivenRingworld
     internal sealed class RingSurfaceWarp
     {
         private sealed class Anchor {internal DVec Position;internal Quaternion Rotation;}
+        private readonly Dictionary<Vessel,RingRestPose> restPoses=new Dictionary<Vessel,RingRestPose>();
         private readonly Dictionary<Vessel,Anchor> anchors=new Dictionary<Vessel,Anchor>();
         internal double Rate
         {
@@ -16,9 +17,9 @@ namespace NivenRingworld
         }
         internal string Status="Use stock time warp when resting on the ring.";
         internal bool Anchored(Vessel v){return v!=null&&anchors.ContainsKey(v);}
-        internal bool CanAdvance(RingworldFlight f)
+        internal bool CanAdvance(RingworldFlight f,bool allowPaused=false)
         {
-            if(Time.timeScale==0||(!f.Ready&&anchors.Count==0)){Status="Warp waiting for an unpacked, ready expedition.";return false;}
+            if((Time.timeScale==0&&!allowPaused)||(!f.Ready&&anchors.Count==0)){Status="Warp waiting for an unpacked, ready expedition.";return false;}
             bool found=false;
             foreach(var v in FlightGlobals.VesselsLoaded)
             {
@@ -26,16 +27,32 @@ namespace NivenRingworld
                 if(Anchored(v)){found=true;continue;}
                 if(v.packed)continue;
                 if(!f.Owns(v)){Status="Warp blocked by a nearby craft outside the ring frame.";return false;}
+                if(v.parts==null||v.parts.Count==0){Status="Warp waiting for vessel initialization.";return false;}
                 found=true;var c=f.Settings.Geometry.Coordinates(f.Position(v));var t=f.Settings.Terrain.Sample(c.Along,c.Across);
-                bool contact=false;foreach(var part in v.parts)if(part.GroundContact)contact=true;
+                bool contact=false;foreach(var part in v.parts)if(part!=null&&(part.GroundContact||part.PermanentGroundContact))contact=true;
                 double speed=f.Velocity(v).Length;
+                if(!RingParameters.Finite(speed)){Status="Warp blocked: invalid vessel velocity.";return false;}
                 if(!contact){Status="Warp blocked: no solid ground contact ("+v.vesselName+").";return false;}
                 if(t.Wet){Status="Warp blocked: vessel is on water.";return false;}
                 if(speed>.25){Status="Warp blocked: still moving at "+speed.ToString("F2")+" m/s (limit 0.25).";return false;}
                 if(v.ctrlState.mainThrottle>.001f){Status="Warp blocked: throttle is not zero.";return false;}
-                foreach(var part in v.parts)if(part.rb!=null&&part.rb.angularVelocity.magnitude>.05f){Status="Warp blocked: "+(part.partInfo==null?part.name:part.partInfo.title)+" is still rotating at "+part.rb.angularVelocity.magnitude.ToString("F3")+" rad/s (limit 0.05).";return false;}
+                bool chatter=false;
+                foreach(var part in v.parts)if(part!=null&&part.rb!=null)
+                {
+                    double angular=part.rb.angularVelocity.magnitude;
+                    if(!RingParameters.Finite(angular)||angular>.12||(part==v.rootPart&&angular>.05))
+                    {Status="Warp blocked: "+(part.partInfo==null?part.name:part.partInfo.title)+" is still rotating.";return false;}
+                    if(angular>.05)chatter=true;
+                }
+                if(chatter&&!ObserveRest(f,v))
+                {Status="Warp waiting for one second of bounded joint motion (3 cm / 0.5 degrees).";return false;}
             }
             if(found)Status="Ready for stock ring-surface warp.";return found;
+        }
+        private bool ObserveRest(RingworldFlight f,Vessel v)
+        {
+            RingRestPose pose;if(!restPoses.TryGetValue(v,out pose)){pose=new RingRestPose();restPoses[v]=pose;}
+            return pose.Observe(f,v);
         }
         internal bool Prepare(RingworldFlight f)
         {
@@ -50,8 +67,8 @@ namespace NivenRingworld
             Anchor a;if(!anchors.TryGetValue(v,out a))return;
             var f=RingworldFlight.Instance;if(f==null)return;
             var pos=ConvertVector.Ksp(a.Position);
+            RingResidence.UpdateBookkeeping(v,f.Settings,f.Star,a.Position,new DVec(),f.FrameEpoch);
             v.orbitDriver.pos=pos;v.orbitDriver.vel=Vector3d.zero;
-            v.orbit.pos=ConvertVector.Orbit(pos);v.orbit.vel=Vector3d.zero;
             v.SetPosition(f.Star.position+pos,true);v.SetRotation(a.Rotation,false);
         }
         internal void Release(Vessel v)
@@ -61,6 +78,11 @@ namespace NivenRingworld
         }
         internal void Update(RingworldFlight f)
         {
+            if(f.Ready)
+                foreach(var v in FlightGlobals.VesselsLoaded)
+                    if(v!=null&&!v.packed&&f.Owns(v)&&v.rootPart!=null)ObserveRest(f,v);
+            var stale=new List<Vessel>();foreach(var v in restPoses.Keys)if(v==null||!f.Owns(v))stale.Add(v);
+            foreach(var v in stale)restPoses.Remove(v);
             if(TimeWarp.CurrentRateIndex>0||TimeWarp.CurrentRate>1.0001f)
             {
                 if(anchors.Count==0&&!Prepare(f)){TimeWarp.SetRate(0,true);return;}

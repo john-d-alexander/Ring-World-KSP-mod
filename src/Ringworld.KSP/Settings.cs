@@ -28,6 +28,7 @@ namespace NivenRingworld
         internal double PredictionSeconds=3600, SurfaceWarpLimit=1000;
         internal double PondAmount=1,DetailDistance=75;
         internal bool AmbientParticles=true;
+        internal int ForestQuality=1;
         internal int VisualQuality=0,CloudSteps=64,AtmosphereSteps=32,PhotoSamples=16,WaterQuality=0;
         internal double CloudRange=180000,CloudShadow=.85,AtmosphereExposure=1,WaveHeight=.65;
         internal bool FullRingDetail=false;
@@ -41,6 +42,7 @@ namespace NivenRingworld
             CloudWind=Math.Max(0,Math.Min(100,Read(n,"cloudWind",8)));RainDensity=Math.Max(0,Math.Min(1,Read(n,"rainDensity",.7)));
             RainEnabled=n.GetValue("rainEnabled")!="False";LightningEnabled=n.GetValue("lightningEnabled")!="False";
             VisualQuality=(int)Math.Max(0,Math.Min(2,Read(n,"visualQuality",0)));
+            ForestQuality=(int)Math.Max(0,Math.Min(3,Read(n,"forestQuality",VisualQuality+1)));
             FullRingDetail=n.GetValue("fullRingDetail")=="True";
             CloudSteps=(int)Math.Max(32,Math.Min(256,Read(n,"cloudSteps",64)));
             AtmosphereSteps=(int)Math.Max(16,Math.Min(96,Read(n,"atmosphereSteps",32)));
@@ -63,7 +65,7 @@ namespace NivenRingworld
             AmbientParticles=n.GetValue("ambientParticles")!="False";
             PondAmount=Math.Max(0,Math.Min(2,Read(n,"pondAmount",PondAmount)));
             Geometry.P.Seed=(int)Read(n,"seed",Geometry.P.Seed);
-            LodRange=Math.Max(200000,Math.Min(TerrainLodPlan.MaximumRange,Read(n,"lodRange",LodRange)));
+            LodRange=Math.Max(200000,Read(n,"lodRange",LodRange));
             LodResolution=(int)Read(n,"lodResolution",LodResolution);LodResolution=LodResolution>=32?32:LodResolution>=16?16:8;
             GenerationBudget=(int)Math.Max(1,Math.Min(4,Read(n,"generationBudget",GenerationBudget)));
             Haze=Math.Max(0,Math.Min(2,Read(n,"haze",Haze)));
@@ -79,7 +81,7 @@ namespace NivenRingworld
         {
             var n=new ConfigNode("OPTIONS");
             n.AddValue("weatherPeriod",WeatherPeriod.ToString("R",CultureInfo.InvariantCulture));n.AddValue("weatherVariation",WeatherVariation.ToString("R",CultureInfo.InvariantCulture));n.AddValue("stormChance",StormChance.ToString("R",CultureInfo.InvariantCulture));n.AddValue("cloudWind",CloudWind.ToString("R",CultureInfo.InvariantCulture));n.AddValue("rainDensity",RainDensity.ToString("R",CultureInfo.InvariantCulture));n.AddValue("rainEnabled",RainEnabled);n.AddValue("lightningEnabled",LightningEnabled);
-            n.AddValue("fullRingDetail",FullRingDetail);
+            n.AddValue("fullRingDetail",FullRingDetail);n.AddValue("forestQuality",ForestQuality);
             n.AddValue("visualQuality",VisualQuality);n.AddValue("cloudSteps",CloudSteps);n.AddValue("atmosphereSteps",AtmosphereSteps);n.AddValue("photoSamples",PhotoSamples);n.AddValue("waterQuality",WaterQuality);
             n.AddValue("cloudRange",CloudRange.ToString("R",CultureInfo.InvariantCulture));n.AddValue("cloudShadow",CloudShadow.ToString("R",CultureInfo.InvariantCulture));n.AddValue("atmosphereExposure",AtmosphereExposure.ToString("R",CultureInfo.InvariantCulture));n.AddValue("waveHeight",WaveHeight.ToString("R",CultureInfo.InvariantCulture));
             foreach(var pair in new[]{new[]{"radius",Geometry.P.Radius.ToString("R",CultureInfo.InvariantCulture)},new[]{"width",Geometry.P.Width.ToString("R",CultureInfo.InvariantCulture)},new[]{"gravity",Geometry.P.Gravity.ToString("R",CultureInfo.InvariantCulture)},new[]{"wallHeight",Geometry.P.WallHeight.ToString("R",CultureInfo.InvariantCulture)},new[]{"surfaceDensity",Geometry.P.SurfaceDensity.ToString("R",CultureInfo.InvariantCulture)},new[]{"predictionSeconds",PredictionSeconds.ToString("R",CultureInfo.InvariantCulture)},new[]{"surfaceWarpLimit",SurfaceWarpLimit.ToString("R",CultureInfo.InvariantCulture)},new[]{"pondAmount",PondAmount.ToString("R",CultureInfo.InvariantCulture)}})n.AddValue(pair[0],pair[1]);

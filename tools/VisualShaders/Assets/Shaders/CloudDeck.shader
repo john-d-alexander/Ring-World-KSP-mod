@@ -5,7 +5,7 @@ Shader "NivenRingworld/CloudDeck"
  CGPROGRAM
  #pragma vertex vert
  #pragma fragment frag
- #pragma target 3.0
+ #pragma target 5.0
  #include "UnityCG.cginc"
  #include "CloudField.cginc"
  float _Extent,_Daylight;float4 _CloudHandoff;

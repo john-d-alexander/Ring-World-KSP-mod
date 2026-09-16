@@ -10,6 +10,7 @@ namespace NivenRingworld
     {
         private GameObject root,squares;
         private Mesh ring;
+        private Vector3[] flightVertices,mapVertices;private bool mapGeometry;
         private Material material,dark,farMaterial,wallMaterial;
         private AssetBundle visualBundle;
         private bool farAttempted,farActive;
@@ -28,7 +29,7 @@ namespace NivenRingworld
                 Shader shader=Shader.Find("Unlit/Color")??Shader.Find("KSP/Unlit");if(shader==null)return;
                 material=new Material(shader){color=new Color(.34f,.47f,.32f)};dark=new Material(shader){color=new Color(.012f,.015f,.019f)};
                 root=new GameObject("Niven Ringworld scaled habitat");root.layer=10;
-                int n=8192;var verts=new Vector3[(n+1)*8];var uv=new Vector2[verts.Length];
+                int n=8192;var verts=new Vector3[(n+1)*8];mapVertices=new Vector3[verts.Length];var uv=new Vector2[verts.Length];
                 // Global scaled-space float coordinates lose metres near this enormous radius.
                 // The fallback is render-only; keep an explicit roundoff margin below local terrain.
                 double floorDrop=settings.Geometry.P.Radius*(1/Math.Cos(Math.PI/n)-1)-TerrainGenerator.MinimumHeight+settings.StructuralThickness+Math.Max(512,settings.Geometry.P.Radius*1e-6);
@@ -39,7 +40,7 @@ namespace NivenRingworld
                 for(int i=0;i<=n;i++)
                 {
                     double along=i*settings.Geometry.P.Circumference/n;
-                    for(int j=0;j<8;j++){verts[i*8+j]=ConvertVector.Unity(settings.Geometry.Position(along,cross[j],height[j])*s);uv[i*8+j]=new Vector2((float)((double)i/n),(float)(cross[j]/settings.Geometry.P.Width+.5));}
+                    for(int j=0;j<8;j++){verts[i*8+j]=ConvertVector.Unity(settings.Geometry.Position(along,cross[j],height[j])*s);mapVertices[i*8+j]=ConvertVector.Unity(settings.Geometry.Position(along,cross[j],height[j]+(height[j]<0?Math.Max(512,settings.Geometry.P.Radius*1e-6):0))*s);uv[i*8+j]=new Vector2((float)((double)i/n),(float)(cross[j]/settings.Geometry.P.Width+.5));}
                     if(i==n)continue;
                     for(int j=0;j<8;j++)
                     {
@@ -49,8 +50,9 @@ namespace NivenRingworld
                         (j==3?floorTriangles:triangles).AddRange(new[]{a,b,c,b,d,c});
                     }
                 }
+                flightVertices=verts;mapGeometry=false;
                 ring=new Mesh{name="Ringworld scaled ribbon",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};ring.vertices=verts;ring.uv=uv;ring.subMeshCount=2;ring.SetTriangles(triangles,0);ring.SetTriangles(floorTriangles,1);ring.RecalculateBounds();
-                root.AddComponent<MeshFilter>().sharedMesh=ring;ribbonRenderer=root.AddComponent<MeshRenderer>();ribbonRenderer.sharedMaterials=new[]{material,material};
+                root.AddComponent<MeshFilter>().sharedMesh=ring;ribbonRenderer=root.AddComponent<MeshRenderer>();ribbonRenderer.sharedMaterials=new[]{dark,material};
                 squares=new GameObject("Twenty shadow squares");squares.transform.SetParent(root.transform,false);squares.layer=10;
                 double squareRadius=settings.Geometry.P.Radius*(46.0/153.0);
                 for(int i=0;i<20;i++)
@@ -75,8 +77,11 @@ namespace NivenRingworld
             var current=RingworldFlight.Instance;
             if(current!=null&&current.Settings!=null&&(settings.Geometry.P.Radius!=current.Settings.Geometry.P.Radius||settings.Geometry.P.Width!=current.Settings.Geometry.P.Width||settings.Geometry.P.WallHeight!=current.Settings.Geometry.P.WallHeight||settings.Geometry.P.Gravity!=current.Settings.Geometry.P.Gravity))
             {OnDestroy();Start();if(root==null)return;}
+            bool mapView=MapView.MapIsEnabled||HighLogic.LoadedScene==GameScenes.TRACKSTATION;
+            if(mapGeometry!=mapView){mapGeometry=mapView;ring.vertices=mapGeometry?mapVertices:flightVertices;ring.RecalculateBounds();}
             UpdateDistantSurface(current);
             root.transform.position=(Vector3)ScaledSpace.LocalToScaledSpace(star.position);
+            Shader.SetGlobalVector("_RingScaledCenter",root.transform.position);Shader.SetGlobalVector("_RingScaledSize",new Vector4((float)(settings.Geometry.P.Radius*ScaledSpace.InverseScaleFactor),(float)(settings.Geometry.P.Width*.5*ScaledSpace.InverseScaleFactor),0,0));
             // Squares and material longitude use the same phase in both flight charts.
             var flight=RingworldFlight.Instance;
             double epoch=flight!=null&&flight.Active?flight.FrameEpoch:Planetarium.GetUniversalTime();
@@ -94,7 +99,7 @@ namespace NivenRingworld
                 {
                     visualBundle=RingVisualAssets.Acquire();
                     var shader=visualBundle!=null?visualBundle.LoadAsset<Shader>("Assets/Shaders/DistantSurface.shader"):null;
-                    if(shader!=null&&shader.isSupported){farMaterial=new Material(shader);wallMaterial=new Material(shader);ribbonRenderer.sharedMaterials=new[]{wallMaterial,farMaterial};globalClouds=new GlobalClouds(root.transform,options,visualBundle);Debug.Log("[NivenRingworld] Full-ring distant surface and cloud shaders ready.");}
+                    if(shader!=null&&shader.isSupported){farMaterial=new Material(shader){renderQueue=2000};wallMaterial=new Material(shader){renderQueue=2000};ribbonRenderer.sharedMaterials=new[]{dark,farMaterial};globalClouds=new GlobalClouds(root.transform,options,visualBundle);Debug.Log("[NivenRingworld] Full-ring distant surface and cloud shaders ready.");}
                     else Debug.LogWarning("[NivenRingworld] Distant surface shader unavailable; using plain ribbon.");
                 }
                 catch(Exception e){Debug.LogWarning("[NivenRingworld] Distant surface: "+e.Message);}

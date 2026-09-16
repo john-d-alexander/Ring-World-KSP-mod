@@ -1,0 +1,100 @@
+{
+  "status": "success",
+  "result": {
+    "name": "Ringworld \u2014 Landmark Review 3",
+    "object_count": 17,
+    "objects": [
+      {
+        "name": "reclaimed_temple_01_LOD0.001",
+        "type": "MESH",
+        "location": [
+          -6.0,
+          0.0,
+          0.96
+        ]
+      },
+      {
+        "name": "Text.024",
+        "type": "FONT",
+        "location": [
+          -6.0,
+          -1.6,
+          0.02
+        ]
+      },
+      {
+        "name": "canopy_broadleaf_01_LOD0.001",
+        "type": "MESH",
+        "location": [
+          -2.0,
+          0.0,
+          0.58
+        ]
+      },
+      {
+        "name": "Text.025",
+        "type": "FONT",
+        "location": [
+          -2.0,
+          -1.6,
+          0.02
+        ]
+      },
+      {
+        "name": "canopy_conifer_01_LOD0.001",
+        "type": "MESH",
+        "location": [
+          2.0,
+          0.0,
+          0.82
+        ]
+      },
+      {
+        "name": "Text.026",
+        "type": "FONT",
+        "location": [
+          2.0,
+          -1.6,
+          0.02
+        ]
+      },
+      {
+        "name": "tree_oak_01_LOD0.001",
+        "type": "MESH",
+        "location": [
+          6.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "name": "Text.027",
+        "type": "FONT",
+        "location": [
+          6.0,
+          -1.6,
+          0.02
+        ]
+      },
+      {
+        "name": "tree_willow_01_LOD0.001",
+        "type": "MESH",
+        "location": [
+          -6.0,
+          -4.0,
+          0.0
+        ]
+      },
+      {
+        "name": "Text.028",
+        "type": "FONT",
+        "location": [
+          -6.0,
+          -5.6,
+          0.02
+        ]
+      }
+    ],
+    "materials_count": 12
+  }
+}

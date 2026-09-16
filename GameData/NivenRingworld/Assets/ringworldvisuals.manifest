@@ -1,9 +1,9 @@
 ManifestFileVersion: 0
-CRC: 4237057858
+CRC: 3720141580
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 012acbc2fe0eb1dcbf37178a0d310d0f
+    Hash: c197843bfa430a22eea394ae5c824df3
   TypeTreeHash:
     serializedVersion: 2
     Hash: 0750d4576eedfd971a9815dc06e921b6
@@ -15,6 +15,7 @@ ClassTypes:
   Script: {instanceID: 0}
 SerializeReferenceClassIdentifiers: []
 Assets:
+- Assets/Shaders/CloudCoverageProbe.shader
 - Assets/Shaders/GlobalClouds.shader
 - Assets/Shaders/RingWater.shader
 - Assets/Shaders/DistantSurface.shader

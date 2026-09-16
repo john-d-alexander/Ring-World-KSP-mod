@@ -39,8 +39,9 @@ namespace NivenRingworld
             var g=settings.Geometry;phase=g.OrientationRadians;anchor=g.Position(cellX*16,cellY*16,0);
             var world=star+ConvertVector.Ksp(anchor);var verts=new List<Vector3>();var colors=new List<Color>();var indices=new List<int>();Count=0;
             authored.Reset();
-            double spacing=Math.Max(4,range/20);int radius=(int)Math.Ceiling(range/spacing);long cx=(long)Math.Floor(centre.Along/spacing),cy=(long)Math.Floor(centre.Across/spacing);
-            for(int iy=-radius;iy<=radius&&Count<2200;iy++)for(int ix=-radius;ix<=radius&&Count<2200;ix++)
+            // Fixed candidate budget: extending the radius never creates an unbounded grass mesh.
+            double spacing=Math.Max(2.5,range/24);int radius=(int)Math.Ceiling(range/spacing);long cx=(long)Math.Floor(centre.Along/spacing),cy=(long)Math.Floor(centre.Across/spacing);
+            for(int iy=-radius;iy<=radius&&Count<2200&&verts.Count<59000;iy++)for(int ix=-radius;ix<=radius&&Count<2200&&verts.Count<59000;ix++)
             {
                 long x=cx+ix,y=cy+iy;double pick=settings.Terrain.Scatter(x,y,811);
                 if(pick>density)continue;
@@ -59,16 +60,19 @@ namespace NivenRingworld
                 var at=hit.point-(Vector3)world+hit.normal*.025f;
                 var side=Vector3.Cross(up,Vector3.up).normalized;if(side.sqrMagnitude<.1f)side=Vector3.right;var along=Vector3.Cross(side,up).normalized;
                 var climate=Ecology.Sample(settings.Terrain,a,b);Color color=TerrainTint.Color(sample);
+                double patch=settings.Terrain.Noise(a,b,38,853);
+                // Broad patches and openings, rather than an evenly populated jittered grid.
+                if(pick>density*(.35+.65*patch))continue;
                 bool stone=sample.Shore>.1||sample.Biome==Biome.Mountain||sample.Biome==Biome.Snow;
                 bool sunflower=!stone&&climate.Meadow>.35&&settings.Terrain.Noise(a,b,1400,941)>.58;
                 bool litter=!stone&&(underTree||climate.Forest>.45&&pick<density*.5);
                 float fade=(float)Math.Min(1,(range-Math.Sqrt(da*da+db*db))/16);
                 double artPick=settings.Terrain.Scatter(x,y,837);
-                if(artPick<density*.04&&da*da+db*db<Math.Min(range,60)*Math.Min(range,60))
+                if(artPick<.24&&da*da+db*db<Math.Min(range,60)*Math.Min(range,60))
                 {
                     string kind=sunflower?"mirror_sunflower":stone?"pebble_cluster":litter?(artPick<density*.007?"mushrooms":artPick<density*.016?"fern_patch":"leaf_litter"):climate.Desert>.55?"desert_scrub":sample.Shore>.03?"reed_patch":climate.Forest>.5?"fern_patch":"grass_patch";
                     Vector3 size=stone?new Vector3(1.1f,.18f,1.1f):litter?new Vector3(.8f,kind=="mushrooms"?.35f:kind=="fern_patch"?.6f:.07f,.8f):sunflower?new Vector3(.65f,.9f,.65f):new Vector3(.8f,.6f,.8f);
-                    if(authored.Add(kind,da*da+db*db<625?1:2,at,hit.normal,size*fade,(float)(pick*359),settings.VisualQuality>0?64:32)){Count++;continue;}
+                    if(authored.Add(kind,da*da+db*db<625?1:2,at,hit.normal,size*fade,(float)(pick*359),settings.VisualQuality>0?128:64)){Count++;continue;}
                 }
                 if(sunflower)
                 {
@@ -89,7 +93,19 @@ namespace NivenRingworld
                 else
                 {
                     float height=(float)(.18+.5*settings.Terrain.Scatter(x,y,829))*fade;
-                    for(int k=0;k<3;k++){var direction=Quaternion.AngleAxis(k*60,up)*side;Triangle(verts,colors,indices,at-direction*.08f,at+direction*.08f,at+up*height+along*.12f,color);}
+                    int blades=settings.VisualQuality>0?18:12;
+                    for(int k=0;k<blades;k++)
+                    {
+                        double angle=settings.Terrain.Scatter(x,y,860+k)*Math.PI*2;
+                        float spread=(float)Math.Sqrt(settings.Terrain.Scatter(x,y,890+k))*.9f;
+                        var offset=(side*(float)Math.Cos(angle)+along*(float)Math.Sin(angle))*spread;
+                        // Project the small clump onto the hit triangle's tangent plane.
+                        offset-=hit.normal*Vector3.Dot(offset,hit.normal);
+                        var foot=at+offset;var direction=Quaternion.AngleAxis((float)(angle*180/Math.PI),up)*side;
+                        float h=height*(.55f+.65f*(float)settings.Terrain.Scatter(x,y,920+k));
+                        var tint=Color.Lerp(color,new Color(.32f,.42f,.16f),.2f+.3f*(float)patch);
+                        Triangle(verts,colors,indices,foot-direction*.065f,foot+direction*.065f,foot+up*h+along*.12f,tint);
+                    }
                 }
                 Count++;
             }

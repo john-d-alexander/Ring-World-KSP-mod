@@ -20,15 +20,19 @@ namespace NivenRingworld
         }
     }
     // The stock method dereferences the body's PQS on contact; the Sun has no PQS.
-    // Keep custom-floor contact distinct from stock planetary LANDED/anchored state.
+    // Report real contact without invoking spherical PQS anchoring.
     [HarmonyPatch(typeof(Vessel),nameof(Vessel.checkLanded))]
     internal static class RingLandingPatch
     {
         private static bool Prefix(Vessel __instance,ref bool __result)
         {
             var f=RingworldFlight.Instance;
-            if(f==null||!f.IsParticipant(__instance))return true;
-            __instance.Landed=false;__result=false;return false;
+            if(f==null)return true;
+            // Decoupled debris can check contact during Initialize, before the
+            // normal frame-adoption update. Avoid entering the Sun's null-PQS path.
+            if(!f.IsParticipant(__instance)&&__instance.parts!=null&&__instance.parts.Count>0&&f.FrameInUse)f.AdoptParticipant(__instance);
+            if(!f.IsParticipant(__instance))return true;
+            __result=RingResidence.UpdateContact(f,__instance);return false;
         }
     }
     [HarmonyPatch(typeof(VesselPrecalculate),"CalculatePhysicsStats")]

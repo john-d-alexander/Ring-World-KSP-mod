@@ -13,6 +13,48 @@ static class Program
     static void Main(string[] args)
     {
         var p=new RingParameters();var g=new RingGeometry(p);var t=new TerrainGenerator(g);
+        var candidateKeys=new HashSet<string>();
+        for(int j=0;j<1000;j++)foreach(var candidate in ColossusDistribution.Nearby(t,j*2000000,0))
+        {
+            candidateKeys.Add(candidate.Key);
+            foreach(var landmarkSite in t.Landmarks)
+            {
+                double da=RingGeometry.Wrap(candidate.Along-landmarkSite.Along+p.Circumference/2,p.Circumference)-p.Circumference/2,db=candidate.Across-landmarkSite.Across;
+                Check(da*da+db*db>=600000.0*600000,"rare colossi exclude landmark cluster");
+            }
+        }
+        Check(candidateKeys.Count>250&&candidateKeys.Count<650,"rare seeded occupancy across 3000 sampled cells");
+        var first=new List<ColossusCandidate>(ColossusDistribution.Nearby(t,12345678,0,2000000,1));
+        var wrapped=new List<ColossusCandidate>(ColossusDistribution.Nearby(t,12345678+p.Circumference,0,2000000,1));
+        Check(first.Count==wrapped.Count,"colossus wrap count");
+        for(int j=0;j<first.Count;j++){Check(first[j].Key==wrapped[j].Key,"colossus wrap identity");Near(first[j].Along,wrapped[j].Along,0,"colossus repeatable position");}
+        int forestSamples=0;
+        for(int j=0;j<1000;j++)
+        {
+            double a=j*17931,b=(j%23-11)*17000;var ground=t.Sample(a,b);
+            var look=BiomePresentation.Sample(t,a,b,ground,64,1);
+            Check(look.CanopyCover>=0&&look.CanopyCover<=1&&look.CanopyHeight>=0&&look.CanopyHeight<=48,"bounded biome representation");
+            if(look.CanopyCover>.9){forestSamples++;Check(BiomePresentation.ForestMargin(t,a,b)>0,"near and distant forest share stand mask");}
+            Near(BiomePresentation.Sample(t,a,b,ground,64,0).CanopyHeight,0,0,"disabled forest has no canopy relief");
+            ground.Biome=Biome.Road;Near(BiomePresentation.Sample(t,a,b,ground,64,1).CanopyCover,0,0,"no forest canopy on roads");
+        }
+        Check(forestSamples>0,"forest coverage fixture exists");
+        foreach(int side in new[]{-1,1})
+        {
+            var target=g.Position(234567,side*(p.Width/2-10),5);
+            var desired=g.Position(234567,side*(p.Width/2+50),5);
+            var clipped=RingCameraBounds.ConstrainWalls(g,target,desired,2,100);
+            Near(side*clipped.Y,p.Width/2-2,1e-5,"camera stops inside rim wall including clip radius");
+            var overlap=g.Position(234567,side*(p.Width/2-.2),5);
+            Near(side*RingCameraBounds.ConstrainWalls(g,overlap,desired,2,100).Y,p.Width/2-2,1e-5,"camera resolves initial wall overlap");
+            var highTarget=g.Position(234567,side*(p.Width/2-10),p.WallHeight+100);
+            var highDesired=g.Position(234567,side*(p.Width/2+50),p.WallHeight+100);
+            Near((RingCameraBounds.ConstrainWalls(g,highTarget,highDesired,2,100)-highDesired).Length,0,.00001,"camera can pass over wall");
+        }
+        var unbounded=TerrainLodPlan.Create(0,0,1024,3,double.MaxValue,p.Width/2,p.Circumference/2,Math.Sqrt(8*p.Radius*250)*8);
+        Check(unbounded.Count>0&&unbounded.Count<100000,"unlimited preference generates finite unique ring domain");
+        foreach(var b in unbounded)Check(b.Y<p.Width/2&&b.Y+b.Size>-p.Width/2,"LOD plan culls beyond walls before subdivision");
+
         // Weather has deterministic UT evolution, continuous interval boundaries and explicit clear overrides.
         double weatherMin=1,weatherMax=0;
         for(int i=0;i<1000;i++)
@@ -64,7 +106,7 @@ static class Program
         Check((g.ToInertialPosition(rotatingState.Position,10)-inertialState.Position).Length<.01,"rotating and inertial numerical predictions agree");
         Near(DVec.Cross(inertialState.Position,inertialState.Velocity).Y/initialMomentum,1,1e-10,"axisymmetric field conserves angular momentum");
         p.SurfaceDensity=0;
-        Check(TerrainLodPlan.Create(0,0,1024,3,TerrainLodPlan.MaximumRange).Count<2200,"two-million-km bounded LOD plan");
+        Check(TerrainLodPlan.Create(0,0,1024,3,2000000000).Count<2200,"two-million-km bounded LOD plan");
         var ecologyTerrain=new TerrainGenerator(g){GenerationVersion=4};var climateKinds=new HashSet<Biome>();
         for(int i=0;i<1000;i++)
         {

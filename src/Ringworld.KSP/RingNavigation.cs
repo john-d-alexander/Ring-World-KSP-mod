@@ -12,7 +12,7 @@ namespace NivenRingworld
             var f=RingworldFlight.Instance;
             velocity=ConvertVector.Unity(f.Velocity(vessel));
             if(FlightGlobals.speedDisplayMode!=FlightGlobals.SpeedDisplayModes.Target)return true;
-            var target=FlightGlobals.fetch.VesselTarget;
+            var target=vessel.targetObject;
             var other=target==null?null:target.GetVessel();
             if(!StockIntegration.Applies(other)){velocity=Vector3.zero;return false;}
             velocity-=ConvertVector.Unity(f.Velocity(other));return true;

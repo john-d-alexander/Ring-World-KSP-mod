@@ -1,7 +1,8 @@
 param(
     [string]$KspRoot = (Join-Path $PSScriptRoot 'template_instance'),
     [switch]$Install,
-    [switch]$SmokeTest
+    [switch]$SmokeTest,
+    [switch]$Package
 )
 $ErrorActionPreference = 'Stop'
 $taskRoot = (Resolve-Path -LiteralPath $PSScriptRoot).Path
@@ -30,8 +31,8 @@ if ($Install) {
     Copy-Item -Path (Join-Path $harmonyStage '*') -Destination $harmonyTarget -Force
     Write-Host "Installed into $target"
 }
-if (-not $SmokeTest) {
-    foreach ($doc in @('README.md','LICENSE','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md','docs\ORBITAL-ARRIVAL.md','docs\GROUND-AND-EVA.md','docs\TERRAIN-LOD.md','docs\SETTINGS-AND-HORIZON.md','docs\ORBITS-WARP-AND-ASSETS.md','docs\BIOMES-AND-GRAPHICS.md','docs\ASSET-TRACKER.md','docs\BIOME-ASSET-CATALOG.md','docs\BIOME-FREQUENCY-SURVEY.txt','docs\STOCK-WARP-AND-RENDERING.md','docs\HIGH-END-VISUALS.md','docs\WEATHER-AND-NIGHT.md','docs\BLENDER-ASSETS.md','docs\GLOBAL-CLOUDS.md','docs\HABITAT-LIBRARY.md','docs\MOD-INTEROPERABILITY.md')) {
+if ($Package -and -not $SmokeTest) {
+    foreach ($doc in @('README.md','LICENSE','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md','docs\ORBITAL-ARRIVAL.md','docs\GROUND-AND-EVA.md','docs\TERRAIN-LOD.md','docs\SETTINGS-AND-HORIZON.md','docs\ORBITS-WARP-AND-ASSETS.md','docs\BIOMES-AND-GRAPHICS.md','docs\ASSET-TRACKER.md','docs\BIOME-ASSET-CATALOG.md','docs\BIOME-FREQUENCY-SURVEY.txt','docs\STOCK-WARP-AND-RENDERING.md','docs\HIGH-END-VISUALS.md','docs\WEATHER-AND-NIGHT.md','docs\BLENDER-ASSETS.md','docs\GLOBAL-CLOUDS.md','docs\GRAPHICS-DIAGNOSIS.md','docs\RESIDENCE-AND-ENCOUNTERS.md','docs\HABITAT-LIBRARY.md','docs\MOD-INTEROPERABILITY.md','docs\LANDMARK-ASSETS.md','docs\LANDMARK-INVENTORY.md','docs\RELEASE-1.0.0.md','docs\RELEASE-1.0.1.md','docs\RELEASE-1.0.2.md','docs\RELEASE-1.0.3.md','docs\QUALITY-PRESETS.md','docs\CKAN-PUBLISHING.md','docs\COLOSSI-AND-FORESTS.md')) {
         $source = Join-Path $taskRoot $doc
         if (Test-Path -LiteralPath $source) {
             $docTarget = Join-Path (Join-Path $taskRoot 'artifacts\NivenRingworld') $doc
@@ -39,6 +40,10 @@ if (-not $SmokeTest) {
             Copy-Item -LiteralPath $source -Destination $docTarget -Force
         }
     }
-    Compress-Archive -Path (Join-Path $taskRoot 'artifacts\NivenRingworld\*') -DestinationPath (Join-Path $taskRoot 'artifacts\NivenRingworld-0.9.0.zip') -Force
+    $releaseVersion = ([xml](Get-Content -LiteralPath (Join-Path $taskRoot 'src\Ringworld.KSP\Ringworld.KSP.csproj') -Raw)).Project.PropertyGroup.Version
+    Compress-Archive -Path (Join-Path $taskRoot 'artifacts\NivenRingworld\*') -DestinationPath (Join-Path $taskRoot "artifacts\NivenRingworld-$releaseVersion.zip") -Force
 }
 Write-Host "Build staged in $stage"
+
+
+
