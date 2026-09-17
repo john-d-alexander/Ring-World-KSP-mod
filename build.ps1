@@ -14,12 +14,23 @@ $buildArguments = @('build', (Join-Path $taskRoot 'src\Ringworld.KSP\Ringworld.K
 if ($SmokeTest) { $buildArguments += '-p:SmokeTest=true' }
 & dotnet @buildArguments
 if ($LASTEXITCODE -ne 0) { throw 'Plugin build failed.' }
-$stage = Join-Path $taskRoot 'artifacts\NivenRingworld\GameData\NivenRingworld'
+# A fresh package stage prevents stale experimental files entering a release.
+$distributionRoot = Join-Path $taskRoot 'artifacts\NivenRingworld'
+if ($Package) { $distributionRoot = Join-Path $taskRoot ('artifacts\package-stage-' + [Guid]::NewGuid().ToString('N')) }
+$stage = Join-Path $distributionRoot 'GameData\NivenRingworld'
 New-Item -ItemType Directory -Path (Join-Path $stage 'Plugins') -Force | Out-Null
 Copy-Item -Path (Join-Path $taskRoot 'GameData\NivenRingworld\*') -Destination $stage -Recurse -Force
-$harmonyStage = Join-Path $taskRoot 'artifacts\NivenRingworld\GameData\000_Harmony'
+$harmonyStage = Join-Path $distributionRoot 'GameData\000_Harmony'
 New-Item -ItemType Directory -Path $harmonyStage -Force | Out-Null
 Copy-Item -Path (Join-Path $taskRoot 'vendor\HarmonyKSP\GameData\000_Harmony\*') -Destination $harmonyStage -Force
+# Pinned, unmodified upstream dependency: no network needed when building.
+$cylaStage = Join-Path $distributionRoot 'GameData\Cyla'
+New-Item -ItemType Directory -Path $cylaStage -Force | Out-Null
+Copy-Item -Path (Join-Path $taskRoot 'vendor\Cyla\Cyla\*') -Destination $cylaStage -Recurse -Force
+$cylaSourceStage = Join-Path $distributionRoot 'ThirdParty\Cyla'
+New-Item -ItemType Directory -Path $cylaSourceStage -Force | Out-Null
+Copy-Item -Path (Join-Path $taskRoot 'vendor\Cyla\Source') -Destination $cylaSourceStage -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $taskRoot 'vendor\Cyla\PROVENANCE.json') -Destination $cylaSourceStage -Force
 $compiled = Join-Path $taskRoot 'src\Ringworld.KSP\bin\Release\net472'
 foreach ($dll in @('NivenRingworld.dll','Ringworld.Core.dll')) { Copy-Item -LiteralPath (Join-Path $compiled $dll) -Destination (Join-Path $stage 'Plugins') -Force }
 if ($Install) {
@@ -29,19 +40,22 @@ if ($Install) {
     $harmonyTarget = Join-Path $gameRoot 'GameData\000_Harmony'
     New-Item -ItemType Directory -Path $harmonyTarget -Force | Out-Null
     Copy-Item -Path (Join-Path $harmonyStage '*') -Destination $harmonyTarget -Force
+    $cylaTarget = Join-Path $gameRoot 'GameData\Cyla'
+    New-Item -ItemType Directory -Path $cylaTarget -Force | Out-Null
+    Copy-Item -Path (Join-Path $cylaStage '*') -Destination $cylaTarget -Recurse -Force
     Write-Host "Installed into $target"
 }
 if ($Package -and -not $SmokeTest) {
-    foreach ($doc in @('README.md','LICENSE','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md','docs\ORBITAL-ARRIVAL.md','docs\GROUND-AND-EVA.md','docs\TERRAIN-LOD.md','docs\SETTINGS-AND-HORIZON.md','docs\ORBITS-WARP-AND-ASSETS.md','docs\BIOMES-AND-GRAPHICS.md','docs\ASSET-TRACKER.md','docs\BIOME-ASSET-CATALOG.md','docs\BIOME-FREQUENCY-SURVEY.txt','docs\STOCK-WARP-AND-RENDERING.md','docs\HIGH-END-VISUALS.md','docs\WEATHER-AND-NIGHT.md','docs\BLENDER-ASSETS.md','docs\GLOBAL-CLOUDS.md','docs\GRAPHICS-DIAGNOSIS.md','docs\RESIDENCE-AND-ENCOUNTERS.md','docs\HABITAT-LIBRARY.md','docs\MOD-INTEROPERABILITY.md','docs\LANDMARK-ASSETS.md','docs\LANDMARK-INVENTORY.md','docs\RELEASE-1.0.0.md','docs\RELEASE-1.0.1.md','docs\RELEASE-1.0.2.md','docs\RELEASE-1.0.3.md','docs\QUALITY-PRESETS.md','docs\CKAN-PUBLISHING.md','docs\COLOSSI-AND-FORESTS.md')) {
+    foreach ($doc in @('README.md','LICENSE','THIRD-PARTY-NOTICES.md','CREDITS.md','docs\RELEASE-1.1.1.md','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md','docs\ORBITAL-ARRIVAL.md','docs\GROUND-AND-EVA.md','docs\TERRAIN-LOD.md','docs\SETTINGS-AND-HORIZON.md','docs\ORBITS-WARP-AND-ASSETS.md','docs\BIOMES-AND-GRAPHICS.md','docs\ASSET-TRACKER.md','docs\BIOME-ASSET-CATALOG.md','docs\BIOME-FREQUENCY-SURVEY.txt','docs\STOCK-WARP-AND-RENDERING.md','docs\HIGH-END-VISUALS.md','docs\WEATHER-AND-NIGHT.md','docs\BLENDER-ASSETS.md','docs\GLOBAL-CLOUDS.md','docs\GRAPHICS-DIAGNOSIS.md','docs\RESIDENCE-AND-ENCOUNTERS.md','docs\HABITAT-LIBRARY.md','docs\MOD-INTEROPERABILITY.md','docs\LANDMARK-ASSETS.md','docs\LANDMARK-INVENTORY.md','docs\RELEASE-1.0.0.md','docs\RELEASE-1.0.1.md','docs\RELEASE-1.0.2.md','docs\RELEASE-1.0.3.md','docs\QUALITY-PRESETS.md','docs\CKAN-PUBLISHING.md','docs\CYLA-INTEGRATION.md','docs\COLOSSI-AND-FORESTS.md')) {
         $source = Join-Path $taskRoot $doc
         if (Test-Path -LiteralPath $source) {
-            $docTarget = Join-Path (Join-Path $taskRoot 'artifacts\NivenRingworld') $doc
+            $docTarget = Join-Path $distributionRoot $doc
             New-Item -ItemType Directory -Path (Split-Path -Parent $docTarget) -Force | Out-Null
             Copy-Item -LiteralPath $source -Destination $docTarget -Force
         }
     }
     $releaseVersion = ([xml](Get-Content -LiteralPath (Join-Path $taskRoot 'src\Ringworld.KSP\Ringworld.KSP.csproj') -Raw)).Project.PropertyGroup.Version
-    Compress-Archive -Path (Join-Path $taskRoot 'artifacts\NivenRingworld\*') -DestinationPath (Join-Path $taskRoot "artifacts\NivenRingworld-$releaseVersion.zip") -Force
+    Compress-Archive -Path (Join-Path $distributionRoot '*') -DestinationPath (Join-Path $taskRoot "artifacts\NivenRingworld-$releaseVersion.zip") -Force
 }
 Write-Host "Build staged in $stage"
 

@@ -1,4 +1,4 @@
-param([int]$TimeoutSeconds=900,[switch]$MapOnly,[switch]$TerrainOnly,[switch]$WarpOnly,[switch]$UnmatchedOnly,[switch]$PhotoOnly,[switch]$DistantOnly,[switch]$WeatherOnly,[switch]$SceneryOnly,[switch]$GlobalCloudsOnly,[switch]$ResidenceOnly,[switch]$GuidanceOnly,[switch]$StabilityOnly,[switch]$LandmarksOnly,[switch]$GearOnly)
+param([int]$TimeoutSeconds=900,[switch]$MapOnly,[switch]$TerrainOnly,[switch]$WarpOnly,[switch]$UnmatchedOnly,[switch]$PhotoOnly,[switch]$DistantOnly,[switch]$WeatherOnly,[switch]$SceneryOnly,[switch]$GlobalCloudsOnly,[switch]$ResidenceOnly,[switch]$GuidanceOnly,[switch]$StabilityOnly,[switch]$LandmarksOnly,[switch]$GearOnly,[switch]$CylaOnly,[switch]$TrackingOnly,[switch]$ReentryOnly,[switch]$RenderOnly,[switch]$VisualOptionsOnly)
 $ErrorActionPreference='Stop'
 $taskRoot=$PSScriptRoot
 $gameRoot=Join-Path $taskRoot 'template_instance'
@@ -8,6 +8,11 @@ $testProcess=$null
 try {
     & (Join-Path $taskRoot 'build.ps1') -Install -SmokeTest
     $taskArguments=@('-ringworld-smoketest','-screen-fullscreen','0','-screen-width','1280','-screen-height','720','-popupwindow','-logFile',$logName)
+    if ($VisualOptionsOnly) { $taskArguments += '-ringworld-visual-options-only' }
+    if ($ReentryOnly -or $RenderOnly) { $taskArguments += '-ringworld-reentry-only' }
+    if ($RenderOnly) { $taskArguments += '-ringworld-render-only' }
+    if ($TrackingOnly) { $taskArguments += '-ringworld-tracking-only' }
+    if ($CylaOnly) { $taskArguments += '-ringworld-cyla-only' }
     if ($GearOnly) { $taskArguments += '-ringworld-gear-only' }
     if ($LandmarksOnly) { $taskArguments += '-ringworld-landmarks-only' }
     if ($StabilityOnly) { $taskArguments += '-ringworld-stability-only' }
@@ -32,6 +37,11 @@ try {
     $reportDir=Join-Path $taskRoot 'artifacts\validation'
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
     $reportName='game-smoke.txt'
+    if ($VisualOptionsOnly) { $reportName='visual-options-smoke.txt' }
+    if ($ReentryOnly) { $reportName='reentry-smoke.txt' }
+    if ($RenderOnly) { $reportName='render-smoke.txt' }
+    if ($TrackingOnly) { $reportName='tracking-smoke.txt' }
+    if ($CylaOnly) { $reportName='cyla-smoke.txt' }
     if ($GearOnly) { $reportName='gear-smoke.txt' }
     if ($LandmarksOnly) { $reportName='landmarks-smoke.txt' }
     if ($StabilityOnly) { $reportName='stability-smoke.txt' }
@@ -49,6 +59,11 @@ try {
     $text -split '\r?\n' | Where-Object { $_ -match '\[RingworldSmoke\]|\[NivenRingworld\]' } | Set-Content -LiteralPath (Join-Path $reportDir $reportName)
     if ($GearOnly -and $SceneryOnly -and $LandmarksOnly -and $GuidanceOnly) {
         foreach ($name in @('gear','guidance','scenery','landmarks')) {
+            $text -split '\r?\n' | Where-Object { $_ -match '\[RingworldSmoke\]|\[NivenRingworld\]' } | Set-Content -LiteralPath (Join-Path $reportDir ($name+'-smoke.txt'))
+        }
+    }
+    if ($SceneryOnly -and $LandmarksOnly -and $GuidanceOnly -and -not $GearOnly) {
+        foreach ($name in @('guidance','scenery','landmarks')) {
             $text -split '\r?\n' | Where-Object { $_ -match '\[RingworldSmoke\]|\[NivenRingworld\]' } | Set-Content -LiteralPath (Join-Path $reportDir ($name+'-smoke.txt'))
         }
     }

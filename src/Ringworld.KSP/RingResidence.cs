@@ -82,9 +82,14 @@ namespace NivenRingworld
         private static bool Prefix(ref ClearToSaveStatus __result)
         {
             var f=RingworldFlight.Instance;var v=FlightGlobals.ActiveVessel;
-            if(f==null||!f.Owns(v)||!v.Landed)return true;
-            if(v.isEVA&&v.evaController!=null&&v.evaController.OnALadder)return true;
-            if(!f.surfaceWarp.CanAdvance(f,true))return true;
+            if(f==null)return true;
+            if(f.AtmosphereTransition){__result=ClearToSaveStatus.NOT_UNDER_ACCELERATION;return false;}
+            if(!f.Owns(v))return true;
+            // The Sun's stock atmosphere test cannot recognize this habitat. Never
+            // fall through to its CLEAR result for an unsupported ring resident.
+            if(!v.Landed){__result=ClearToSaveStatus.NOT_IN_ATMOSPHERE;return false;}
+            if(v.isEVA&&v.evaController!=null&&v.evaController.OnALadder){__result=ClearToSaveStatus.NOT_WHILE_ON_A_LADDER;return false;}
+            if(!f.surfaceWarp.CanAdvance(f,true)){__result=ClearToSaveStatus.NOT_WHILE_MOVING_OVER_SURFACE;return false;}
             f.Capture();__result=ClearToSaveStatus.CLEAR;return false;
         }
     }

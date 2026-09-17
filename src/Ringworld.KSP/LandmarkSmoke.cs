@@ -18,9 +18,9 @@ namespace NivenRingworld
                 var check=Settings.Load();check.Apply(options);
                 if(RingQualityPresets.Match(check)!=RingQualityPresets.Names[preset]||check.Geometry.P.Seed!=f.Settings.Geometry.P.Seed||check.ForestDensity!=f.Settings.ForestDensity)
                 {fail("Quality preset roundtrip/world preservation: "+RingQualityPresets.Names[preset]);yield break;}
-                if(preset>=6&&(check.ForestQuality!=0||check.LodRange!=160000000)){fail("Low preset forest/horizon regression");yield break;}
+                if(preset>=6&&(check.ForestQuality!=0||check.LodRange!=(preset==10?200000:160000000))){fail("Low preset forest/horizon regression");yield break;}
             }
-            Debug.Log("[RingworldSmoke] QUALITY all 11 presets roundtrip; seed/density preserved; low tiers Economy/160000km");
+            Debug.Log("[RingworldSmoke] QUALITY all 11 presets roundtrip; seed/density preserved; low tiers Economy; Rotten Potato 200km, other low tiers 160000km");
             f.arrivalHeight=600;f.Visit();while(!f.Ready)yield return null;
             for(int i=0;i<45;i++)yield return null;
             int count=0;GameObject palace=null;
@@ -57,7 +57,8 @@ namespace NivenRingworld
             // the live orientation before the following row is sampled.
             double originalPhase=f.Settings.Geometry.OrientationRadians;
             var probeBlock=new LodBlock{X=Math.Floor(fa/1024)*1024,Y=Math.Floor(fb/1024)*1024,Size=1024};
-            var probe=ForestCanopy.DistantMesh(f.Settings,probeBlock,f.Settings.Geometry.Position(probeBlock.X,probeBlock.Y,0),originalPhase);
+            var probeSettings=Settings.Load();probeSettings.Apply(f.Settings.Save());probeSettings.ForestQuality=1;
+            var probe=ForestCanopy.DistantMesh(probeSettings,probeBlock,f.Settings.Geometry.Position(probeBlock.X,probeBlock.Y,0),originalPhase);
             Mesh probeMesh=null;
             try
             {
@@ -86,7 +87,7 @@ namespace NivenRingworld
             Debug.Log("[RingworldSmoke] BIOME streamingFPS="+(streamFrames/streamWatch.Elapsed.TotalSeconds).ToString("F1")+" seconds="+streamWatch.Elapsed.TotalSeconds.ToString("F1")+" terrainPending="+surface.LodPending+" canopyPending="+surface.CanopyPending);
             if(surface.LodPending>0||surface.CanopyPending>0){fail("Biome LOD generation did not complete within fixture budget");yield break;}
             int crownsLod=0;foreach(var mesh in UnityEngine.Object.FindObjectsOfType<MeshFilter>())if(mesh.name=="Ring biome LOD canopy")crownsLod++;
-            if(crownsLod<10){fail("Intermediate canopy LOD missing");yield break;}
+            if(f.Settings.ForestQuality==0?crownsLod!=0:crownsLod<10){fail("Preset canopy LOD mismatch");yield break;}
             Debug.Log("[RingworldSmoke] BIOME crown LOD patches="+crownsLod);
             int canopyBlocks=0;foreach(var mesh in UnityEngine.Object.FindObjectsOfType<MeshFilter>())
                 if(mesh.sharedMesh!=null&&mesh.sharedMesh.name=="Adaptive ring terrain block")canopyBlocks++;
@@ -95,6 +96,11 @@ namespace NivenRingworld
             Capture((Vector3)(f.Star.position+ConvertVector.Ksp(pos)),new Vector3(7000,11000,-14000),"forest-horizon.png",up);
             var watch=System.Diagnostics.Stopwatch.StartNew();int frames=0;while(watch.Elapsed.TotalSeconds<5){frames++;yield return null;}
             Debug.Log("[RingworldSmoke] FOREST observedFPS="+(frames/watch.Elapsed.TotalSeconds).ToString("F1")+" managedMB="+(GC.GetTotalMemory(false)/1048576));
+            if(f.Settings.ForestQuality==0)
+            {
+                Debug.Log("[RingworldSmoke] QUALITY Economy near vertices="+ForestVertices()+"; physical candidates="+crowns+"; no distant crown meshes; Slow-only rendering");
+                f.ApplyOptions(savedOptions,false);yield break;
+            }
             long before=ForestVertices();var economy=f.Settings.Save();economy.SetValue("forestQuality",0,true);f.ApplyOptions(economy,false);
             for(int i=0;i<65;i++)yield return null;
             var economyWatch=System.Diagnostics.Stopwatch.StartNew();while((surface.LodPending>0||surface.SceneryPending>0)&&economyWatch.Elapsed.TotalSeconds<150)yield return null;

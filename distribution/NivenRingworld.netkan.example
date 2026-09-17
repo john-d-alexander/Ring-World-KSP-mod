@@ -1,8 +1,11 @@
+# DRAFT ONLY: coordinate Cyla dependency ownership with NetKAN before submitting.
 identifier: NivenRingworld
 name: Niven Ringworld Expedition
 abstract: A landable rotating Ringworld with procedural terrain, atmosphere and ring-relative flight.
-license: MIT
-$kref: '#/ckan/spacedock/REPLACE_WITH_MOD_ID'
+license:
+  - MIT
+  - GPL-3.0
+$kref: '#/ckan/github/theplatecrafter/Ring-World-KSP-mod'
 $vref: '#/ckan/ksp-avc'
 depends:
   - name: Harmony2
@@ -10,3 +13,6 @@ depends:
 install:
   - file: GameData/NivenRingworld
     install_to: GameData
+
+# Cyla must be packaged/indexed as its own dependency or explicitly assigned ownership.
+# This incomplete example deliberately does not copy a second unowned Cyla folder.

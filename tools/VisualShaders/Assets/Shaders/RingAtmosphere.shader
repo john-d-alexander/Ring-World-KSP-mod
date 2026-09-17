@@ -6,6 +6,7 @@ Shader "NivenRingworld/VolumetricAtmosphere"
   Cull Off ZWrite Off ZTest Always
   CGINCLUDE
   #include "UnityCG.cginc"
+  sampler2D _CylaBlack,_CylaWhite;float4 _CylaTexel;
   sampler2D _MainTex,_Weather,_Volume,_Previous,_SavedDepth;
   UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
   #include "CloudField.cginc"
@@ -131,6 +132,26 @@ Shader "NivenRingworld/VolumetricAtmosphere"
    #endif
    return float4(color,1);
   }
+  // The opaque Cyla shader is evaluated against black and white inputs.
+  // Recover scattering and transmission without downsampling the spacecraft.
+  float4 cylaComposite(v2f i):SV_Target
+  {
+   float z=LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture,i.uv));
+   float3 scatter=0,transmission=0;float total=0;
+   float2 base=(floor(i.uv*_CylaTexel.zw-.5)+.5)*_CylaTexel.xy;
+   float2 f=frac(i.uv*_CylaTexel.zw-.5);
+   [unroll]for(int y=0;y<2;y++)[unroll]for(int x=0;x<2;x++)
+   {
+    float2 uv=base+float2(x,y)*_CylaTexel.xy;
+    float dz=LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture,uv));
+    float w=(x?f.x:1-f.x)*(y?f.y:1-f.y)*exp(-abs(dz-z)/max(1,z*.01));
+    float3 b=tex2D(_CylaBlack,uv).rgb,white=tex2D(_CylaWhite,uv).rgb;
+    scatter+=b*w;transmission+=saturate(white-b)*w;total+=w;
+   }
+   // No matching low-resolution depth: preserve the original foreground pixel.
+   if(total<.0001)return tex2D(_MainTex,i.uv);
+   return float4(tex2D(_MainTex,i.uv).rgb*(transmission/total)+scatter/total,1);
+  }
   float4 copyDepth(v2f i):SV_Target{return LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture,i.uv));}
   ENDCG
   Pass { CGPROGRAM
@@ -146,6 +167,11 @@ Shader "NivenRingworld/VolumetricAtmosphere"
   Pass { CGPROGRAM
    #pragma vertex vert
    #pragma fragment copyDepth
+   #pragma target 3.0
+  ENDCG }
+  Pass { CGPROGRAM
+   #pragma vertex vert
+   #pragma fragment cylaComposite
    #pragma target 3.0
   ENDCG }
  }

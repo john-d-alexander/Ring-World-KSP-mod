@@ -21,6 +21,9 @@ Shader "NivenRingworld/DistantSurface"
             { float3 d=climate-centre;return exp(-dot(d*d,float3(1,1,.4))/.045); }
             float4 frag(v2f i):SV_Target
             {
+                // Dedicated hull path: avoid the game's platform-dependent plain
+                // colour shader for giant scaled-space wall triangles.
+                if(_Detail<-.5)return float4(.012,.015,.019,1);
                 float2 uv=i.uv;
                 float phase=frac(20*uv.x-_DayPhase),edge=min(phase,1-phase);
                 float light=saturate((edge-.138307)/.02);

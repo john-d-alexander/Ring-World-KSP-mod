@@ -35,7 +35,7 @@ namespace NivenRingworld
                     if(nodes.Length==0||!int.TryParse(nodes[0].GetValue("seed"),out seed))seed=BitConverter.ToInt32(Guid.NewGuid().ToByteArray(),0);
                     defaults.Geometry.P.Seed=seed;
                 }
-                Options=defaults.Save();
+                Options=defaults.Save();RingQualityPresets.Apply(Options,6); // Safe starting point; existing saved choices are untouched.
             }
             return Options;
         }
@@ -53,7 +53,9 @@ namespace NivenRingworld
                 if(!Guid.TryParse(id,out parsed)) continue;
                 var r=new VesselRecord{Id=id,Landed=n.GetValue("landed")=="True",Epoch=Read(n,"frameEpoch"),Position=new DVec(Read(n,"x"),Read(n,"y"),Read(n,"z")),Velocity=new DVec(Read(n,"vx"),Read(n,"vy"),Read(n,"vz")),
                     Rotation=new Quaternion((float)Read(n,"qx"),(float)Read(n,"qy"),(float)Read(n,"qz"),(float)Read(n,"qw",1))};
-                if(r.Position.Length>1000) Vessels[id]=r;
+                // Outside Flight, old airborne snapshots must not override a stock
+                // orbit that has continued advancing since the snapshot was saved.
+                if(r.Position.Length>1000&&(r.Landed||HighLogic.LoadedSceneIsFlight)) Vessels[id]=r;
             }
             foreach(string id in node.GetValues("discovery")) Discoveries.Add(id);
         }

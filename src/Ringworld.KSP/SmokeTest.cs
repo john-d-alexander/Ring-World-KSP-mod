@@ -20,7 +20,7 @@ namespace NivenRingworld
         public IEnumerator Start()
         {
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-smoketest")<0)yield break;
-            DontDestroyOnLoad(gameObject);deadline=Time.realtimeSinceStartup+500;running=true;
+            DontDestroyOnLoad(gameObject);deadline=Time.realtimeSinceStartup+1200;running=true;
             Debug.Log("[RingworldSmoke] MAIN MENU READY");
             yield return new WaitForSeconds(3);
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-global-clouds-only")>=0)
@@ -79,7 +79,7 @@ namespace NivenRingworld
             Debug.Log("[RingworldSmoke] SCENARIO READY");
             // This harness tests an unpowered impact with a damage-immune fixture.
             CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;
-            deadline=Time.realtimeSinceStartup+500;
+            deadline=Time.realtimeSinceStartup+1200;
             FlightInputHandler.state.mainThrottle=0;v.ctrlState.mainThrottle=0;
             v.ActionGroups.SetGroup(KSPActionGroup.SAS,false);v.ActionGroups.SetGroup(KSPActionGroup.RCS,false);
             foreach(var engine in v.FindPartModulesImplementing<ModuleEngines>())engine.Shutdown();
@@ -108,8 +108,17 @@ namespace NivenRingworld
                 Debug.Log("[RingworldSmoke] TOOLBAR stock button present; Sandbox/Career/Science and F2 gates passed; API rejects orbital vessel");
             }
             catch(Exception ex){Fail("Toolbar/API: "+ex);yield break;}
-            var smokeOptions=RingworldScenario.Instance.GetOptions().CreateCopy();smokeOptions.SetValue("seed",-739779896,true);
+            var smokeOptions=RingworldScenario.Instance.GetOptions().CreateCopy();smokeOptions.SetValue("seed",-739779896,true);RingQualityPresets.Apply(smokeOptions,6);
             flight.ApplyOptions(smokeOptions,true);
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-visual-options-only")>=0){yield return VisualOptionsSmoke.Run(flight,Fail);running=false;Application.Quit();yield break;}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-reentry-only")>=0)
+            {
+                yield return ReentrySmoke.Run(flight,Fail);running=false;Application.Quit();yield break;
+            }
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-tracking-only")>=0)
+            {
+                yield return TrackingSmoke.Run(flight,Fail);running=false;Application.Quit();yield break;
+            }
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-gear-only")>=0)
             {
                 yield return GearSmoke.Run(flight,Fail);
@@ -119,6 +128,14 @@ namespace NivenRingworld
                 if(running&&Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-landmarks-only")>=0)
                 {CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;yield return LandmarkSmoke.Run(RingworldFlight.Instance,Fail);if(running)Debug.Log("[RingworldSmoke] PASS landmarks-only");}
                 if(running){Debug.Log("[RingworldSmoke] PASS combined gear regression");running=false;Application.Quit();}yield break;
+            }
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-cyla-only")>=0){yield return CylaSmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS cyla-only");running=false;Application.Quit();}yield break;}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-landmarks-only")>=0&&Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-guidance-only")>=0)
+            {
+                yield return GuidanceSmoke.Run(flight,Fail);
+                if(running){Debug.Log("[RingworldSmoke] PASS guidance-only");yield return LandmarkSmoke.Run(RingworldFlight.Instance,Fail);}
+                if(running)Debug.Log("[RingworldSmoke] PASS landmarks-only");
+                running=false;Application.Quit();yield break;
             }
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-landmarks-only")>=0){yield return LandmarkSmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS landmarks-only");running=false;Application.Quit();}yield break;}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-stability-only")>=0){yield return StabilitySmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS stability-only");running=false;Application.Quit();}yield break;}

@@ -25,7 +25,7 @@ namespace NivenRingworld
             if(!allowed||camera==null){root.SetActive(false);boltObject.SetActive(false);return;}
             var observer=ConvertVector.Core((Vector3d)camera.transform.position-star);var c=s.Geometry.Coordinates(observer);double time=Planetarium.GetUniversalTime();
             bool inside=s.Atmosphere&&c.Altitude>=0&&c.Altitude<9000&&Math.Abs(c.Across)<s.Geometry.P.Width/2;
-            Current=s.Weather(c.Along,c.Across,time);var photo=RingworldFlight.Instance.visuals;int tier=photo!=null&&photo.PhotoActive?2:s.VisualQuality;
+            Current=s.Weather(c.Along,c.Across,time);var photo=RingworldFlight.Instance.visuals;int tier=s.VisualQuality;
             Veil=inside&&s.RainEnabled&&Current.Rain>.001&&TimeWarp.CurrentRate>10;
             bool rain=inside&&s.RainEnabled&&Current.Rain>.001&&!Veil;root.SetActive(rain);
             var up=ConvertVector.Unity(s.Geometry.Up(observer));var right=camera.transform.right;

@@ -20,7 +20,9 @@ namespace NivenRingworld
                 __instance.GetPivot().parent==constrainedParent&&
                 (__instance.transform.localPosition-appliedPosition).sqrMagnitude<1e-8f)
                 __instance.transform.localPosition=unconstrainedPosition;
+            RingCameraBlend.Restore(__instance);
         }
+        private static void Postfix(FlightCamera __instance){RingCameraBlend.Apply(__instance);}
         internal static void ApplyClearance(FlightCamera camera,Vector3 correction)
         {
             constrainedCamera=camera;constrainedParent=camera.GetPivot().parent;constrainedFrame=Time.frameCount;
