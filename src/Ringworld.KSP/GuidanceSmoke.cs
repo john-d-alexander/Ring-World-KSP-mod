@@ -44,9 +44,9 @@ namespace NivenRingworld
             f.arrivalHeight=400000;f.Visit();while(!f.Ready)yield return null;
             v.SetWorldVelocity(ConvertVector.Ksp(f.Settings.Geometry.Up(f.Position(v))*-1000));f.Leave();
             MapView.EnterMapView();yield return new WaitForSecondsRealtime(2);
-            int before=f.trajectory.PredictionCommits;yield return new WaitForSecondsRealtime(2);
+            int before=f.trajectory.PredictionCommits, frameBefore=Time.frameCount;yield return new WaitForSecondsRealtime(2);
             int updates=f.trajectory.PredictionCommits-before;
-            Debug.Log("[RingworldSmoke] TRAJECTORY commits/2s="+updates);
+            Debug.Log("[RingworldSmoke] TRAJECTORY commits/2s="+updates+" frames="+(Time.frameCount-frameBefore)+" encounters="+f.trajectory.EncounterCount+" points="+f.trajectory.PointCount);
             if(updates<8||f.trajectory.EncounterCount==0){fail("Trajectory refresh or encounter regression");yield break;}
             MapView.ExitMapView();f.arrivalHeight=3000;f.Visit();while(!f.Ready)yield return null;
             var chute=v.FindPartModuleImplementing<ModuleParachute>();if(chute==null){fail("Stock parachute missing in fixture");yield break;}

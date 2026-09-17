@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using Ringworld.Core;
+using HarmonyLib;
 using UnityEngine;
 
 namespace NivenRingworld
@@ -5,6 +9,98 @@ namespace NivenRingworld
     [KSPAddon(KSPAddon.Startup.TrackingStation,false)]
     public sealed class TrackingRing : MonoBehaviour
     {
-        public void Start(){gameObject.AddComponent<ScaledRing>();}
+        internal static Settings Settings;
+        internal static CelestialBody Star;
+        internal static RingTrajectory Trajectory;
+        private bool initialized,opening;
+        private float nextCheck;
+        public void Start()
+        {
+            StockIntegration.Install();
+            gameObject.AddComponent<ScaledRing>();
+            Settings=Settings.Load();Star=FlightGlobals.Bodies.Find(b=>b.name=="Sun");
+            Trajectory=gameObject.AddComponent<RingTrajectory>();
+        }
+        public void Update()
+        {
+            var scenario=RingworldScenario.Instance;
+            if(scenario==null||Star==null||opening)return;
+            if(!initialized)
+            {
+                Settings.Apply(scenario.GetOptions());
+                // Old saves could leave an airborne rotating snapshot behind while
+                // the stock orbit kept advancing. Keep the current orbit, not that
+                // stale snapshot. New airborne residents are blocked by ClearToSave.
+                var remove=new List<string>();
+                foreach(var pair in scenario.Vessels)if(!pair.Value.Landed)remove.Add(pair.Key);
+                foreach(var id in remove)scenario.Vessels.Remove(id);
+                initialized=true;
+            }
+            if(Time.realtimeSinceStartup<nextCheck)return;
+            nextCheck=Time.realtimeSinceStartup+.1f;
+            double now=Planetarium.GetUniversalTime();
+            double horizon=Math.Max(10,Math.Min(72000,TimeWarp.CurrentRate*2));
+            foreach(var v in FlightGlobals.Vessels)
+            {
+                if(v==null||v.Landed||v.Splashed||v.orbit==null)continue;
+                double eta=VesselEncounter(v,now,horizon);
+                if(double.IsInfinity(eta))continue;
+                if(TimeWarp.CurrentRateIndex!=0)TimeWarp.SetRate(0,true);
+                ScreenMessages.PostScreenMessage("Ringworld encounter: time warp stopped for "+v.vesselName+". Atmospheric entry requires Flight.",3,ScreenMessageStyle.UPPER_CENTER);
+                if(eta<=10)
+                {
+                    // Enter before the capture shell, so flight performs the normal
+                    // velocity-preserving handoff and real part/aerodynamic physics.
+                    var game=HighLogic.CurrentGame.Updated();
+                    GamePersistence.SaveGame(game,"persistent",HighLogic.SaveFolder,SaveMode.OVERWRITE);
+                    int index=game.flightState.protoVessels.FindIndex(p=>p.vesselID==v.id);
+                    if(index>=0){opening=true;FlightDriver.StartAndFocusVessel(game,index);return;}
+                }
+            }
+        }
+        private static double VesselEncounter(Vessel vessel,double now,double horizon)
+        {
+            var orbit=RingTrajectory.SolarPatch(vessel,Star);if(orbit==null)return double.PositiveInfinity;
+            double offset=Math.Max(0,orbit.StartUT-now);
+            if(offset>horizon)return double.PositiveInfinity;
+            return offset+Encounter(orbit,Settings.Geometry,now+offset,horizon-offset);
+        }
+        internal static double Encounter(Orbit orbit,RingGeometry geometry,double now,double horizon)
+        {
+            var previous=ConvertVector.Core(ConvertVector.Orbit(orbit.getRelativePositionAtUT(now)));
+            if(geometry.InArrivalRegion(previous,false))return 0;
+            for(double elapsed=0;elapsed<horizon;)
+            {
+                double dt=Math.Min(120,horizon-elapsed);
+                var next=ConvertVector.Core(ConvertVector.Orbit(orbit.getRelativePositionAtUT(now+elapsed+dt)));
+                // Chord intersection catches a thin ribbon crossed between samples.
+                double entry=geometry.TimeToArrival(previous,(next-previous)/dt,dt);
+                if(!double.IsInfinity(entry))return elapsed+entry;
+                previous=next;elapsed+=dt;
+            }
+            return double.PositiveInfinity;
+        }
+        internal static bool WarpSafe(float rate)
+        {
+            if(Settings==null||Star==null)return false;
+            double now=Planetarium.GetUniversalTime(),horizon=Math.Max(10,Math.Min(72000,rate*2));
+            foreach(var v in FlightGlobals.Vessels)
+                if(v!=null&&!v.Landed&&!v.Splashed&&v.orbit!=null&&
+                   !double.IsInfinity(VesselEncounter(v,now,horizon)))return false;
+            return true;
+        }
+        public void OnDestroy(){Settings=null;Star=null;Trajectory=null;}
+    }
+    [HarmonyPatch(typeof(TimeWarp),"setRate")]
+    internal static class RingTrackingWarpGuard
+    {
+        private static bool Prefix(TimeWarp __instance,int rateIdx,ref bool __result)
+        {
+            if(HighLogic.LoadedScene!=GameScenes.TRACKSTATION||rateIdx<=0)return true;
+            int index=Math.Min(rateIdx,__instance.warpRates.Length-1);
+            if(TrackingRing.WarpSafe(__instance.warpRates[index]))return true;
+            ScreenMessages.PostScreenMessage("Ringworld encounter ahead: use a lower warp rate or fly the approaching vessel.",3,ScreenMessageStyle.UPPER_CENTER);
+            __result=false;return false;
+        }
     }
 }

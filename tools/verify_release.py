@@ -4,9 +4,11 @@ root=pathlib.Path(__file__).resolve().parents[1]
 release=json.loads((root/'GameData/NivenRingworld/NivenRingworld.version').read_text(encoding='utf-8-sig'))['VERSION']
 version_text='.'.join(str(release[k]) for k in ('MAJOR','MINOR','PATCH'))
 archive=root/f'artifacts/NivenRingworld-{version_text}.zip'
-for name in ('gear','guidance','residence','scenery','landmarks','game'):
+for name in ('gear','guidance','residence','scenery','landmarks','game','tracking','reentry','visual-options'):
     report=(root/f'artifacts/validation/{name}-smoke.txt').read_text(encoding='utf-8-sig')
     assert '[RingworldSmoke] PASS' in report and '[RingworldSmoke] FAIL' not in report, name+' regression not passed'
+    if name=='reentry':
+        assert report.count('CAMERA entry and exit blends completed')>=2, 'Camera transition regression missing'
 with zipfile.ZipFile(archive) as package:
     assert package.testzip() is None,'ZIP CRC failure'
     names={n.replace('\\','/'):n for n in package.namelist()}
@@ -14,7 +16,7 @@ with zipfile.ZipFile(archive) as package:
         assert required in names,required
     version=json.loads(package.read(names['GameData/NivenRingworld/NivenRingworld.version']))
     assert version['VERSION']==release
-    if release['PATCH'] >= 3:
+    if tuple(release[k] for k in ('MAJOR','MINOR','PATCH')) >= (1,0,3):
         assert 'GameData/NivenRingworld/LICENSE' in names
         assert 'docs/QUALITY-PRESETS.md' in names and 'docs/CKAN-PUBLISHING.md' in names
         quality_report=(root/'artifacts/validation/landmarks-smoke.txt').read_text(encoding='utf-8-sig')

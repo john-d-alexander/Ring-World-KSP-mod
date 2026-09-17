@@ -1,5 +1,7 @@
 # Cyla source assessment — 2026-09-16
 
+Historical pre-implementation assessment. The experimental branch now vendors and bundles Cyla; see [CYLA-INTEGRATION.md](CYLA-INTEGRATION.md) for the current implementation, test results and limitations. Statements below about an unchanged installation describe the initial assessment only.
+
 Reference checkout: C:/Users/Hans/Documents/programming/Cyla-reference
 Upstream: https://github.com/LGhassen/Cyla
 Pinned commit: 92223648e0674212e488e6fb977b5cffc63be869

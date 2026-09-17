@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/LGhassen/Cyla",
+  "tag": "1.1.0.0",
+  "commit": "92223648e0674212e488e6fb977b5cffc63be869",
+  "release": "https://github.com/LGhassen/Cyla/releases/download/1.1.0.0/Cyla-1.1.0.zip",
+  "plugin_sha256": "e6dd7d212572b2b58a3c566ba928f4bd1d23b403eacaf81b66256ce0f1551626",
+  "shaders_sha256": "91e83bde549362cf885f79ede4f79bec965d8b2cc4e22b1335a4aa8a508566a8",
+  "changes": "Upstream binaries and C# source unmodified; license also copied into installed Cyla folder. Shader source is not published upstream."
+}

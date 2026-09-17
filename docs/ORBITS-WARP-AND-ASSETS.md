@@ -20,7 +20,7 @@ Superseded in v0.7: use KSP's stock warp controls with the resting ring-surface 
 
 Terrain horizon is a numeric kilometre field with a minimum of 200 and no fixed upper cap. Values exceeding the ring extent do not generate repeated laps. Laptop preset: 160,000 km, 8 subdivisions, one new block/frame. Workstation: 1,000,000 km, 32 subdivisions, two blocks/frame. Distant meshes are terrain/water; trees and small buildings remain local. Hardware performance is not guaranteed.
 
-New-world controls include diameter (2 to 200 million km), width (10,000 km to one quarter of diameter), walls (60 to 1,000 km), spin acceleration (1 to 30 m/s2), floor mass density (0 to 100 million kg/m2), seed, height, forests and pond coverage. They lock after an expedition or discovery to preserve terrain beneath saved craft.
+New-world controls include diameter (minimum 2 million km; no preset upper cap, subject to finite coordinate precision), width (10,000 km to the radius), walls (60 to 1,000 km), spin acceleration (1 to 100 m/s2), floor mass density (0 to 100 million kg/m2), seed, height, forests and pond coverage. They lock after an expedition or discovery to preserve terrain beneath saved craft.
 
 Runtime controls include shadow-square cycle (one minute to 30 days), prediction duration (1 to 1,440 minutes), numerical map toggle, surface wait limit (10 to 10,000x), weather and rendering quality. Day length is independent of ring spin period, which follows radius and spin acceleration.
 

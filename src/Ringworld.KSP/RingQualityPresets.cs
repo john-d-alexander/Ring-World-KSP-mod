@@ -18,23 +18,34 @@ namespace NivenRingworld
             new double[]{160000000,8,1,0,0,0,48,24,75000,75,8,.4},
             new double[]{160000000,8,1,0,0,0,32,16,50000,50,4,.3},
             new double[]{160000000,8,1,0,0,0,32,16,40000,35,2,.15},
-            new double[]{160000000,8,1,0,0,0,32,16,30000,25,1,0}
+            new double[]{200000,8,1,0,0,0,32,16,30000,25,1,0}
         };
         internal static void Apply(ConfigNode n,int index)
         {
             if(index<0||index>=Names.Length)throw new ArgumentOutOfRangeException("index");
+            n.SetValue("atmosphereBackend",index<=5?1:0,true);
+            n.SetValue("cylaViewSteps",new[]{500,192,128,80,48,32,24,16,8,4,1}[index],true);
             for(int k=0;k<Keys.Length;k++)n.SetValue(Keys[k],Values[index][k].ToString("R",CultureInfo.InvariantCulture),true);
+            n.SetValue("waterQuality",new[]{4,4,3,3,2,2,1,1,1,0,0}[index],true);
+            n.SetValue("cylaDivisor",new[]{1,1,1,2,2,2,4,4,4,8,8}[index],true);n.SetValue("cylaLightSteps",new[]{50,24,16,8,6,4,3,2,2,1,1}[index],true);n.SetValue("cylaDither",index<5,true);
             n.SetValue("fullRingDetail",index<=5,true);n.SetValue("ambientParticles",index<=7,true);
             n.SetValue("rainEnabled",index<10,true);n.SetValue("lightningEnabled",index<=8,true);
-            n.SetValue("cloudShadow",index<=5?"0.85":"0.5",true);
-            n.SetValue("waveHeight","0.65",true);n.SetValue("atmosphereExposure","1",true);
+            n.SetValue("cloudShadow",new[]{"1","0.95","0.9","0.85","0.8","0.7","0.5","0.35","0.2","0.1","0"}[index],true);
+            n.SetValue("waveHeight",index==0?"2":index>=6?"0":"0.65",true);n.SetValue("atmosphereExposure","1",true);
+            if(index==0)
+            {
+                double radius,width;
+                if(!double.TryParse(n.GetValue("radius"),NumberStyles.Float,CultureInfo.InvariantCulture,out radius))radius=15300000000;
+                if(!double.TryParse(n.GetValue("width"),NumberStyles.Float,CultureInfo.InvariantCulture,out width))width=160500000;
+                n.SetValue("lodRange",(Math.PI*radius+width).ToString("R",CultureInfo.InvariantCulture),true);
+            }
         }
         internal static string Match(Settings s)
         {
             var actual=s.Save();
             for(int i=0;i<Names.Length;i++)
             {
-                var expected=new ConfigNode();Apply(expected,i);bool same=true;
+                var expected=s.Save();Apply(expected,i);bool same=true;
                 foreach(ConfigNode.Value v in expected.values)
                     if(actual.GetValue(v.name)!=v.value){same=false;break;}
                 if(same)return Names[i];

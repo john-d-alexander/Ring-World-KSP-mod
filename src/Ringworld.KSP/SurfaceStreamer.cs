@@ -78,8 +78,8 @@ namespace NivenRingworld
             foreach(var tile in tiles.Values)if(tile.ForestQuality!=settings.ForestQuality){RebuildScenery(tile);break;}
             sunlight.shadows=QualitySettings.shadows==ShadowQuality.Disable?LightShadows.None:QualitySettings.shadows==ShadowQuality.HardOnly?LightShadows.Hard:LightShadows.Soft;
             RingPoint p=settings.Geometry.Coordinates(observer);
-            var f=RingworldFlight.Instance;int waterQuality=f!=null&&f.visuals!=null&&f.visuals.PhotoActive?2:settings.WaterQuality;
-            if(waterQuality>0&&f!=null&&f.visuals!=null)
+            var f=RingworldFlight.Instance;int waterQuality=settings.WaterQuality;
+            if(f!=null&&f.visuals!=null)
             {
                 var shader=f.visuals.WaterShader();if(shader!=null)
                 {
@@ -88,10 +88,11 @@ namespace NivenRingworld
                     waterMaterial.SetVector("_WaveAlong",ConvertVector.Unity(settings.Geometry.SpinVelocity(observer).Unit));
                     waterMaterial.SetVector("_WaveAcross",Vector3.up);waterMaterial.SetVector("_WaveUp",ConvertVector.Unity(settings.Geometry.Up(observer)));
                     double time=Planetarium.GetUniversalTime();
-                    waterMaterial.SetVector("_Wave",new Vector4(0,0,0,waterQuality==2?(float)settings.WaveHeight:0));
+                    waterMaterial.SetVector("_Wave",new Vector4(0,0,0,waterQuality>=2?(float)settings.WaveHeight:0));
                     Func<double,float> phase=a=>(float)RingGeometry.Wrap(a,Math.PI*2);
                     waterMaterial.SetVector("_WavePhase",new Vector4(phase(p.Along*.037+p.Across*.012-time*1.1),phase(-p.Along*.016+p.Across*.029-time*.8),phase(p.Along*.063-p.Across*.054-time*1.7),0));
                     waterMaterial.SetVector("_RipplePhase",new Vector4(phase(p.Along*1.7+p.Across*.64-time*2),phase(p.Across*1.3-p.Along*.92+time*1.6),phase(p.Along*5+p.Across*3.1+time*2.4),phase(p.Across*4.2-p.Along*3.7-time*2.1)));
+                    waterMaterial.SetVector("_NoiseOffset",new Vector4((float)RingGeometry.Wrap(p.Along,65536),(float)RingGeometry.Wrap(p.Across,65536),(float)RingGeometry.Wrap(time*.15,65536),0));
                     waterMaterial.SetFloat("_WaterLight",(float)settings.Geometry.Daylight(p.Along,time));waterMaterial.SetFloat("_WaterQuality",waterQuality);
                 }
             }
@@ -142,7 +143,8 @@ namespace NivenRingworld
             return floor;
         }
         internal double CollisionHeight(double along,double across){return FloorHeight(along,across,false);}
-        internal double CameraFloor(double along,double across){return FloorHeight(along,across,true);}
+        internal double CameraFloor(double along,double across){return FloorHeight(along,across,false);}
+        internal double GroundOrWaterFloor(double along,double across){return FloorHeight(along,across,true);}
         private static int[] Nondegenerate(Vector3[] vertices,int[] indices)
         {
             var result=new List<int>(indices.Length);
@@ -152,7 +154,7 @@ namespace NivenRingworld
         }
         private double WaterVertex(TerrainSample s)
         {
-            var f=RingworldFlight.Instance;bool waves=settings.WaterQuality>1||(f!=null&&f.visuals!=null&&f.visuals.PhotoActive);
+            var f=RingworldFlight.Instance;bool waves=settings.WaterQuality>1;
             return (double.IsNegativeInfinity(s.WaterHeight)?s.Height-1:s.WaterHeight)+.1+(waves?settings.WaveHeight:0);
         }
         internal void Reposition(Vector3d star)

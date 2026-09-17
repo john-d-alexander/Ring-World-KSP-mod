@@ -65,7 +65,7 @@ namespace NivenRingworld
             }
         }
         private static int DistantQuality(Settings s)
-        {var f=RingworldFlight.Instance;return f!=null&&f.visuals!=null&&f.visuals.PhotoActive?3:s.ForestQuality;}
+        {var f=RingworldFlight.Instance;return s.ForestQuality;}
         internal static double MaximumDistantBlock(Settings s)
         {return DistantQuality(s)==0?0:DistantQuality(s)==1?8192:DistantQuality(s)==2?16384:32768;}
         internal static IEnumerator<Mesh> DistantMesh(Settings s,LodBlock block,DVec anchor,double phase)

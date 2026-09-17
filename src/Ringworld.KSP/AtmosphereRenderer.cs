@@ -22,6 +22,7 @@ namespace NivenRingworld
         private float nextSky;
         private AssetBundle visualBundle;
         private bool gpuClouds;
+        private Vector3d renderStar;
         internal int CloudBuilds {get;private set;}
         internal AtmosphereRenderer(Settings settings)
         {
@@ -50,15 +51,28 @@ namespace NivenRingworld
             cloudMesh=new Mesh{name="Material-coordinate cloud field"};
             clouds.AddComponent<MeshFilter>().sharedMesh=cloudMesh;clouds.AddComponent<MeshRenderer>().sharedMaterial=cloudMaterial;
             sky.SetActive(false);clouds.SetActive(false);
+            Camera.onPreCull+=PrepareCamera;
         }
-        internal void Update(bool enabled,Vector3d star)
+        private void PrepareCamera(Camera camera)
         {
+            if(FlightCamera.fetch==null||camera!=FlightCamera.fetch.mainCamera)return;
+            if(sky!=null&&sky.activeSelf)sky.transform.position=camera.transform.position;
+            if(clouds!=null&&clouds.activeSelf&&!double.IsNaN(cloudAlong))
+            {
+                var f=RingworldFlight.Instance;var star=f!=null&&f.Star!=null?f.Star.position:renderStar;
+                double phase=settings.Geometry.OrientationRadians-cloudPhase;
+                clouds.transform.position=(Vector3)(star+ConvertVector.Ksp(RingGeometry.Rotate(cloudAnchor,phase)));
+            }
+        }
+        internal void Update(bool enabled,Vector3d star,bool suppressSky=false)
+        {
+            renderStar=star;
             var camera=FlightCamera.fetch==null?null:FlightCamera.fetch.mainCamera;
             if(camera==null)enabled=false;
             DVec observer=camera==null?new DVec():ConvertVector.Core((Vector3d)camera.transform.position-star);
             var c=settings.Geometry.Coordinates(observer);
             enabled=enabled&&settings.Atmosphere&&c.Altitude>-1000&&c.Altitude<600000&&Math.Abs(c.Across)<settings.Geometry.P.Width/2+500000;
-            sky.SetActive(enabled&&settings.Haze>0);clouds.SetActive(enabled&&settings.CloudAmount>0);if(!enabled)return;
+            sky.SetActive(enabled&&!suppressSky&&settings.Haze>0);clouds.SetActive(enabled&&settings.CloudAmount>0);if(!enabled)return;
             sky.transform.position=camera.transform.position;
             sky.transform.localScale=Vector3.one*1000;
             double time=Planetarium.GetUniversalTime();
@@ -133,6 +147,7 @@ namespace NivenRingworld
         {int b=a+1,c=a+stride,d=c+1;list.AddRange(new[]{a,b,c,b,d,c});}
         public void Dispose()
         {
+            Camera.onPreCull-=PrepareCamera;
             UnityEngine.Object.Destroy(sky);UnityEngine.Object.Destroy(clouds);
             UnityEngine.Object.Destroy(skyMesh);UnityEngine.Object.Destroy(cloudMesh);
             UnityEngine.Object.Destroy(skyMaterial);UnityEngine.Object.Destroy(cloudMaterial);UnityEngine.Object.Destroy(cloudTexture);if(visualBundle!=null)RingVisualAssets.Release();

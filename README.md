@@ -1,10 +1,10 @@
-# Niven Ringworld Expedition 1.0.3 — KSP 1.12.5
+# Niven Ringworld Expedition 1.1.1
 
 A Larry Niven-inspired, star-encircling habitat with a landable rotating interior, procedural terrain, atmosphere, science and persistent expeditions. The default world uses one-tenth of the published linear ring dimensions. Original geography and architecture are interpretations of the setting.
 
 ## Install and play
 
-Close KSP and copy the ZIP's `GameData/NivenRingworld` into your KSP `GameData`. The included `GameData/000_Harmony` is the HarmonyKSP dependency; keep a single compatible installation if other mods already provide it. Restart after updating DLLs. No Kopernicus or downloaded art pack is required. The supported release target is KSP 1.12.5 on Windows x64 / Direct3D 11.
+Close KSP and copy all folders from the ZIP's `GameData` into your KSP `GameData`, including `NivenRingworld` and the bundled `Cyla` dependency. The included `GameData/000_Harmony` is the HarmonyKSP dependency; keep a single compatible installation if other mods already provide it. Restart after updating DLLs. No Kopernicus or downloaded art pack is required. The supported release target is KSP 1.12.5 on Windows x64 / Direct3D 11.
 
 Build and launch a lander with enough thrust for approximately 1 g. The stock toolbar's ring icon, or Left Alt+R, opens the Ringworld panel. Sandbox exposes site relocation, a random terrain visit and a spin-matched training approach; Science and Career show flight information without those development controls. A relocation starts above the terrain at rest relative to the ring: **you must brake and land it**.
 
@@ -21,11 +21,11 @@ When settled on dry ground, use **KSP's stock time-warp controls**. Universal ti
 - A full scaled ring with closed dark rim walls, moving night bands and sparse procedural cloud coverage; optional high-quality local volumetric clouds, water waves and frozen photo rendering.
 - **92 Blender-authored scenery prefabs / 276 LOD meshes**. Thirty-three architectural placements include floating palaces, ruined cities and eight new colossi: an **80 km rim gate**, **120 km causeway** and **48 km floating city plate**. Machinery is scenery, not an operational simulation.
 
-See [release notes](docs/RELEASE-1.0.2.md), [colossi and continuous forests](docs/COLOSSI-AND-FORESTS.md), [landmark designs and placement](docs/LANDMARK-ASSETS.md), [dimensions/triangle inventory](docs/LANDMARK-INVENTORY.md), and the [combined biome catalog](docs/BIOME-ASSET-CATALOG.md).
+See [release notes](docs/RELEASE-1.1.1.md), [colossi and continuous forests](docs/COLOSSI-AND-FORESTS.md), [landmark designs and placement](docs/LANDMARK-ASSETS.md), [dimensions/triangle inventory](docs/LANDMARK-INVENTORY.md), and the [combined biome catalog](docs/BIOME-ASSET-CATALOG.md).
 
 ## Settings and performance
 
-Laptop is the default Ringworld visual preset. KSP's native texture quality, anti-aliasing, shadows and terrain-scatter controls are respected. High/Ultra provide separate Ringworld cloud/water quality; photo mode can render a refined still without requiring a playable high-quality frame rate.
+New saves start at Slow. Eleven save-specific quality presets range from Rotten Potato to Absolute Cow. Slow and below use the lightweight Original atmosphere; Mid and above use Cyla. KSP texture quality, antialiasing, shadows and scatter controls remain separate. Water offers five levels; photo mode has its own preset and aspect-preserving output resolution through 16K where GPU limits permit.
 
 Terrain LOD distance accepts a finite numeric value without the old two-million-km cap. Work and mesh budgets remain bounded, and only the physical ring extent is generated. A distant macro surface supplies the full outline; it is not detailed terrain everywhere. Large landmarks stream separately: the original kit uses 60 km, colossi 250 km plus their extent; small scenery remains within the near-terrain tiles. Initial distant-terrain generation takes time.
 
@@ -40,7 +40,7 @@ Blank seeds resolve once per new save. Existing saves retain their seed and terr
 | Radius | 15,300,000 km |
 | Ribbon width | 160,500 km |
 | Rim-wall height | 160 km |
-| Floor acceleration | 9.72 m/sÂ² |
+| Floor acceleration | 9.72 m/s² |
 | Rotation period | 249,282.88 s / 69.245 h |
 | Surface tangential speed | 385.637 km/s |
 | Illumination cycle | 3 hours, configurable adaptation |
@@ -49,7 +49,7 @@ The stock Sun remains the native reference body. The ring's influence boundary i
 
 ## Validation and limits
 
-The release checks include 90,859 core assertions, real KSP pause-menu save, five damage-enabled warp cycles through 1,000×, stock SAS/parachute gates, flight/EVA/camera tests, powered deployed science, scene reload, asset imports/contact rays and live woodland streaming. Exact logs, fixture assumptions and measurements are in [VALIDATION.md](docs/VALIDATION.md).
+The release checks include 108,655 core assertions, real KSP pause-menu save, five damage-enabled warp cycles through 1,000×, stock SAS/parachute gates, flight/EVA/camera tests, powered deployed science, scene reload, asset imports/contact rays and live woodland streaming. Exact logs, fixture assumptions and measurements are in [VALIDATION.md](docs/VALIDATION.md).
 
 This does not certify arbitrary fleets, every mod combination, every aircraft or docking configuration, detailed building interiors, or unloaded atmospheric trajectories. Water buoyancy is approximate; the coast preview ends at atmosphere entry. Read [known limitations](docs/KNOWN-LIMITATIONS.md) and [mod interoperability](docs/MOD-INTEROPERABILITY.md). Back up saves before upgrading. A new DLL cannot reconstruct a craft already destroyed or corrupted in an older version.
 
@@ -90,3 +90,11 @@ The old square was the close-range tree footprint. Shared biome masks now drive 
 ### 1.0.3 quality presets
 
 The Ringworld settings dropdown now applies eleven rendering presets, from Absolute Cow to Rotten Potato. Biome features has an independent Economy/Low/High/Ultra forest control; Economy uses simpler nearby crown groups and canopy-only distant forests. See [quality settings](docs/QUALITY-PRESETS.md) and [CKAN publishing instructions](docs/CKAN-PUBLISHING.md). This release has not been published to CKAN.
+
+### 1.1.1 — Cyla atmosphere integration
+
+This release bundles the unmodified Cyla 1.1.0 dependency under GameData/Cyla, with upstream source/license/provenance under ThirdParty/Cyla. Install all folders from GameData. The original adapter calls Cyla's compiled shader; no shader source is included or reconstructed. Original Ringworld code remains under MIT; see THIRD-PARTY-NOTICES.md for bundled components.
+
+Select Original or Cyla in Ringworld Settings. Cyla uses a camera-aligned 100,000 km optical cylinder to avoid the compiled shader's precision failures at the real ring radius. This is an atmospheric visual approximation: actual ring geometry, flight forces, terrain and saves retain their real dimensions. Whole-ring Cyla scattering is not implemented; distant ring visuals retain the existing renderer. See docs/CYLA-INTEGRATION.md for measurements and remaining limits.
+
+Atmosphere technology: **Cyla by Ghassen Lahmar (LGhassen / blackrack)**, https://github.com/LGhassen/Cyla. See [credits](CREDITS.md), [third-party notices](THIRD-PARTY-NOTICES.md), and [v1.1.1 release notes](docs/RELEASE-1.1.1.md).

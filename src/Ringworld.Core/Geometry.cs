@@ -33,6 +33,10 @@ namespace Ringworld.Core
         public double RotationSeconds { get { return 2*Math.PI/Omega; } }
         public void Validate()
         {
+            // Preserve centimetre-scale contact coordinates and representable terrain
+            // cell indices. This is a numeric precision constraint, not a world-size preset.
+            if (!Finite(Circumference) || Radius + .01 == Radius || Width + .01 == Width || Circumference >= long.MaxValue)
+                throw new ArgumentException("Ring dimensions exceed coordinate precision (centimetre offsets must remain representable).");
             if (!Finite(SurfaceDensity) || SurfaceDensity<0 || !Finite(Radius) || Radius < 1000000 || !Finite(Width) || Width < 10000 || Width > Radius ||
                 !Finite(WallHeight) || WallHeight <= 0 || WallHeight >= Radius/10 ||
                 !Finite(Gravity) || Gravity <= 0 || Gravity > 100 || !Finite(DaySeconds) || DaySeconds < 60 ||

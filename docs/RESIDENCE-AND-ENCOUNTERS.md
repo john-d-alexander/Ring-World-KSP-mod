@@ -33,3 +33,10 @@ The coast predictor previously waited two seconds between starts. It now starts 
 ## Pause and warp stability
 
 Pause-menu saving now permits the paused clock when checking otherwise-settled ring contact. Packed anchors keep valid inertial orbit bookkeeping while atmosphere queries report zero local air-relative velocity. The earlier mixed-frame packed speed caused catastrophic artificial heating; this correction retains stock thermal damage. Five damage-enabled warp cycles and a paused-save Space Center roundtrip passed; see VALIDATION.md.
+
+
+## v1.1.1 save and Tracking Station rules
+
+The ring uses a rotating frame, not a new spherical celestial body. Airborne and unstable residents explicitly fail KSP's save/exit eligibility check. Stable contact uses the same safety gate as ring-surface warp. The stock unsafe-exit/revert dialog remains responsible for what happens if the player chooses to abandon that flight.
+
+Tracking Station draws the same numerical coast/encounter overlay as flight map mode. It checks incoming solar patches before allowing large warp steps, stops warp near an encounter, and opens the approaching vessel in Flight shortly before frame entry. This is a handoff to real part physics, not simulated background heating or collisions. Orbiting spacecraft outside the ring remain persistent. Legacy airborne ring snapshots are removed outside Flight so an old snapshot cannot rewind a stock orbit that has kept advancing; ships themselves are not deleted. Landed ring anchors remain preserved.

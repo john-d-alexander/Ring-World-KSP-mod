@@ -5,9 +5,11 @@ namespace NivenRingworld
 {
     internal sealed class RingSettingsPanel
     {
+        private bool cylaAdvanced;private string[] cylaFields;private int cylaMode;
         private bool initialized,dynamicWeather,trajectory,particles,fullRingDetail,rainEnabled,lightningEnabled;
         private string seed,range,height,forest,day,haze,cloud,diameter,width,gravity,wall,density,prediction,warp,ponds,detailDistance,message="";
         private int quality,budget,visualQuality,waterQuality,forestQuality;
+        private int atmosphereBackend,cylaResolution;private bool cylaDither;private string cylaLightSteps;
         private bool presetOpen;private string presetLabel="Custom";
         private string weatherPeriod,weatherVariation,stormChance,cloudWind,rainDensity;
         private string cloudSteps,airSteps,cloudRange,cloudShadow,exposure,waveHeight,photoSamples;
@@ -20,12 +22,13 @@ namespace NivenRingworld
             var s=flight.Settings;
             if(!initialized)
             {
+                cylaFields=new string[CylaOptions.Definitions.Length];for(int i=0;i<cylaFields.Length;i++)cylaFields[i]=s.Save().GetValue(CylaOptions.Definitions[i].Key);cylaMode=s.Cyla.LightingMode;
                 seed=s.Geometry.P.Seed.ToString(CultureInfo.InvariantCulture);range=N(s.LodRange/1000);height=N(s.HeightMultiplier);forest=N(s.ForestDensity);
                 day=N(s.Geometry.P.DaySeconds/3600);haze=N(s.Haze);cloud=N(s.CloudAmount*100);dynamicWeather=s.DynamicWeather;
                 diameter=N(s.Geometry.P.Radius/500);width=N(s.Geometry.P.Width/1000);gravity=N(s.Geometry.P.Gravity);wall=N(s.Geometry.P.WallHeight/1000);density=N(s.Geometry.P.SurfaceDensity);prediction=N(s.PredictionSeconds/60);warp=N(s.SurfaceWarpLimit);ponds=N(s.PondAmount);trajectory=s.ShowTrajectory;
                 detailDistance=N(s.DetailDistance);particles=s.AmbientParticles;
                 weatherPeriod=N(s.WeatherPeriod/3600);weatherVariation=N(s.WeatherVariation);stormChance=N(s.StormChance);cloudWind=N(s.CloudWind);rainDensity=N(s.RainDensity);rainEnabled=s.RainEnabled;lightningEnabled=s.LightningEnabled;fullRingDetail=s.FullRingDetail;visualQuality=s.VisualQuality;waterQuality=s.WaterQuality;cloudSteps=N(s.CloudSteps);airSteps=N(s.AtmosphereSteps);cloudRange=N(s.CloudRange/1000);cloudShadow=N(s.CloudShadow);exposure=N(s.AtmosphereExposure);waveHeight=N(s.WaveHeight);photoSamples=N(s.PhotoSamples);
-                presetLabel=RingQualityPresets.Match(s);forestQuality=s.ForestQuality;quality=s.LodResolution==8?0:s.LodResolution==16?1:2;budget=s.GenerationBudget-1;initialized=true;
+                atmosphereBackend=s.AtmosphereBackend;cylaResolution=s.CylaDivisor==8?0:s.CylaDivisor==4?1:s.CylaDivisor==2?2:3;cylaDither=s.CylaDither;cylaLightSteps=N(s.CylaLightSteps);presetLabel=RingQualityPresets.Match(s);forestQuality=s.ForestQuality;quality=s.LodResolution==8?0:s.LodResolution==16?1:2;budget=s.GenerationBudget-1;initialized=true;
             }
             GUILayout.Label("Settings are stored with this save.");
             if(GUILayout.Button("Quality preset: "+presetLabel+"  v"))presetOpen=!presetOpen;
@@ -37,7 +40,15 @@ namespace NivenRingworld
             fullRingDetail=GUILayout.Toggle(fullRingDetail,"Full-ring surface detail: distant land, oceans and clouds");
             GUILayout.Label("No distance cutoff for this coarse surface layer. Photo mode enables it temporarily. Detailed terrain uses the horizon distance above.");
             GUILayout.Label(StockGraphics.Description);
-            GUILayout.Label("Ringworld atmosphere quality (independent of stock planets)");
+            GUILayout.Label("Atmosphere backend");
+            atmosphereBackend=GUILayout.Toolbar(atmosphereBackend,new[]{"Original","Cyla (bundled)"});
+            GUILayout.Label("Cyla render resolution (depth-aware foreground preservation)");cylaResolution=GUILayout.Toolbar(cylaResolution,new[]{"1/8","1/4","1/2","Full"});
+            cylaLightSteps=Field("Cyla light integration steps (1 to 50)",cylaLightSteps);
+            cylaDither=GUILayout.Toggle(cylaDither,"Cyla temporal dithering (disabled during photo capture)");
+            GUILayout.Label("Cyla by Ghassen Lahmar (LGhassen / blackrack). GPLv3 plugin; see GameData/Cyla/License.md. Cyla has separate view steps under Advanced optics. Clouds and photo capture remain Ringworld systems. Missing/unsupported Cyla falls back to Original.");
+            cylaAdvanced=GUILayout.Toggle(cylaAdvanced,"Advanced Cyla optics and geometry");
+            if(cylaAdvanced){GUILayout.Label("Optical geometry only: radius is a precision-limited proxy; width follows the ring. Inner radius = proxy radius minus thickness. These controls do not change flight physics. Nonzero offsets/tilt deliberately misalign the optical cylinder.");for(int i=0;i<cylaFields.Length;i++)cylaFields[i]=Field(CylaOptions.Definitions[i].Label,cylaFields[i]);GUILayout.Label("Lighting boundary");cylaMode=GUILayout.Toolbar(cylaMode,new[]{"Top / side","Floor","Unlit"});}
+            GUILayout.Label(atmosphereBackend==1?"Ringworld cloud rendering quality (Cyla scattering uses its controls above)":"Ringworld atmosphere quality (independent of stock planets)");
             int chosen=GUILayout.Toolbar(visualQuality,new[]{"Simple","Half-resolution","Full-resolution"});
             if(chosen!=visualQuality){visualQuality=chosen;cloudSteps=chosen==2?"128":"64";airSteps=chosen==2?"64":"32";}
             GUILayout.Label("Simple uses the lightweight atmosphere. Half/full-resolution use volumetrics. Texture, AA and ordinary shadows follow KSP settings.");
@@ -46,12 +57,12 @@ namespace NivenRingworld
             cloudRange=Field("Volumetric cloud distance (30 to 500 km)",cloudRange);
             cloudShadow=Field("Cloud self-shadow strength (0 to 1)",cloudShadow);
             exposure=Field("Atmosphere brightness (0.25 to 2)",exposure);
-            GUILayout.Label("Ringworld water quality");waterQuality=GUILayout.Toolbar(waterQuality,new[]{"Simple","Reflective","Waves"});
+            GUILayout.Label("Ringworld water quality");waterQuality=GUILayout.Toolbar(waterQuality,new[]{"Flat","Ripples","Waves","Detailed","Ultra"});
             waveHeight=Field("Visual wave amplitude (0 to 2 m)",waveHeight);
             GUILayout.Label("Waves are visual; buoyancy uses the mean water level. Reflections approximate the sky, not nearby objects.");
             photoSamples=Field("Photo accumulation samples (1 to 64)",photoSamples);
-            GUILayout.Label("Frame your shot in flight, then enter Photo mode. It freezes time, waits for 32-subdivision terrain LOD, enables waves and renders full-resolution cloud tiles at 192 view / 80 atmosphere / 8 light steps. Resume restores your settings. Images use the current viewport resolution.");
-            if(flight.visuals!=null&&GUILayout.Button("Photo mode: high-quality still"))flight.visuals.BeginPhoto();
+            GUILayout.Label("Frame your shot in flight, then enter Photo mode. Choose a temporary photo preset. It freezes time and waits for that preset’s terrain and forests before capture. Resume restores your settings. Choose output resolution separately, up to 16K where GPU memory permits; screen aspect ratio is preserved.");
+            if(flight.visuals!=null)flight.visuals.DrawPhotoEntry();
             detailDistance=Field("Close ground detail distance (25 to 250 m)",detailDistance);
             particles=GUILayout.Toggle(particles,"Local airborne dust and pollen");
             GUILayout.Label("Distant mesh quality");quality=GUILayout.Toolbar(quality,new[]{"Low (8)","Balanced (16)","High (32)"});
@@ -66,23 +77,23 @@ namespace NivenRingworld
             height=Field("Natural terrain height multiplier (0.25–3)",height);
             forest=Field("Forest density multiplier (0–2)",forest);
             ponds=Field("Pond coverage multiplier (0 to 2)",ponds);
-            diameter=Field("Ring diameter (2,000,000 to 200,000,000 km)",diameter);
-            width=Field("Ribbon width (10,000 km to 1/4 diameter)",width);
+            diameter=Field("Ring diameter (km; minimum 2,000,000)",diameter);
+            width=Field("Ribbon width (10,000 km to the ring radius)",width);
             wall=Field("Rim wall height (60 to 1,000 km)",wall);
-            gravity=Field("Spin acceleration (1 to 30 m/s2)",gravity);
+            gravity=Field("Spin acceleration (1 to 100 m/s2)",gravity);
             density=Field("Assumed floor mass/area (0 to 100,000,000 kg/m2)",density);
             GUI.enabled=true;
             if(!worldUnlocked)GUILayout.Label("World generation is locked after the first expedition to preserve ground beneath saved vessels. Use a new save for another world.");
             GUILayout.Label("Resolved seed: "+s.Geometry.P.Seed+" | terrain generation "+s.GenerationVersion);
             GUILayout.Label("Mass uses a uniform-ribbon approximation. Spin acceleration is not attraction.");
-            day=Field("Shadow-square cycle (1/60 to 720 hours)",day);
+            day=Field("Shadow-square cycle (hours; minimum 1/60)",day);
             prediction=Field("Map coast duration (1 to 1,440 minutes)",prediction);
             trajectory=GUILayout.Toggle(trajectory,"Numerical map trajectory (vacuum coast)");
             warp=Field("Maximum stock warp on ring surface (10 to 10,000x)",warp);
             haze=Field("Atmospheric visual haze (0 to 2)",haze);
             cloud=Field("Weather baseline/cloudiness (0–100%; zero forces clear skies)",cloud);
             dynamicWeather=GUILayout.Toggle(dynamicWeather,"Evolving weather fronts");
-            weatherPeriod=Field("Weather transition timescale (1/6 to 168 game hours)",weatherPeriod);
+            weatherPeriod=Field("Weather transition timescale (game hours; minimum 1/6)",weatherPeriod);
             weatherVariation=Field("Weather variation (0 fixed to 1 full sunny/stormy range)",weatherVariation);
             stormChance=Field("Storm fraction of weather range (0 to 1)",stormChance);
             cloudWind=Field("Visual cloud drift (0 to 100 m/s)",cloudWind);
@@ -91,12 +102,12 @@ namespace NivenRingworld
             GUILayout.Label("Weather follows universal time, including stock warp. Zero cloud amount forces clear skies. Rain and lightning are visual; no wind force or lightning damage. High warp uses a rain veil instead of undersampled streaks/flashes.");
             if(GUILayout.Button("Apply settings"))
             {
-                double r,h,f,d,a,c,di,wi,gr,wa,de,pr,wr,po,dd,cs,ats,cr,sh,ex,wh,ps,wp,wv,sc,cw,rd;int resolved;
-                if(!Number(weatherPeriod,1.0/6,168,out wp)||!Number(weatherVariation,0,1,out wv)||!Number(stormChance,0,1,out sc)||!Number(cloudWind,0,100,out cw)||!Number(rainDensity,0,1,out rd)||!Number(cloudSteps,32,256,out cs)||!Number(airSteps,16,96,out ats)||!Number(cloudRange,30,500,out cr)||!Number(cloudShadow,0,1,out sh)||!Number(exposure,.25,2,out ex)||!Number(waveHeight,0,2,out wh)||!Number(photoSamples,1,64,out ps)||!Number(range,200,double.MaxValue/1000,out r)||!Number(height,.25,3,out h)||!Number(forest,0,2,out f)||!Number(day,1.0/60,720,out d)||!Number(haze,0,2,out a)||!Number(cloud,0,100,out c)||!Number(diameter,2000000,200000000,out di)||!Number(width,10000,di/4,out wi)||!Number(wall,60,1000,out wa)||!Number(gravity,1,30,out gr)||!Number(density,0,100000000,out de)||!Number(prediction,1,1440,out pr)||!Number(warp,10,10000,out wr)||!Number(ponds,0,2,out po)||!Number(detailDistance,25,250,out dd))
+                double cls;double r,h,f,d,a,c,di,wi,gr,wa,de,pr,wr,po,dd,cs,ats,cr,sh,ex,wh,ps,wp,wv,sc,cw,rd;int resolved;
+                if(!Number(cylaLightSteps,1,50,out cls)||!Number(weatherPeriod,1.0/6,double.MaxValue/3600,out wp)||!Number(weatherVariation,0,1,out wv)||!Number(stormChance,0,1,out sc)||!Number(cloudWind,0,100,out cw)||!Number(rainDensity,0,1,out rd)||!Number(cloudSteps,32,256,out cs)||!Number(airSteps,16,96,out ats)||!Number(cloudRange,30,500,out cr)||!Number(cloudShadow,0,1,out sh)||!Number(exposure,.25,2,out ex)||!Number(waveHeight,0,2,out wh)||!Number(photoSamples,1,64,out ps)||!Number(range,200,double.MaxValue/1000,out r)||!Number(height,.25,3,out h)||!Number(forest,0,2,out f)||!Number(day,1.0/60,double.MaxValue/3600,out d)||!Number(haze,0,2,out a)||!Number(cloud,0,100,out c)||!Number(diameter,2000000,double.MaxValue/500,out di)||!Number(width,10000,di/2,out wi)||!Number(wall,60,1000,out wa)||!Number(gravity,1,100,out gr)||!Number(density,0,100000000,out de)||!Number(prediction,1,1440,out pr)||!Number(warp,10,10000,out wr)||!Number(ponds,0,2,out po)||!Number(detailDistance,25,250,out dd))
                 {message="Enter finite numbers within the displayed ranges (use a decimal point).";return;}
                 if(string.IsNullOrWhiteSpace(seed))resolved=worldUnlocked?BitConverter.ToInt32(Guid.NewGuid().ToByteArray(),0):s.Geometry.P.Seed;
                 else if(!int.TryParse(seed,NumberStyles.Integer,CultureInfo.InvariantCulture,out resolved)){message="Seed must be a signed 32-bit integer or blank.";return;}
-                var n=s.Save();
+                var n=s.Save();for(int i=0;i<cylaFields.Length;i++){double value;var def=CylaOptions.Definitions[i];if(!Number(cylaFields[i],def.Min,def.Max,out value)){message="Invalid Cyla value: "+def.Label;return;}n.SetValue(def.Key,value.ToString("R",CultureInfo.InvariantCulture),true);}n.SetValue("cylaLightingMode",cylaMode,true);n.SetValue("atmosphereBackend",atmosphereBackend,true);n.SetValue("cylaLightSteps",(int)cls,true);n.SetValue("cylaDivisor",new[]{8,4,2,1}[cylaResolution],true);n.SetValue("cylaDither",cylaDither,true);
                 n.SetValue("weatherPeriod",N(wp*3600),true);n.SetValue("weatherVariation",N(wv),true);n.SetValue("stormChance",N(sc),true);n.SetValue("cloudWind",N(cw),true);n.SetValue("rainDensity",N(rd),true);n.SetValue("rainEnabled",rainEnabled,true);n.SetValue("lightningEnabled",lightningEnabled,true);
                 n.SetValue("forestQuality",forestQuality,true);n.SetValue("fullRingDetail",fullRingDetail,true);n.SetValue("visualQuality",visualQuality,true);n.SetValue("waterQuality",waterQuality,true);n.SetValue("cloudSteps",(int)cs,true);n.SetValue("atmosphereSteps",(int)ats,true);n.SetValue("cloudRange",N(cr*1000),true);n.SetValue("cloudShadow",N(sh),true);n.SetValue("atmosphereExposure",N(ex),true);n.SetValue("waveHeight",N(wh),true);n.SetValue("photoSamples",(int)ps,true);
                 n.SetValue("lodRange",N(r*1000));n.SetValue("lodResolution",new[]{8,16,32}[quality]);n.SetValue("generationBudget",budget+1);
@@ -104,6 +115,7 @@ namespace NivenRingworld
                 n.SetValue("detailDistance",N(dd),true);n.SetValue("ambientParticles",particles,true);
                 n.SetValue("daySeconds",N(d*3600));n.SetValue("predictionSeconds",N(pr*60));n.SetValue("surfaceWarpLimit",N(wr));n.SetValue("showTrajectory",trajectory);
                 if(worldUnlocked){n.SetValue("radius",N(di*500));n.SetValue("width",N(wi*1000));n.SetValue("gravity",N(gr));n.SetValue("wallHeight",N(wa*1000));n.SetValue("surfaceDensity",N(de));n.SetValue("pondAmount",N(po));n.SetValue("seed",resolved);n.SetValue("heightMultiplier",N(h));n.SetValue("forestDensity",N(f));n.SetValue("generationVersion",4);}
+                try{var candidate=Settings.Load();candidate.Apply(n);}catch(ArgumentException invalid){message=invalid.Message;return;}
                 flight.ApplyOptions(n,worldUnlocked);seed=s.Geometry.P.Seed.ToString(CultureInfo.InvariantCulture);
                 message="Applied. Save your game to persist these settings.";
             }

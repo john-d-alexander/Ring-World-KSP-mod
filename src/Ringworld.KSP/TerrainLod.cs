@@ -95,7 +95,7 @@ namespace NivenRingworld
                 if(x<n&&y<n&&rawAcross<settings.Geometry.P.Width/2&&rawAcross+b.Size/n>-settings.Geometry.P.Width/2){int i=y*(n+1)+x;triangles.AddRange(new[]{i,i+n+1,i+1,i+1,i+n+1,i+n+2});}
             }
             var f=RingworldFlight.Instance;
-            if(!p.Scaled&&(settings.WaterQuality>0||(f!=null&&f.visuals!=null&&f.visuals.PhotoActive)))
+            if(!p.Scaled&&(settings.WaterQuality>0))
             {
                 var waterIndices=new List<int>();var groundIndices=new List<int>();
                 for(int i=0;i<triangles.Count;i+=3)

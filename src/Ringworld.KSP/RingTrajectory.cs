@@ -17,12 +17,16 @@ namespace NivenRingworld
         internal int EncounterCount {get{return encounters.Count;}}
         internal Orbit PredictedOrbit;
         internal int PredictionCommits;
-        private static Orbit SolarPatch(Vessel v,CelestialBody star)
+        internal static Orbit SolarPatch(Vessel v,CelestialBody star)
         {
             var orbit=v==null?null:v.orbit;
             for(int i=0;i<16&&orbit!=null;i++,orbit=orbit.nextPatch)if(orbit.referenceBody==star)return orbit;
             return null;
         }
+        private static bool Tracking {get{return HighLogic.LoadedScene==GameScenes.TRACKSTATION;}}
+        private static Vessel Selected {get{return Tracking?(PlanetariumCamera.fetch!=null&&PlanetariumCamera.fetch.target!=null?PlanetariumCamera.fetch.target.vessel:null):FlightGlobals.ActiveVessel;}}
+        private static Settings CurrentSettings {get{return Tracking?TrackingRing.Settings:RingworldFlight.Instance==null?null:RingworldFlight.Instance.Settings;}}
+        private static CelestialBody CurrentStar {get{return Tracking?TrackingRing.Star:RingworldFlight.Instance==null?null:RingworldFlight.Instance.Star;}}
         internal string Status="Vacuum coast prediction";
         internal int PointCount {get{return line==null?0:line.positionCount;}}
         internal static DVec InertialAcceleration(DVec p,Settings s,double mu)
@@ -56,8 +60,8 @@ namespace NivenRingworld
         }
         public void Update()
         {
-            var f=RingworldFlight.Instance;var v=FlightGlobals.ActiveVessel;
-            bool show=f!=null&&f.Settings!=null&&f.Settings.ShowTrajectory&&v!=null&&SolarPatch(v,f.Star)!=null&&MapView.MapIsEnabled;
+            var f=RingworldFlight.Instance;var v=Selected;var settings=CurrentSettings;var star=CurrentStar;
+            bool show=settings!=null&&settings.ShowTrajectory&&v!=null&&SolarPatch(v,star)!=null&&(Tracking||MapView.MapIsEnabled);
             if(line!=null)line.enabled=false; // map overlay below remains visible through the ribbon
             if(!show)return;
             if(line==null)
@@ -72,13 +76,13 @@ namespace NivenRingworld
                 float distance=Vector3.Distance(PlanetariumCamera.Camera.transform.position,line.GetPosition(0));
                 line.widthMultiplier=Mathf.Max(.002f,distance*.001f);
             }
-            if(line.positionCount>0&&v.mainBody==f.Star)line.SetPosition(0,(Vector3)ScaledSpace.LocalToScaledSpace(f.Star.position+ConvertVector.Ksp(f.Position(v))));
+            if(!Tracking&&line.positionCount>0&&v.mainBody==f.Star)line.SetPosition(0,(Vector3)ScaledSpace.LocalToScaledSpace(f.Star.position+ConvertVector.Ksp(f.Position(v))));
             if(!computing&&Time.realtimeSinceStartup>=nextPrediction){nextPrediction=Time.realtimeSinceStartup+1f/30;StartCoroutine(Predict(f,v));}
         }
         public void OnGUI()
         {
-            var f=RingworldFlight.Instance;var v=FlightGlobals.ActiveVessel;
-            if(Event.current.type!=EventType.Repaint||!MapView.MapIsEnabled||f==null||f.Settings==null||!f.Settings.ShowTrajectory||v==null||SolarPatch(v,f.Star)==null||line==null||line.positionCount<2||PlanetariumCamera.Camera==null)return;
+            var f=RingworldFlight.Instance;var v=Selected;var settings=CurrentSettings;var star=CurrentStar;
+            if(Event.current.type!=EventType.Repaint||(!Tracking&&!MapView.MapIsEnabled)||settings==null||!settings.ShowTrajectory||v==null||SolarPatch(v,star)==null||line==null||line.positionCount<2||PlanetariumCamera.Camera==null)return;
             var color=GUI.color;var matrix=GUI.matrix;int depth=GUI.depth;
             GUI.depth=100;GUI.color=new Color(.15f,.95f,1f,.95f);
             try
@@ -135,19 +139,23 @@ namespace NivenRingworld
             computing=true;
             try
             {
-                var settings=f.Settings;var g=settings.Geometry;bool rotating=f.Owns(v);double start=Planetarium.GetUniversalTime();var patch=SolarPatch(v,f.Star);if(patch==null)yield break;
+                var settings=CurrentSettings;var star=CurrentStar;var g=settings.Geometry;bool rotating=f!=null&&f.Owns(v);double start=Planetarium.GetUniversalTime();var patch=SolarPatch(v,star);if(patch==null)yield break;
                 double elapsed=rotating?start-f.FrameEpoch:0;
-                DVec position=f.Position(v),velocity=f.Velocity(v);
-                if(v.mainBody!=f.Star){start=Math.Max(start,patch.StartUT);position=ConvertVector.Core(ConvertVector.Orbit(patch.getRelativePositionAtUT(start)));velocity=ConvertVector.Core(ConvertVector.Orbit(patch.getOrbitalVelocityAtUT(start)));}
+                DVec position=f!=null?f.Position(v):ConvertVector.Core(ConvertVector.Orbit(patch.getRelativePositionAtUT(start))),velocity=f!=null?f.Velocity(v):ConvertVector.Core(ConvertVector.Orbit(patch.getOrbitalVelocityAtUT(start)));
+                if(v.mainBody!=star){start=Math.Max(start,patch.StartUT);position=ConvertVector.Core(ConvertVector.Orbit(patch.getRelativePositionAtUT(start)));velocity=ConvertVector.Core(ConvertVector.Orbit(patch.getOrbitalVelocityAtUT(start)));}
                 if(rotating){velocity=g.ToInertialVelocity(position,velocity,elapsed);position=g.ToInertialPosition(position,elapsed);}
                                 var state=new CoastState(position,velocity);var points=new List<Vector3>();double time=0;
                 var crossings=new List<int>();var times=new List<double>();var insidePoints=new List<bool>();var entries=new List<bool>();
                 bool wasInside=g.InArrivalRegion(position,rotating);bool entryFound=false;
                 string result="Numerical vacuum coast: Sun + uniform ribbon; no thrust or manoeuvres";
+                // At low rendering FPS a fixed 1.5 ms slice stretches short predictions
+                // over many wall-clock frames. Spend at most 10% of the last frame,
+                // capped at 8 ms, without changing numerical steps or encounter tests.
+                double sliceBudget=Math.Max(1.5,Math.Min(8,Time.unscaledDeltaTime*100));
                 var slice=System.Diagnostics.Stopwatch.StartNew();
                 for(int i=0;i<4096&&time<=settings.PredictionSeconds;i++)
                 {
-                    if(v==null||v!=FlightGlobals.ActiveVessel||settings!=f.Settings||rotating!=f.Owns(v))yield break;
+                    if(v==null||v!=Selected||settings!=CurrentSettings||rotating!=(f!=null&&f.Owns(v)))yield break;
                                         var coord=g.Coordinates(state.Position);
                     bool inside=g.InArrivalRegion(state.Position,wasInside);
                     if(inside!=wasInside)
@@ -157,7 +165,7 @@ namespace NivenRingworld
                     }
                     if(Math.Abs(coord.Across)<g.P.Width/2&&coord.Altitude>=-1300&&coord.Altitude<g.P.AtmosphereHeight+1&&settings.Atmosphere)
                     {result=time==0?"In atmosphere: no reliable vacuum trajectory; aerodynamic prediction pending":"Coast ends at atmosphere entry (+"+time.ToString("F1")+" s)";break;}
-                    if(state.Position.Length<f.Star.Radius){result="Coast ends at the Sun";break;}
+                    if(state.Position.Length<star.Radius){result="Coast ends at the Sun";break;}
                     double materialAlong=RingGeometry.Wrap(coord.Along-(g.P.Omega*(start+time)-g.OrientationRadians)*g.P.Radius,g.P.Circumference);
                     if(Math.Abs(coord.Across)<g.P.Width/2&&coord.Altitude>=settings.UndersideAltitude&&coord.Altitude<=settings.Terrain.Sample(materialAlong,coord.Across).Height)
                     {result="Coast ends at terrain contact";break;}
@@ -165,7 +173,7 @@ namespace NivenRingworld
                     {result="Coast ends at rim wall";break;}
                     // The map uses the same frozen rotating chart as the local scene.
                     var display=rotating?RingGeometry.Rotate(state.Position,-g.P.Omega*(elapsed+time)):state.Position;
-                    points.Add((Vector3)ScaledSpace.LocalToScaledSpace(f.Star.position+ConvertVector.Ksp(display)));insidePoints.Add(inside);
+                    points.Add((Vector3)ScaledSpace.LocalToScaledSpace(star.position+ConvertVector.Ksp(display)));insidePoints.Add(inside);
                     double gap=Math.Max(1,Math.Abs(coord.Altitude-g.P.AtmosphereHeight));
                     double radial=Math.Abs((state.Position.X*state.Velocity.X+state.Position.Z*state.Velocity.Z)/Math.Max(1,Math.Sqrt(state.Position.X*state.Position.X+state.Position.Z*state.Position.Z)));
                     double dt=Math.Min(120,Math.Max(.01,Math.Min(gap/(radial+1)*.2,Math.Sqrt(gap/(state.Velocity.Length*state.Velocity.Length/state.Position.Length+1))*.2)));
@@ -174,8 +182,8 @@ namespace NivenRingworld
                     // The straight-line estimate also catches crossings between widely spaced coast samples.
                     if(!inside){double entry=g.TimeToArrival(state.Position,state.Velocity,dt);if(!double.IsInfinity(entry))dt=Math.Min(dt,Math.Max(.0001,entry+.0001));}
                     dt=Math.Min(dt,settings.PredictionSeconds-time);if(dt<=0)break;
-                    state=NumericalFlight.Step(state,dt,(p,u)=>InertialAcceleration(p,settings,f.Star.gravParameter));time+=dt;
-                    if(slice.Elapsed.TotalMilliseconds>=1.5){yield return null;slice.Restart();}
+                    state=NumericalFlight.Step(state,dt,(p,u)=>InertialAcceleration(p,settings,star.gravParameter));time+=dt;
+                    if(slice.Elapsed.TotalMilliseconds>=sliceBudget){yield return null;slice.Restart();}
                 }
                 if(time<settings.PredictionSeconds&&points.Count>=4096)result="Coast truncated at numerical step budget";
                 PredictionCommits++;
@@ -203,6 +211,8 @@ namespace NivenRingworld
         {
             if(orbit==null)return false;
             var f=RingworldFlight.Instance;var v=FlightGlobals.ActiveVessel;
+            if(HighLogic.LoadedScene==GameScenes.TRACKSTATION&&TrackingRing.Trajectory!=null&&TrackingRing.Settings!=null&&TrackingRing.Settings.ShowTrajectory)
+                return TrackingRing.Trajectory.PointCount>=2&&ReferenceEquals(orbit,TrackingRing.Trajectory.PredictedOrbit);
             return f!=null&&v!=null&&((f.Owns(v)&&ReferenceEquals(orbit,v.orbit))||
                 (f.Settings!=null&&f.Settings.ShowTrajectory&&f.trajectory!=null&&f.trajectory.PointCount>=2&&ReferenceEquals(orbit,f.trajectory.PredictedOrbit)));
         }

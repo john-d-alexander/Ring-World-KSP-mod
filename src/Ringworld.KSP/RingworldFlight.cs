@@ -21,14 +21,14 @@ namespace NivenRingworld
         private AtmosphereRenderer atmosphere;
         internal RingVisualRenderer visuals;
         internal RingWeatherEffects weatherEffects;
-        private int photoLod,photoBudget;
+        private ConfigNode photoOptions;
         private bool photoTerrainUpdated;
-        internal bool PhotoTerrainReady {get{return photoTerrainUpdated&&LodPending==0;}}
-        internal void PhotoTerrain(bool enabled)
+        internal bool PhotoTerrainReady {get{return photoTerrainUpdated&&LodPending==0&&surface.SceneryPending==0;}}
+        internal void PhotoTerrain(bool enabled,int? preset=null)
         {
             photoTerrainUpdated=false;
-            if(enabled){photoLod=Settings.LodResolution;photoBudget=Settings.GenerationBudget;Settings.LodResolution=32;Settings.GenerationBudget=1;}
-            else {Settings.LodResolution=photoLod;Settings.GenerationBudget=photoBudget;}
+            if(enabled){photoOptions=Settings.Save();var temporary=Settings.Save();RingQualityPresets.Apply(temporary,preset??2);Settings.Apply(temporary);Settings.GenerationBudget=1;}
+            else if(photoOptions!=null){Settings.Apply(photoOptions);photoOptions=null;}
             surface.RebuildLod();
         }
         internal double FrameEpoch;
@@ -71,6 +71,7 @@ namespace NivenRingworld
                 return false;
             }
         }
+        internal bool AtmosphereTransition {get{return transferring;}}
         internal bool Ready
         {
             get
@@ -277,7 +278,7 @@ namespace NivenRingworld
         public void LateUpdate()
         {
             if(Settings==null||Star==null)return;
-            if(Active&&!transferring&&surface!=null)surface.Reposition(Star.position);
+            if(!transferring&&surface!=null)surface.Reposition(Star.position);
             var v=FlightGlobals.ActiveVessel;
             if(Owns(v)&&FlightCamera.fetch!=null&&!MapView.MapIsEnabled)
             {
@@ -289,12 +290,12 @@ namespace NivenRingworld
                     RingCameraTerrainPatch.ApplyClearance(FlightCamera.fetch,ConstrainCamera(camera.transform.position,target,clipRadius)-camera.transform.position);
                 }
             }
-            bool airView=v!=null&&v.mainBody==Star&&!MapView.MapIsEnabled;
+            bool airView=!transferring&&v!=null&&v.mainBody==Star&&!MapView.MapIsEnabled;
             if(FlightCamera.fetch!=null&&FlightCamera.fetch.mainCamera!=null&&visuals==null)
                 visuals=FlightCamera.fetch.mainCamera.gameObject.AddComponent<RingVisualRenderer>();
             if(visuals!=null)visuals.Prepare(airView,Star.position);
             if(weatherEffects==null)weatherEffects=new RingWeatherEffects();weatherEffects.Update(airView,Settings,Star.position);
-            if(atmosphere!=null)atmosphere.Update(airView&&(visuals==null||!visuals.Rendering),Star.position);
+            if(atmosphere!=null)atmosphere.Update(airView&&(visuals==null||!visuals.Rendering||visuals.SimplePhoto),Star.position,visuals!=null&&visuals.CylaActive);
         }
         internal Vector3 ConstrainCamera(Vector3 desired,Vector3 target,float clearance)
         {
@@ -319,7 +320,7 @@ namespace NivenRingworld
         internal double SurfaceClearance(Vessel v)
         {
             var p=Settings.Geometry.Coordinates(Position(v));
-            return Math.Max(0,p.Altitude-surface.CameraFloor(p.Along,p.Across));
+            return Math.Max(0,p.Altitude-surface.GroundOrWaterFloor(p.Along,p.Across));
         }
         internal void Capture()
         {
@@ -368,6 +369,7 @@ namespace NivenRingworld
         }
         private IEnumerator Transfer(Vessel v,DVec position,DVec velocity,Quaternion rotation,bool newVisit)
         {
+            RingCameraBlend.Cancel();
             surfaceWarp.Rate=1;transferring=true;status="Preparing surface colliders...";
             TimeWarp.SetRate(0,true);
             if(newVisit)CaptureBeforeTransfer(v);
@@ -454,6 +456,7 @@ namespace NivenRingworld
             var g=Settings.Geometry;double elapsed=leaving?Planetarium.GetUniversalTime()-FrameEpoch:0;
             double angle=g.P.Omega*elapsed;
             Quaternion q=Quaternion.AngleAxis((float)(angle*180/Math.PI),Vector3.up);
+            RingCameraBlend.Begin(q);
             var snapshots=new List<FrameVessel>();
             foreach(var v in FlightGlobals.VesselsLoaded)
             {
@@ -488,8 +491,6 @@ namespace NivenRingworld
                     State.Vessels[id]=new VesselRecord{Id=id,Position=s.Position,Velocity=s.Velocity,Rotation=s.Rotation,Restored=true,Epoch=FrameEpoch};
                 }
             }
-            if(leaving&&FlightCamera.fetch!=null)
-                FlightCamera.fetch.transform.rotation=q*FlightCamera.fetch.transform.rotation;
             Physics.SyncTransforms();
         }
         private sealed class FrameBody
@@ -572,7 +573,7 @@ namespace NivenRingworld
             if(Active)surfaceWarp.Draw(this);
             if(visuals!=null)
             {
-                if(GUILayout.Button("Photo mode: high-quality still (freezes flight)"))visuals.BeginPhoto();
+                visuals.DrawPhotoEntry();
                 GUILayout.Label(visuals.Status);
             }
             if(trajectory!=null)GUILayout.Label(trajectory.Status);
@@ -600,6 +601,7 @@ namespace NivenRingworld
         }
         public void OnDestroy()
         {
+            RingCameraBlend.Cancel();
             if(toolbar!=null){toolbar.Dispose();toolbar=null;}
             if(visuals!=null){visuals.EndPhoto();Destroy(visuals);}
             if(weatherEffects!=null)weatherEffects.Dispose();

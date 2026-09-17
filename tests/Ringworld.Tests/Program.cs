@@ -13,6 +13,15 @@ static class Program
     static void Main(string[] args)
     {
         var p=new RingParameters();var g=new RingGeometry(p);var t=new TerrainGenerator(g);
+        foreach(double diameterKm in new[]{200000000.0,300000000.0,2000000000.0})
+        {
+            var large=new RingParameters{Radius=diameterKm*500,Width=50000000000};large.Validate();
+            var chart=new RingGeometry(large);var at=chart.Position(123456789,large.Width/2-200,300);
+            Near(chart.Coordinates(at).Altitude,300,.001,"large ring altitude precision");
+            Check(RingParameters.Finite(new TerrainGenerator(chart).Sample(123456789,large.Width/2-200).Height),"large ring finite terrain");
+        }
+        bool rejected=false;try{new RingParameters{Radius=1e25}.Validate();}catch(ArgumentException){rejected=true;}
+        Check(rejected,"reject dimensions unable to retain contact precision");
         var candidateKeys=new HashSet<string>();
         for(int j=0;j<1000;j++)foreach(var candidate in ColossusDistribution.Nearby(t,j*2000000,0))
         {
