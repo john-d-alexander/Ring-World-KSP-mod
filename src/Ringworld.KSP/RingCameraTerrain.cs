@@ -74,7 +74,7 @@ namespace NivenRingworld
         {
             if(!StockIntegration.Applies(FlightGlobals.ActiveVessel))return FlightGlobals.getAltitudeAtPos(position);
             var f=RingworldFlight.Instance;
-            return (float)f.Settings.Geometry.Coordinates(ConvertVector.Core((Vector3d)position-f.Star.position)).Altitude;
+            return (float)f.Settings.Geometry.Coordinates(ConvertVector.Core((Vector3d)position-f.Center)).Altitude;
         }
         private static float BodyAltitude(Vector3 position,CelestialBody body)
         {

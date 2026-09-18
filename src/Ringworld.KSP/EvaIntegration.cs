@@ -156,9 +156,9 @@ namespace NivenRingworld
             foreach(var node in __instance.ragdollNodes)
             {
                 var rb=node.rb;if(rb==null||rb.isKinematic||rb==__instance.part.rb)continue;
-                var p=ConvertVector.Core((Vector3d)rb.worldCenterOfMass-f.Star.position);
+                var p=ConvertVector.Core((Vector3d)rb.worldCenterOfMass-f.Center);
                 var v=ConvertVector.Core((Vector3d)rb.velocity+Krakensbane.GetFrameVelocity());
-                rb.AddForce(ConvertVector.Unity(f.Settings.Geometry.Acceleration(p,v,f.Star.gravParameter)),ForceMode.Acceleration);
+                rb.AddForce(ConvertVector.Unity(f.Acceleration(p,v)),ForceMode.Acceleration);
             }
             return false;
         }

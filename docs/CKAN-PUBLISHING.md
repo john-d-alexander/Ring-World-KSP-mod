@@ -1,18 +1,11 @@
-# Publishing Niven Ringworld Expedition on CKAN
+# CKAN metadata for v1.1.3
 
-CKAN indexing has not been submitted. GitHub release publication is separate from CKAN approval. v1.1.0 bundles Cyla and therefore requires updated dependency ownership and license metadata before indexing.
+Submit `distribution/NivenRingworld.netkan` to the CKAN maintainers handling the existing indexing request. It downloads the GitHub release, reads the bundled AVC version file (KSP 1.12.5), installs only GameData/NivenRingworld, and requires Harmony2 >= 2.2.1.0. Release archives contain no Harmony or Cyla files. Metadata preparation does not itself publish the mod on CKAN.
 
-1. Use the versioned GitHub release for KSP 1.12.5 and submit a KSP1 mod request to NetKAN after validating the metadata. Do not describe the whole bundle as MIT: Cyla carries its own GPLv3/compiled-shader notice.
-2. In the request, specify identifier `NivenRingworld`, install only `GameData/NivenRingworld` into `GameData`, and declare `Harmony2` >= 2.2.1.0 as a dependency. Coordinate a separate Cyla dependency with the CKAN maintainers (do not guess an existing identifier); preserve its license and source distribution. The ZIP bundles Harmony for manual users; CKAN must manage it separately rather than install that bundled copy, to avoid ownership conflicts with other mods.
-3. Use the shipped `NivenRingworld.version` file via `$vref: '#/ckan/ksp-avc'`. Compatibility is 1.12.5 only; broader game-version support has not been validated.
-4. Complete the Cyla ownership/dependency information in `distribution/NivenRingworld.netkan.example`, then validate with NetKAN and test CKAN installation in a clean 1.12.5 instance. Verify the two plugin DLLs, scenery/visual bundles and Harmony are installed exactly once. Launch, enter the ring, save/reload, then test uninstall/reinstall. This clean CKAN installation test has not run.
-5. The CKAN team reviews the indexing request. Acceptance is required before it appears in the public list. Subsequent indexed releases can be picked up from the host.
+Cyla is an optional visual backend, not a required runtime dependency. Missing or unsupported Cyla falls back to Original. Once blackrack and the CKAN team approve Cyla's listing, add its **actual assigned identifier** under `suggests`; do not guess an identifier or invent a dependency that CKAN cannot resolve. Contacting the author/submitting metadata remains with the mod author.
 
-Current runtime visuals were tested on Windows/D3D11; cross-platform shader bundles are not verified. Mention this limitation in the public description rather than claiming universal platform support. Breaking Ground is optional for its deployed-science features; no optional visual mods are required.
+Manual users must install Harmony separately. Cyla 1.1.0 is the supported optional version. Retain existing dependency installations when upgrading. Breaking Ground remains optional.
 
-Sources checked September 16, 2026:
-- https://github.com/KSP-CKAN/CKAN/wiki/Adding-a-mod-to-the-CKAN
-- https://github.com/KSP-CKAN/CKAN/blob/master/Spec.md
-- https://raw.githubusercontent.com/KSP-CKAN/CKAN-meta/master/Harmony2/Harmony2-2.2.1.0.ckan
+The GitHub release includes a separate version-specific .ckan asset for maintainer review/local installation; it is not embedded in the mod ZIP. The .netkan file supports automatic indexing of future releases. Official listing still requires maintainer acceptance. Windows x64 / D3D11 is the tested platform; cross-platform shader behavior is unverified.
 
-The draft metadata is an example, not submission-ready until Cyla ownership/dependency metadata is resolved and the clean install test passes. Do not include generated .ckan metadata in the mod archive; submit the indexing information to NetKAN.
+Sources: https://github.com/KSP-CKAN/CKAN/blob/master/Spec.md and https://raw.githubusercontent.com/KSP-CKAN/CKAN-meta/master/Harmony2/Harmony2-2.2.1.0.ckan .

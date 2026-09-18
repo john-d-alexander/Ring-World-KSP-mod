@@ -20,7 +20,7 @@ namespace NivenRingworld
             if(cachedVessel==vessel&&cachedTime==UnityEngine.Time.fixedTime)return cachedGravity;
             var f=RingworldFlight.Instance;
             cachedVessel=vessel;cachedTime=UnityEngine.Time.fixedTime;
-            return cachedGravity=ConvertVector.Ksp(f.Settings.Geometry.Acceleration(f.Position(vessel),new DVec(),f.Star.gravParameter));
+            return cachedGravity=ConvertVector.Ksp(f.Acceleration(f.Position(vessel),new DVec()));
         }
         internal static double SurfaceGee(CelestialBody body,PartModule module)
         {

@@ -24,6 +24,8 @@ namespace NivenRingworld
         private double propPhase;
         private readonly List<Quaternion> propRotations=new List<Quaternion>();
         private readonly Material terrainMaterial,waterMaterial,buildingMaterial,scrithMaterial,leavesMaterial,forestMaterial;
+        private readonly Material rimMaterial;
+        private readonly AssetBundle rimVisualBundle;
         private readonly Texture2D palette;
         private readonly Shader simpleWaterShader;
         private TerrainLod lod;
@@ -56,6 +58,13 @@ namespace NivenRingworld
             waterMaterial=Material(new Color(.07f,.31f,.42f));waterMaterial.SetFloat("_Glossiness",.8f);
             simpleWaterShader=waterMaterial.shader;
             buildingMaterial=Material(new Color(.64f,.60f,.48f));scrithMaterial=Material(new Color(.24f,.29f,.32f));
+            // The scaled wall is already behind the Original sky (queue 1000).
+            // Render the local collision shell there too, with the same dark shader,
+            // rather than stamping a separately lit black strip over the atmosphere.
+            rimVisualBundle=RingVisualAssets.Acquire();
+            var rimShader=rimVisualBundle!=null?rimVisualBundle.LoadAsset<Shader>("Assets/Shaders/DistantSurface.shader"):null;
+            rimMaterial=new Material(rimShader!=null&&rimShader.isSupported?rimShader:(Shader.Find("Unlit/Color")??scrithMaterial.shader));
+            rimMaterial.SetFloat("_Detail",-1);if(rimMaterial.HasProperty("_Color"))rimMaterial.color=new Color(.012f,.015f,.019f);rimMaterial.renderQueue=900;
             leavesMaterial=Material(new Color(.15f,.29f,.12f));leavesMaterial.SetFloat("_Glossiness",0);
             var forestPrefab=SceneryAssets.DetailPrefab("canopy_broadleaf");
             var forestRenderer=forestPrefab==null?null:forestPrefab.GetComponentInChildren<MeshRenderer>(true);
@@ -253,7 +262,7 @@ namespace NivenRingworld
                 }
                 var mesh=new Mesh{name="Solid atmosphere retaining rim wall"};mesh.SetVertices(faceVertices);mesh.triangles=faces.ToArray();mesh.RecalculateNormals();mesh.RecalculateBounds();t.Meshes.Add(mesh);
                 var wall=new GameObject("Scrith rim wall");wall.layer=15;wall.transform.SetParent(t.Root.transform,false);
-                wall.AddComponent<MeshFilter>().sharedMesh=mesh;wall.AddComponent<MeshRenderer>().sharedMaterial=scrithMaterial;wall.AddComponent<MeshCollider>().sharedMesh=mesh;
+                wall.AddComponent<MeshFilter>().sharedMesh=mesh;var renderer=wall.AddComponent<MeshRenderer>();renderer.sharedMaterial=rimMaterial;renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;wall.AddComponent<MeshCollider>().sharedMesh=mesh;
             }
         }
         private void TileProp(Tile t,string name,double a,double b,double altitude,Vector3 scale,Material mat,PrimitiveType shape,string assetKind=null)
@@ -407,6 +416,7 @@ namespace NivenRingworld
             landmarks.Dispose();
             lod.Dispose();UnityEngine.Object.Destroy(groundFriction);UnityEngine.Object.Destroy(sunlightObject);
             UnityEngine.Object.Destroy(terrainMaterial);UnityEngine.Object.Destroy(waterMaterial);UnityEngine.Object.Destroy(buildingMaterial);UnityEngine.Object.Destroy(scrithMaterial);UnityEngine.Object.Destroy(leavesMaterial);UnityEngine.Object.Destroy(forestMaterial);UnityEngine.Object.Destroy(palette);
+            UnityEngine.Object.Destroy(rimMaterial);if(rimVisualBundle!=null)RingVisualAssets.Release();
         }
     }
 }

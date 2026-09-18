@@ -67,7 +67,7 @@ namespace NivenRingworld
             var f=RingworldFlight.Instance;var atmosphere=new RingAtmosphere(f.Settings.Geometry);
             foreach(var part in v.parts)
             {
-                var position=ConvertVector.Core((Vector3d)part.transform.position-f.Star.position);
+                var position=ConvertVector.Core((Vector3d)part.transform.position-f.Center);
                 var air=atmosphere.Sample(position);
                 part.atmDensity=air.Density;part.staticPressureAtm=air.PressureKPa/101.325;
             }

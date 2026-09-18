@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace NivenRingworld
 {
-    [KSPAddon(KSPAddon.Startup.FlightAndKSC,false)]
+
     public sealed class ScaledRing : MonoBehaviour
     {
         private GameObject root,squares,ribbonObject;
@@ -15,10 +15,13 @@ namespace NivenRingworld
         private Vector3[] flightVertices,mapVertices;private bool mapGeometry;
         private Material material,dark,farMaterial,wallMaterial;
         private AssetBundle visualBundle;
-        private bool farAttempted,farActive;
+        private bool farAttempted,farActive,wasLocal;
         private MeshRenderer ribbonRenderer;
         private GlobalClouds globalClouds;
         internal bool DetailActive { get { return farActive; } }
+        internal string RingId="primary";
+        private Vector3d Center {get{return settings.Center;}}
+        private RingworldFlight LocalFlight {get{var f=RingworldFlight.Instance;return f!=null&&f.Settings!=null&&f.Settings.RingId==RingId?f:null;}}
         private CelestialBody star;
         private Settings settings;
         private ConfigNode loadedOptions;
@@ -28,11 +31,11 @@ namespace NivenRingworld
             try
             {
                 StockIntegration.Install();
-                settings=Settings.Load();loadedOptions=RingworldScenario.Instance!=null?RingworldScenario.Instance.GetOptions():null;if(loadedOptions!=null)settings.Apply(loadedOptions);star=FlightGlobals.Bodies.Find(b=>b.name=="Sun");if(star==null||ScaledSpace.Instance==null)return;
+                settings=Settings.Load();loadedOptions=RingworldScenario.Instance!=null?RingworldScenario.Instance.RingOptions(RingId):null;if(loadedOptions!=null)settings.Apply(loadedOptions);star=settings.Body;if(star==null||ScaledSpace.Instance==null)return;
                 Shader shader=Shader.Find("Unlit/Color")??Shader.Find("KSP/Unlit");if(shader==null)return;
                 material=new Material(shader){color=new Color(.34f,.47f,.32f)};dark=new Material(shader){color=new Color(.012f,.015f,.019f)};
                 root=new GameObject("Niven Ringworld scaled habitat");root.layer=10;
-                int n=8192;var verts=new Vector3[(n+1)*8];mapVertices=new Vector3[verts.Length];
+                wasLocal=LocalFlight!=null;int n=wasLocal?8192:2048;var verts=new Vector3[(n+1)*8];mapVertices=new Vector3[verts.Length];
                 preciseFlight=new DVec[verts.Length];preciseMap=new DVec[verts.Length];cameraVertices=new Vector3[verts.Length];var uv=new Vector2[verts.Length];
                 // Global scaled-space float coordinates lose metres near this enormous radius.
                 // The fallback is render-only; keep an explicit roundoff margin below local terrain.
@@ -72,7 +75,7 @@ namespace NivenRingworld
                     square.GetComponent<Renderer>().sharedMaterial=dark;
                 }
                 Camera.onPreCull+=PrepareCamera;
-                UpdateDistantSurface(RingworldFlight.Instance);
+                UpdateDistantSurface(LocalFlight);
                 Debug.Log("[NivenRingworld] Scaled ribbon and 20 shadow squares created.");
             }
             catch(Exception e){Debug.LogException(e);}
@@ -80,17 +83,18 @@ namespace NivenRingworld
         public void LateUpdate()
         {
             if(root==null||star==null)return;
-            if(RingworldScenario.Instance!=null&&loadedOptions!=RingworldScenario.Instance.GetOptions()){OnDestroy();Start();if(root==null)return;}
-            var current=RingworldFlight.Instance;
+            if(wasLocal!=(LocalFlight!=null)){OnDestroy();Start();if(root==null)return;}
+            if(RingworldScenario.Instance!=null&&loadedOptions!=RingworldScenario.Instance.RingOptions(RingId)){OnDestroy();Start();if(root==null)return;}
+            var current=LocalFlight;
             if(current!=null&&current.Settings!=null&&(settings.Geometry.P.Radius!=current.Settings.Geometry.P.Radius||settings.Geometry.P.Width!=current.Settings.Geometry.P.Width||settings.Geometry.P.WallHeight!=current.Settings.Geometry.P.WallHeight||settings.Geometry.P.Gravity!=current.Settings.Geometry.P.Gravity))
             {OnDestroy();Start();if(root==null)return;}
             bool mapView=MapView.MapIsEnabled||HighLogic.LoadedScene==GameScenes.TRACKSTATION;
             mapGeometry=mapView;
             UpdateDistantSurface(current);
-            root.transform.position=(Vector3)ScaledSpace.LocalToScaledSpace(star.position);
-            Shader.SetGlobalVector("_RingScaledCenter",root.transform.position);Shader.SetGlobalVector("_RingScaledSize",new Vector4((float)(settings.Geometry.P.Radius*ScaledSpace.InverseScaleFactor),(float)(settings.Geometry.P.Width*.5*ScaledSpace.InverseScaleFactor),0,0));
+            root.transform.position=(Vector3)ScaledSpace.LocalToScaledSpace(Center);
+            if(LocalFlight!=null){Shader.SetGlobalVector("_RingScaledCenter",root.transform.position);Shader.SetGlobalVector("_RingScaledSize",new Vector4((float)(settings.Geometry.P.Radius*ScaledSpace.InverseScaleFactor),(float)(settings.Geometry.P.Width*.5*ScaledSpace.InverseScaleFactor),0,0));}
             // Squares and material longitude use the same phase in both flight charts.
-            var flight=RingworldFlight.Instance;
+            var flight=LocalFlight;
             double epoch=flight!=null&&flight.Active?flight.FrameEpoch:Planetarium.GetUniversalTime();
             renderEpoch=epoch;
             root.transform.rotation=Quaternion.Euler(0,(float)(RingGeometry.Wrap(settings.Geometry.P.Omega*epoch,2*Math.PI)*180/Math.PI),0);
@@ -122,7 +126,7 @@ namespace NivenRingworld
             double time=Planetarium.GetUniversalTime();
             if(globalClouds!=null)globalClouds.Update(options,flight,star,time);
             float phase=(float)RingGeometry.Wrap(time/options.Geometry.P.DaySeconds,1);
-            farMaterial.SetFloat("_DayPhase",phase);wallMaterial.SetFloat("_DayPhase",phase);Shader.SetGlobalFloat("_RingNightPhase",phase);
+            farMaterial.SetFloat("_DayPhase",phase);wallMaterial.SetFloat("_DayPhase",phase);if(LocalFlight!=null)Shader.SetGlobalFloat("_RingNightPhase",phase);
             farMaterial.SetFloat("_CloudAmount",(float)options.CloudAmount);
             farMaterial.SetFloat("_CloudDrift",options.DynamicWeather?(float)RingGeometry.Wrap(time*8/options.Geometry.P.Circumference,1):0);
         }
@@ -134,8 +138,8 @@ namespace NivenRingworld
             // vertices. Nearby walls retain metre detail even at enlarged radii.
             DVec observer;
             if(HighLogic.LoadedSceneIsFlight&&!MapView.MapIsEnabled&&ScaledCamera.Instance!=null&&camera==ScaledCamera.Instance.cam&&ScaledCamera.Instance.tgtRef!=null)
-                observer=ConvertVector.Core((Vector3d)ScaledCamera.Instance.tgtRef.position-star.position)*ScaledSpace.InverseScaleFactor;
-            else observer=ConvertVector.Core(ScaledSpace.ScaledToLocalSpace(camera.transform.position)-star.position)*ScaledSpace.InverseScaleFactor;
+                observer=ConvertVector.Core((Vector3d)ScaledCamera.Instance.tgtRef.position-Center)*ScaledSpace.InverseScaleFactor;
+            else observer=ConvertVector.Core(ScaledSpace.ScaledToLocalSpace(camera.transform.position)-Center)*ScaledSpace.InverseScaleFactor;
             double angle=RingGeometry.Wrap(settings.Geometry.P.Omega*renderEpoch,2*Math.PI),c=Math.Cos(angle),sn=Math.Sin(angle);
             var source=mapGeometry?preciseMap:preciseFlight;
             for(int i=0;i<source.Length;i++)

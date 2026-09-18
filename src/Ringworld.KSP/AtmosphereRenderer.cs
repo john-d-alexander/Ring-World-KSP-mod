@@ -59,7 +59,7 @@ namespace NivenRingworld
             if(sky!=null&&sky.activeSelf)sky.transform.position=camera.transform.position;
             if(clouds!=null&&clouds.activeSelf&&!double.IsNaN(cloudAlong))
             {
-                var f=RingworldFlight.Instance;var star=f!=null&&f.Star!=null?f.Star.position:renderStar;
+                var f=RingworldFlight.Instance;var star=f!=null&&f.Star!=null?f.Center:renderStar;
                 double phase=settings.Geometry.OrientationRadians-cloudPhase;
                 clouds.transform.position=(Vector3)(star+ConvertVector.Ksp(RingGeometry.Rotate(cloudAnchor,phase)));
             }

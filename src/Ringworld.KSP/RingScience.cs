@@ -11,32 +11,108 @@ namespace NivenRingworld
     {
         internal static bool Context(Vessel v,out Settings s,out string key,out string title)
         {
-            s=null;key=title=null;VesselRecord r;
-            if(!RingResidence.Saved(v,out r))return false;
-            var f=RingworldFlight.Instance;
-            s=f!=null&&f.Settings!=null?f.Settings:Settings.Load();
-            if(f==null||f.Settings==null)s.Apply(RingworldScenario.Instance.GetOptions());
-            var g=new RingGeometry(s.Geometry.P);g.OrientationRadians=s.Geometry.P.Omega*r.Epoch;
-            var c=g.Coordinates(r.Position);var t=s.Terrain.Sample(c.Along,c.Across);
-            key="Ringworld_"+t.Biome;title="Ringworld / "+t.Biome;
+            ResearchLocation location;bool found=Resolve(v,out s,out location);
+            key=found?"RingworldV2_"+location.Key:null;title=found?"Ringworld / "+location.Name:null;return found;
+        }
+        private static int cacheFrame=-1;
+        private sealed class CachedLocation {internal Settings Settings;internal ResearchLocation Location;}
+        private static readonly Dictionary<Guid,CachedLocation> locations=new Dictionary<Guid,CachedLocation>();
+        internal static bool Resolve(Vessel v,out Settings s,out ResearchLocation location)
+        {
+            if(cacheFrame!=UnityEngine.Time.frameCount){cacheFrame=UnityEngine.Time.frameCount;locations.Clear();}
+            CachedLocation cached;
+            if(v!=null&&locations.TryGetValue(v.id,out cached)){s=cached.Settings;location=cached.Location;return location!=null;}
+            bool found=ResolveUncached(v,out s,out location);
+            if(v!=null)locations[v.id]=new CachedLocation{Settings=s,Location=location};return found;
+        }
+        private static bool ResolveUncached(Vessel v,out Settings s,out ResearchLocation location)
+        {
+            s=null;location=null;var state=RingworldScenario.Instance;
+            if(v==null||v.mainBody==null||state==null)return false;
+            var f=RingworldFlight.Instance;DVec position;double epoch;VesselRecord record;
+            if(f!=null&&f.Owns(v)){s=f.Settings;position=f.Position(v);epoch=f.FrameEpoch;}
+            else if(RingResidence.Saved(v,out record)&&record.Landed){s=state.RingSettings(record.RingId);position=record.Position;epoch=record.Epoch;}
+            else {string id=RingSelection.Nearest(v);if(id==null)return false;s=state.RingSettings(id);position=ConvertVector.Core(v.GetWorldPos3D()-s.Center);epoch=Planetarium.GetUniversalTime();}
+            if(s==null||s.Body!=v.mainBody)return false;
+            // Never alter the active terrain chart while resolving background science.
+            double rotation=s.Geometry.OrientationRadians;
+            position=RingGeometry.Rotate(position,rotation-s.Geometry.P.Omega*epoch);
+            bool water=v.Splashed;
+            if(!v.Landed&&f!=null&&f.Owns(v))
+            {
+                var at=s.Geometry.Coordinates(position);
+                if(Math.Abs(at.Across)<s.Geometry.P.Width/2&&at.Altitude<10000)
+                {var sample=s.Terrain.Sample(at.Along,at.Across);water|=sample.Wet&&Math.Abs(at.Altitude-sample.WaterHeight)<5&&f.Velocity(v).Length<5;}
+            }
+            location=ResearchRegions.Locate(s.Terrain,position,v.Landed,water,s.Atmosphere,Planetarium.GetUniversalTime());
+            if(location==null)return false;
+            if(location.Category=="biome"||location.Category=="landmark")
+                location=ResearchCatalog.CustomSite(s,s.Geometry.Coordinates(position),location.Zone)??ResearchCatalog.Structure(s,s.Geometry.Coordinates(position),location.Zone)??location;
+            if(s.RingId!="primary"){location.Id=s.RingId+"-"+location.Id;location.Name=s.RingName+" / "+location.Name;}
             return true;
+        }
+        internal static ExperimentSituations Situation(ResearchLocation l)
+        {
+            switch(l.Zone){case "surface":return ExperimentSituations.SrfLanded;case "water":return ExperimentSituations.SrfSplashed;case "lowair":return ExperimentSituations.FlyingLow;case "highair":return ExperimentSituations.FlyingHigh;case "highspace":return ExperimentSituations.InSpaceHigh;default:return ExperimentSituations.InSpaceLow;}
         }
         public static ScienceSubject Subject(ScienceExperiment e,ExperimentSituations situation,CelestialBody body,string biome,string display,Vessel v)
         {
-            Settings s;string key,title;
-            if(!Context(v,out s,out key,out title))return ResearchAndDevelopment.GetExperimentSubject(e,situation,body,biome,display);
-            if(((int)e.biomeMask&(int)situation)==0){key="Ringworld_global";title="Ringworld";}
-            var subject=ResearchAndDevelopment.GetExperimentSubject(e,situation,body,key,title);
-            subject.title=e.experimentTitle+" — "+title+" ("+situation+")";
-            subject.subjectValue=1;subject.scienceCap=e.scienceCap;subject.dataScale=e.dataScale;
+            Settings s;ResearchLocation location;
+            if(!Resolve(v,out s,out location))return ResearchAndDevelopment.GetExperimentSubject(e,situation,body,biome,display);
+            situation=Situation(location);
+            var subject=ResearchAndDevelopment.GetExperimentSubject(e,situation,body,"RingworldV2_"+location.Key,location.Name);
+            subject.title=e.experimentTitle+" — Ringworld / "+location.Name+" ("+situation+")";
+            subject.subjectValue=ResearchCatalog.Multiplier(location);subject.scienceCap=e.scienceCap*subject.subjectValue;subject.dataScale=e.dataScale;
+            subject.scientificValue=ResearchAndDevelopment.GetSubjectValue(subject.science,subject);
             return subject;
         }
         public static bool Available(ScienceExperiment e,ExperimentSituations situation,CelestialBody body,Vessel v)
         {
-            Settings s;string key,title;
-            if(!Context(v,out s,out key,out title))return e.IsAvailableWhile(situation,body);
-            bool air=s.Atmosphere&&(situation==ExperimentSituations.SrfLanded||situation==ExperimentSituations.FlyingLow||situation==ExperimentSituations.FlyingHigh);
+            Settings s;ResearchLocation location;
+            if(!Resolve(v,out s,out location))return e.IsAvailableWhile(situation,body);
+            situation=Situation(location);
+            bool air=s.Atmosphere&&(situation==ExperimentSituations.SrfLanded||situation==ExperimentSituations.SrfSplashed||situation==ExperimentSituations.FlyingLow||situation==ExperimentSituations.FlyingHigh)&&location.Category!="wall";
             return ((int)e.situationMask&(int)situation)!=0&&(!e.requireAtmosphere||air)&&(!e.requireNoAtmosphere||!air);
+        }
+    }
+    [HarmonyPatch(typeof(ScienceUtil),"GetExperimentSituation")]
+    internal static class RingExperimentSituation
+    {
+        private static bool Prefix(Vessel v,ref ExperimentSituations __result)
+        {Settings s;ResearchLocation l;if(!RingScience.Resolve(v,out s,out l))return true;__result=RingScience.Situation(l);return false;}
+    }
+    // Public, read-only extension point; no dependence on renderers or the active vessel.
+    public static class RingworldResearchApi
+    {
+        public static bool TryGetLocation(Vessel vessel,out ResearchLocation location)
+        {Settings s;ResearchLocation found;bool valid=RingScience.Resolve(vessel,out s,out found);location=valid?new ResearchLocation(found.Id,found.Name,found.Category,found.Zone):null;return valid;}
+        public static bool TryGetSubject(Vessel vessel,ScienceExperiment experiment,out ScienceSubject subject)
+        {
+            subject=null;Settings s;ResearchLocation location;
+            if(experiment==null||!RingScience.Resolve(vessel,out s,out location))return false;
+            subject=RingScience.Subject(experiment,RingScience.Situation(location),vessel.mainBody,"","",vessel);return true;
+        }
+    }
+    [HarmonyPatch(typeof(ScienceSubject),"Load")]
+    internal static class RingResearchTitleLoad
+    {
+        private static void Postfix(ScienceSubject __instance,ConfigNode node)
+        {ResearchReceipt r;if(ExpeditionJournal.Decode(__instance.id,out r)&&node.HasValue("title"))__instance.title=node.GetValue("title");}
+    }
+    [HarmonyPatch(typeof(ResearchAndDevelopment),"GetResults")]
+    internal static class RingResearchResults
+    {
+        private static bool Prefix(string __0,ref string __result)
+        {
+            ResearchReceipt r;if(!ExpeditionJournal.Decode(__0,out r))return true;
+            __result="The observations document another part of the Ringworld's artificial environment. Transmit or return this data to add it to the expedition's research record.";
+            int specificity=-1;
+            foreach(var n in GameDatabase.Instance.GetConfigNodes("RINGWORLD_SCIENCE_REPORT"))
+            {
+                int score=(n.HasValue("experiment")?1:0)+(n.HasValue("category")?1:0);
+                if(score>=specificity&&(!n.HasValue("experiment")||n.GetValue("experiment")==r.Experiment)&&(!n.HasValue("category")||n.GetValue("category")==r.Category)&&n.HasValue("text")){__result=n.GetValue("text");specificity=score;}
+            }
+            return false;
         }
     }
     [HarmonyPatch]

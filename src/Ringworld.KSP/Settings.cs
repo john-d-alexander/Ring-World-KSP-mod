@@ -15,6 +15,17 @@ namespace NivenRingworld
     internal sealed class Settings
     {
         private static bool warnedMultipleDefinitions;
+        internal string RingId="primary", RingName="Ringworld", ReferenceBody="Sun";
+        internal bool DesignatedStar=true;
+        internal DVec CenterOffset;
+        internal CelestialBody Body {get{return FlightGlobals.Bodies.Find(b=>b.name==ReferenceBody);}}
+        internal Vector3d Center {get{return (Body==null?Vector3d.zero:Body.position)+ConvertVector.Ksp(CenterOffset);}}
+        internal DVec StellarAcceleration(DVec position,double mu,double elapsed=0)
+        {
+            var relative=Geometry.ToInertialPosition(position,elapsed)+CenterOffset;
+            double distance=relative.Length;
+            return distance>1?RingGeometry.Rotate(relative*(-mu/(distance*distance*distance)),-Geometry.P.Omega*elapsed):new DVec();
+        }
         internal RingGeometry Geometry;
         internal readonly CylaOptions Cyla=new CylaOptions();
         internal TerrainGenerator Terrain;
@@ -39,6 +50,9 @@ namespace NivenRingworld
         internal WeatherSample Weather(double along,double across,double time){return RingWeather.Sample(Terrain,along,across,time,CloudAmount,DynamicWeather,WeatherPeriod,WeatherVariation,StormChance);}
         internal void Apply(ConfigNode n)
         {
+            RingId=n.GetValue("ringId")??"primary";RingName=n.GetValue("ringName")??"Ringworld";
+            ReferenceBody=n.GetValue("referenceBody")??"Sun";DesignatedStar=n.GetValue("designatedStar")!="False";
+            CenterOffset=new DVec(Read(n,"centerX",0),Read(n,"centerY",0),Read(n,"centerZ",0));
             Cyla.Load(n);
             WeatherPeriod=Math.Max(600,Read(n,"weatherPeriod",21600));
             WeatherVariation=Math.Max(0,Math.Min(1,Read(n,"weatherVariation",1)));StormChance=Math.Max(0,Math.Min(1,Read(n,"stormChance",.25)));
@@ -62,6 +76,9 @@ namespace NivenRingworld
             Geometry.P.SurfaceDensity=Math.Max(0,Math.Min(100000000,Read(n,"surfaceDensity",1000000)));
             Geometry.P.WallHeight=Math.Max(60000,Math.Min(1000000,Read(n,"wallHeight",Geometry.P.WallHeight)));
             Geometry.P.Validate();
+            foreach(double coordinate in new[]{CenterOffset.X,CenterOffset.Y,CenterOffset.Z})
+                if(!RingParameters.Finite(coordinate)||Math.Abs(coordinate)+Geometry.P.Radius+.01==Math.Abs(coordinate)+Geometry.P.Radius)
+                    throw new ArgumentException("Ring center exceeds centimetre coordinate precision.");
             PredictionSeconds=Math.Max(60,Math.Min(86400,Read(n,"predictionSeconds",PredictionSeconds)));
             SurfaceWarpLimit=Math.Max(10,Math.Min(10000,Read(n,"surfaceWarpLimit",SurfaceWarpLimit)));
             ShowTrajectory=n.GetValue("showTrajectory")!="False";
@@ -84,6 +101,8 @@ namespace NivenRingworld
         internal ConfigNode Save()
         {
             var n=new ConfigNode("OPTIONS");Cyla.Save(n);
+            n.AddValue("ringId",RingId);n.AddValue("ringName",RingName);n.AddValue("referenceBody",ReferenceBody);n.AddValue("designatedStar",DesignatedStar);
+            n.AddValue("centerX",CenterOffset.X.ToString("R",CultureInfo.InvariantCulture));n.AddValue("centerY",CenterOffset.Y.ToString("R",CultureInfo.InvariantCulture));n.AddValue("centerZ",CenterOffset.Z.ToString("R",CultureInfo.InvariantCulture));
             n.AddValue("atmosphereBackend",AtmosphereBackend);n.AddValue("cylaLightSteps",CylaLightSteps);n.AddValue("cylaDivisor",CylaDivisor);n.AddValue("cylaDither",CylaDither);
             n.AddValue("weatherPeriod",WeatherPeriod.ToString("R",CultureInfo.InvariantCulture));n.AddValue("weatherVariation",WeatherVariation.ToString("R",CultureInfo.InvariantCulture));n.AddValue("stormChance",StormChance.ToString("R",CultureInfo.InvariantCulture));n.AddValue("cloudWind",CloudWind.ToString("R",CultureInfo.InvariantCulture));n.AddValue("rainDensity",RainDensity.ToString("R",CultureInfo.InvariantCulture));n.AddValue("rainEnabled",RainEnabled);n.AddValue("lightningEnabled",LightningEnabled);
             n.AddValue("fullRingDetail",FullRingDetail);n.AddValue("forestQuality",ForestQuality);
@@ -102,7 +121,7 @@ namespace NivenRingworld
         {
             var s=new Settings();var p=new RingParameters{SurfaceDensity=1000000};
             var nodes=GameDatabase.Instance.GetConfigNodes("NIVEN_RINGWORLD");
-            if(nodes.Length>1&&!warnedMultipleDefinitions){warnedMultipleDefinitions=true;Debug.LogWarning("[NivenRingworld] Multiple NIVEN_RINGWORLD definitions found. This release supports one habitat and uses the first definition; additional nodes do not spawn rings.");}
+            if(nodes.Length>1&&!warnedMultipleDefinitions){warnedMultipleDefinitions=true;Debug.LogWarning("[NivenRingworld] Multiple NIVEN_RINGWORLD definitions found. The first definition supplies defaults; create additional save-specific habitats with the Sandbox ring manager.");}
             if(nodes.Length>0)
             {
                 var n=nodes[0];

@@ -164,7 +164,7 @@ namespace NivenRingworld
                 foreach(var camera in cameras)
                 {
                     var target=camera.targetTexture;var projection=camera.projectionMatrix;var rect=camera.rect;float aspect=camera.aspect;
-                    try{camera.targetTexture=captureTarget;camera.rect=new Rect(0,0,1,1);camera.aspect=(float)viewportWidth/viewportHeight;camera.projectionMatrix=projection;if(camera==cameraComponent)Prepare(true,RingworldFlight.Instance.Star.position);camera.Render();}
+                    try{camera.targetTexture=captureTarget;camera.rect=new Rect(0,0,1,1);camera.aspect=(float)viewportWidth/viewportHeight;camera.projectionMatrix=projection;if(camera==cameraComponent)Prepare(true,RingworldFlight.Instance.Center);camera.Render();}
                     finally{camera.targetTexture=target;camera.rect=rect;camera.aspect=aspect;camera.projectionMatrix=projection;}
                 }
                 if(!photoStarted)throw new InvalidOperationException("Final flight camera did not produce the photo.");

@@ -26,7 +26,7 @@ Ring shaders, materials and bundles use ring-specific names. Existing scenery re
 
 ## Multiple configured rings: design status
 
-Multiple simultaneously landable rings are **not implemented**. The current flight controller, saved options and vessel frame records represent one ring; adding multiple `NIVEN_RINGWORLD` nodes does not create multiple habitats. Avoid publishing such a configuration as working.
+Since v1.1.3, multiple habitats are stored in the save's `RingworldScenario` RING nodes and managed by the Sandbox editor. `NIVEN_RINGWORLD` still supplies the initial defaults; duplicating that config node does not spawn another habitat. Only one rotating physics frame is loaded at a time. Surface API v2 adds `RingId`, `RingName` and `Center` to the existing snapshot; refresh it each physics tick and use the habitat center rather than HostBody.position. See MULTIPLE-RINGS.md for placement and lighting limits.
 
 A future catalog needs stable ring IDs, host-body names, individual geometry/seed/phase parameters, per-ring saved settings, and a ring ID in every vessel record. Scaled rendering can then instantiate each definition, while only one nearby ring owns the local physics chart at a time. Transfers must convert through an inertial state and preserve unloaded vessels. Overlapping capture volumes need deterministic selection and hysteresis. Save migration and interactions with third-party gravity solvers must be tested before enabling this feature. Kopernicus-style configurable definitions are a useful model, but its spherical body/SOI machinery does not directly supply these ring dynamics.
 

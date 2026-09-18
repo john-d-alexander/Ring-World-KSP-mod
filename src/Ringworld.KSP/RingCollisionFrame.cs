@@ -21,7 +21,7 @@ namespace NivenRingworld
         {
             if(detector.part==null||!StockIntegration.Applies(detector.part.vessel))return FlightGlobals.getUpAxis(body,position);
             var f=RingworldFlight.Instance;
-            return ConvertVector.Ksp(f.Settings.Geometry.Up(ConvertVector.Core(position-f.Star.position)));
+            return ConvertVector.Ksp(f.Settings.Geometry.Up(ConvertVector.Core(position-f.Center)));
         }
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {

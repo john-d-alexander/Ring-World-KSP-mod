@@ -17,7 +17,7 @@ namespace NivenRingworld
         public void Start()
         {
             StockIntegration.Install();
-            gameObject.AddComponent<ScaledRing>();
+            gameObject.AddComponent<RingRenderRegistry>();
             Settings=Settings.Load();Star=FlightGlobals.Bodies.Find(b=>b.name=="Sun");
             Trajectory=gameObject.AddComponent<RingTrajectory>();
         }
@@ -36,6 +36,8 @@ namespace NivenRingworld
                 foreach(var id in remove)scenario.Vessels.Remove(id);
                 initialized=true;
             }
+            var selected=PlanetariumCamera.fetch!=null&&PlanetariumCamera.fetch.target!=null?PlanetariumCamera.fetch.target.vessel:null;
+            string nearest=RingSelection.Nearest(selected);if(nearest!=null){Settings=scenario.RingSettings(nearest);Star=Settings.Body;}
             if(Time.realtimeSinceStartup<nextCheck)return;
             nextCheck=Time.realtimeSinceStartup+.1f;
             double now=Planetarium.GetUniversalTime();
@@ -60,19 +62,24 @@ namespace NivenRingworld
         }
         private static double VesselEncounter(Vessel vessel,double now,double horizon)
         {
-            var orbit=RingTrajectory.SolarPatch(vessel,Star);if(orbit==null)return double.PositiveInfinity;
-            double offset=Math.Max(0,orbit.StartUT-now);
-            if(offset>horizon)return double.PositiveInfinity;
-            return offset+Encounter(orbit,Settings.Geometry,now+offset,horizon-offset);
+            double soonest=double.PositiveInfinity;var scenario=RingworldScenario.Instance;if(scenario==null)return soonest;
+            foreach(var node in scenario.Rings)
+            {
+                var s=scenario.RingSettings(node.GetValue("ringId")??"primary");if(s.Body==null)continue;
+                var orbit=RingTrajectory.SolarPatch(vessel,s.Body);if(orbit==null)continue;
+                double offset=Math.Max(0,orbit.StartUT-now);if(offset>horizon)continue;
+                soonest=Math.Min(soonest,offset+Encounter(orbit,s.Geometry,now+offset,horizon-offset,s.CenterOffset));
+            }
+            return soonest;
         }
-        internal static double Encounter(Orbit orbit,RingGeometry geometry,double now,double horizon)
+        internal static double Encounter(Orbit orbit,RingGeometry geometry,double now,double horizon,DVec centerOffset=default(DVec))
         {
-            var previous=ConvertVector.Core(ConvertVector.Orbit(orbit.getRelativePositionAtUT(now)));
+            var previous=ConvertVector.Core(ConvertVector.Orbit(orbit.getRelativePositionAtUT(now)))-centerOffset;
             if(geometry.InArrivalRegion(previous,false))return 0;
             for(double elapsed=0;elapsed<horizon;)
             {
                 double dt=Math.Min(120,horizon-elapsed);
-                var next=ConvertVector.Core(ConvertVector.Orbit(orbit.getRelativePositionAtUT(now+elapsed+dt)));
+                var next=ConvertVector.Core(ConvertVector.Orbit(orbit.getRelativePositionAtUT(now+elapsed+dt)))-centerOffset;
                 // Chord intersection catches a thin ribbon crossed between samples.
                 double entry=geometry.TimeToArrival(previous,(next-previous)/dt,dt);
                 if(!double.IsInfinity(entry))return elapsed+entry;

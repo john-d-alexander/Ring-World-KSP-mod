@@ -1,10 +1,10 @@
 # Supported scope and known limitations
 
-Version 1.0.2 extends the first release baseline for the tested expedition workflow. It does not implement every feature of a conventional spherical planet pack.
+Version 1.1.3 extends the tested expedition workflow with save-specific sandbox habitats and stock-science progression. It does not implement every feature of a conventional spherical planet pack.
 
 ## Physics and KSP integration
 
-- Expedition mode reinterprets opted-in vessels in a frame rotating with the ring. It does not globally replace KSP's celestial/orbital reference frames. The stock Sun remains the SOI.
+- Expedition mode reinterprets opted-in vessels in a frame rotating with the ring. It does not globally replace KSP's celestial/orbital reference frames. The reference star remains the SOI; habitats are not new CelestialBody spheres.
 - Automatic arrival and departure now convert loaded solar vessels between inertial flight and a rotating chart, preserving linear/angular motion and elapsed phase. The star stays the SOI. General multi-vessel, packed-vessel and map reference-frame transformations remain incomplete; this is an experimental local flight transition, not a global celestial-frame replacement. The training approach is explicitly a relocation aid.
 - The camera and local orientation vectors are adapted to the inward-facing floor. The flight altimeter shows local ground/water clearance; stock orbit statistics and recovery rules remain solar; ring-aware science subjects are categorized under the Sun internally; a custom vacuum map curve replaces the active solar spline. Navball attitude, prograde/retrograde and speed use the ring physics frame; solar normal/radial markers are hidden. Target speed requires another ring participant. Stock prograde/retrograde, radial and normal SAS target setters now use the same ring-relative vectors; target and manoeuvre modes retain their stock behaviour. EVA has explicit ring-relative orientation, surface-contact, movement, state-transition speed and ragdoll adapters. Regression is recorded in VALIDATION.md; all wheel suspension modes and complex EVA interactions have not been certified.
 - A Harmony prefix bypasses the stock planetary landing-state calculation for expedition vessels. This avoids dereferencing the Sun's absent PQS terrain and prevents spherical anchoring. Physical ground contact now reports stock `LANDED`; registered ring vessels use custom persistence and unpacking adapters instead of spherical anchoring. See RESIDENCE-AND-ENCOUNTERS.md.
@@ -56,3 +56,7 @@ Continuous canopy patches are opaque procedural geometry. Trunk collisions are l
 - Colossi moved from fixed landmark attachments to rare seeded placements in 1.0.2. Named landmarks have zero nearby colossi by default. Ordinary landmark buildings are retained.
 
 - Laptop intermediate forest clusters look coarse from high altitude, with visible changes between LOD levels. The forest no longer ends at the near square, but its representation is not visually seamless at every altitude.
+
+## Multiple habitats
+
+See MULTIPLE-RINGS.md. Rings remain parallel, fixed relative to their reference bodies, with one locally loaded rotating frame. Off-center illumination uses the existing central-star approximation. The first release of the manager conservatively rejects overlapping habitat envelopes and protects occupied rings from edits/deletion. Arbitrary planet-pack interoperability and all simultaneous multi-vessel cases are not certified.

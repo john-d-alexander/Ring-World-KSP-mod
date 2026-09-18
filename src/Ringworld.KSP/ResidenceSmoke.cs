@@ -31,7 +31,7 @@ namespace NivenRingworld
             var routine=(IEnumerator)AccessTools.Method(typeof(ModuleScienceExperiment),"OnScienceCompleteDelay").Invoke(module,null);
             while(routine.MoveNext())yield return routine.Current;
             var subject=(ScienceSubject)AccessTools.Field(typeof(ModuleScienceExperiment),"subject").GetValue(module);
-            if(subject==null||!subject.id.Contains("SrfLandedRingworld_")){fail("Stock landed science not separated: "+(subject==null?"null":subject.id));yield break;}
+            if(subject==null||!subject.id.Contains("SrfLandedRingworldV2_")){fail("Stock landed science not separated: "+(subject==null?"null":subject.id));yield break;}
             Debug.Log("[RingworldSmoke] STOCK LANDED SCIENCE "+subject.id);
             foreach(var dialog in UnityEngine.Object.FindObjectsOfType<KSP.UI.Screens.Flight.Dialogs.ExperimentsResultDialog>())UnityEngine.Object.Destroy(dialog.gameObject);
             yield return GroundScienceSmoke.Run(f,fail);

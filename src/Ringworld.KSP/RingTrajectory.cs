@@ -16,6 +16,7 @@ namespace NivenRingworld
         private readonly List<bool> pathInside=new List<bool>(),encounterEntries=new List<bool>();
         internal int EncounterCount {get{return encounters.Count;}}
         internal Orbit PredictedOrbit;
+        internal void ResetPrediction(){StopAllCoroutines();computing=false;packedEpoch=double.NaN;nextPrediction=0;PredictedOrbit=null;encounters.Clear();if(line!=null)line.positionCount=0;}
         internal int PredictionCommits;
         internal static Orbit SolarPatch(Vessel v,CelestialBody star)
         {
@@ -30,14 +31,14 @@ namespace NivenRingworld
         internal string Status="Vacuum coast prediction";
         internal int PointCount {get{return line==null?0:line.positionCount;}}
         internal static DVec InertialAcceleration(DVec p,Settings s,double mu)
-        {double r=p.Length;return p*(-mu/(r*r*r))+RibbonGravity.Acceleration(p,s.Geometry.P,s.Geometry.P.SurfaceDensity);}
+        {return s.StellarAcceleration(p,mu)+RibbonGravity.Acceleration(p,s.Geometry.P,s.Geometry.P.SurfaceDensity);}
         internal void PackedUpdate(RingworldFlight f)
         {
             var v=FlightGlobals.ActiveVessel;double now=Planetarium.GetUniversalTime();
             if(v==null||!v.packed||f.Active||v.mainBody!=f.Star){packedEpoch=double.NaN;return;}
             if(double.IsNaN(packedEpoch)||v.id!=vesselId||now<packedEpoch)
             {
-                packedState=new CoastState(ConvertVector.Core(ConvertVector.Orbit(v.orbit.getRelativePositionAtUT(now))),ConvertVector.Core(ConvertVector.Orbit(v.orbit.getOrbitalVelocityAtUT(now))));
+                packedState=new CoastState(ConvertVector.Core(ConvertVector.Orbit(v.orbit.getRelativePositionAtUT(now)))-f.Settings.CenterOffset,ConvertVector.Core(ConvertVector.Orbit(v.orbit.getOrbitalVelocityAtUT(now))));
                 vesselId=v.id;packedEpoch=now;return;
             }
             double remaining=now-packedEpoch;
@@ -56,7 +57,7 @@ namespace NivenRingworld
                 if(f.Settings.Geometry.InArrivalRegion(packedState.Position,false))TimeWarp.SetRate(0,true);
             }
             packedEpoch=now;
-            v.orbit.UpdateFromStateVectors(ConvertVector.Orbit(ConvertVector.Ksp(packedState.Position)),ConvertVector.Orbit(ConvertVector.Ksp(packedState.Velocity)),f.Star,now);
+            v.orbit.UpdateFromStateVectors(ConvertVector.Orbit(ConvertVector.Ksp(packedState.Position+f.Settings.CenterOffset)),ConvertVector.Orbit(ConvertVector.Ksp(packedState.Velocity)),f.Star,now);
         }
         public void Update()
         {
@@ -76,7 +77,7 @@ namespace NivenRingworld
                 float distance=Vector3.Distance(PlanetariumCamera.Camera.transform.position,line.GetPosition(0));
                 line.widthMultiplier=Mathf.Max(.002f,distance*.001f);
             }
-            if(!Tracking&&line.positionCount>0&&v.mainBody==f.Star)line.SetPosition(0,(Vector3)ScaledSpace.LocalToScaledSpace(f.Star.position+ConvertVector.Ksp(f.Position(v))));
+            if(!Tracking&&line.positionCount>0&&v.mainBody==f.Star)line.SetPosition(0,(Vector3)ScaledSpace.LocalToScaledSpace(f.Center+ConvertVector.Ksp(f.Position(v))));
             if(!computing&&Time.realtimeSinceStartup>=nextPrediction){nextPrediction=Time.realtimeSinceStartup+1f/30;StartCoroutine(Predict(f,v));}
         }
         public void OnGUI()
@@ -141,8 +142,8 @@ namespace NivenRingworld
             {
                 var settings=CurrentSettings;var star=CurrentStar;var g=settings.Geometry;bool rotating=f!=null&&f.Owns(v);double start=Planetarium.GetUniversalTime();var patch=SolarPatch(v,star);if(patch==null)yield break;
                 double elapsed=rotating?start-f.FrameEpoch:0;
-                DVec position=f!=null?f.Position(v):ConvertVector.Core(ConvertVector.Orbit(patch.getRelativePositionAtUT(start))),velocity=f!=null?f.Velocity(v):ConvertVector.Core(ConvertVector.Orbit(patch.getOrbitalVelocityAtUT(start)));
-                if(v.mainBody!=star){start=Math.Max(start,patch.StartUT);position=ConvertVector.Core(ConvertVector.Orbit(patch.getRelativePositionAtUT(start)));velocity=ConvertVector.Core(ConvertVector.Orbit(patch.getOrbitalVelocityAtUT(start)));}
+                DVec position=f!=null?f.Position(v):ConvertVector.Core(ConvertVector.Orbit(patch.getRelativePositionAtUT(start)))-settings.CenterOffset,velocity=f!=null?f.Velocity(v):ConvertVector.Core(ConvertVector.Orbit(patch.getOrbitalVelocityAtUT(start)));
+                if(v.mainBody!=star){start=Math.Max(start,patch.StartUT);position=ConvertVector.Core(ConvertVector.Orbit(patch.getRelativePositionAtUT(start)))-settings.CenterOffset;velocity=ConvertVector.Core(ConvertVector.Orbit(patch.getOrbitalVelocityAtUT(start)));}
                 if(rotating){velocity=g.ToInertialVelocity(position,velocity,elapsed);position=g.ToInertialPosition(position,elapsed);}
                                 var state=new CoastState(position,velocity);var points=new List<Vector3>();double time=0;
                 var crossings=new List<int>();var times=new List<double>();var insidePoints=new List<bool>();var entries=new List<bool>();
@@ -165,7 +166,7 @@ namespace NivenRingworld
                     }
                     if(Math.Abs(coord.Across)<g.P.Width/2&&coord.Altitude>=-1300&&coord.Altitude<g.P.AtmosphereHeight+1&&settings.Atmosphere)
                     {result=time==0?"In atmosphere: no reliable vacuum trajectory; aerodynamic prediction pending":"Coast ends at atmosphere entry (+"+time.ToString("F1")+" s)";break;}
-                    if(state.Position.Length<star.Radius){result="Coast ends at the Sun";break;}
+                    if((state.Position+settings.CenterOffset).Length<star.Radius){result="Coast ends at the Sun";break;}
                     double materialAlong=RingGeometry.Wrap(coord.Along-(g.P.Omega*(start+time)-g.OrientationRadians)*g.P.Radius,g.P.Circumference);
                     if(Math.Abs(coord.Across)<g.P.Width/2&&coord.Altitude>=settings.UndersideAltitude&&coord.Altitude<=settings.Terrain.Sample(materialAlong,coord.Across).Height)
                     {result="Coast ends at terrain contact";break;}
@@ -173,7 +174,7 @@ namespace NivenRingworld
                     {result="Coast ends at rim wall";break;}
                     // The map uses the same frozen rotating chart as the local scene.
                     var display=rotating?RingGeometry.Rotate(state.Position,-g.P.Omega*(elapsed+time)):state.Position;
-                    points.Add((Vector3)ScaledSpace.LocalToScaledSpace(star.position+ConvertVector.Ksp(display)));insidePoints.Add(inside);
+                    points.Add((Vector3)ScaledSpace.LocalToScaledSpace(settings.Center+ConvertVector.Ksp(display)));insidePoints.Add(inside);
                     double gap=Math.Max(1,Math.Abs(coord.Altitude-g.P.AtmosphereHeight));
                     double radial=Math.Abs((state.Position.X*state.Velocity.X+state.Position.Z*state.Velocity.Z)/Math.Max(1,Math.Sqrt(state.Position.X*state.Position.X+state.Position.Z*state.Position.Z)));
                     double dt=Math.Min(120,Math.Max(.01,Math.Min(gap/(radial+1)*.2,Math.Sqrt(gap/(state.Velocity.Length*state.Velocity.Length/state.Position.Length+1))*.2)));

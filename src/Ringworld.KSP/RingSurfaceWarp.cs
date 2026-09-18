@@ -59,7 +59,7 @@ namespace NivenRingworld
             if(!CanAdvance(f))return false;
             f.Capture();
             foreach(var v in FlightGlobals.VesselsLoaded)
-                if(f.Owns(v)&&!Anchored(v))anchors[v]=new Anchor{Position=ConvertVector.Core((Vector3d)v.transform.position-f.Star.position),Rotation=v.transform.rotation};
+                if(f.Owns(v)&&!Anchored(v))anchors[v]=new Anchor{Position=ConvertVector.Core((Vector3d)v.transform.position-f.Center),Rotation=v.transform.rotation};
             return true;
         }
         internal void Hold(Vessel v)
@@ -69,7 +69,7 @@ namespace NivenRingworld
             var pos=ConvertVector.Ksp(a.Position);
             RingResidence.UpdateBookkeeping(v,f.Settings,f.Star,a.Position,new DVec(),f.FrameEpoch);
             v.orbitDriver.pos=pos;v.orbitDriver.vel=Vector3d.zero;
-            v.SetPosition(f.Star.position+pos,true);v.SetRotation(a.Rotation,false);
+            v.SetPosition(f.Center+pos,true);v.SetRotation(a.Rotation,false);
         }
         internal void Release(Vessel v)
         {

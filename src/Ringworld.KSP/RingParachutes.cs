@@ -11,7 +11,7 @@ namespace NivenRingworld
         {
             if(!RingAir.Applies(chute.vessel))return FlightGlobals.getStaticPressure(position,body);
             var f=RingworldFlight.Instance;
-            return new RingAtmosphere(f.Settings.Geometry).Sample(ConvertVector.Core(position-f.Star.position)).PressureKPa;
+            return new RingAtmosphere(f.Settings.Geometry).Sample(ConvertVector.Core(position-f.Center)).PressureKPa;
         }
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
@@ -33,7 +33,7 @@ namespace NivenRingworld
         private static bool Prefix(ModuleParachute __instance,ref bool __result)
         {
             if(!RingAir.Applies(__instance.vessel))return true;
-            var f=RingworldFlight.Instance;var p=f.Settings.Geometry.Coordinates(ConvertVector.Core((Vector3d)__instance.part.transform.position-f.Star.position));
+            var f=RingworldFlight.Instance;var p=f.Settings.Geometry.Coordinates(ConvertVector.Core((Vector3d)__instance.part.transform.position-f.Center));
             var ground=f.Settings.Terrain.Sample(p.Along,p.Across);
             __result=p.Altitude-(ground.Wet?ground.WaterHeight:ground.Height)<__instance.deployAltitude;return false;
         }

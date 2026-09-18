@@ -4,7 +4,7 @@ Cyla by **Ghassen Lahmar (LGhassen / blackrack)**: https://github.com/LGhassen/C
 
 ## Packaging and licensing
 
-`vendor/Cyla` pins upstream 1.1.0.0, commit 92223648e0674212e488e6fb977b5cffc63be869. Releases include unmodified GameData/Cyla binaries, original License.md, matching published plugin source and provenance under ThirdParty/Cyla. The GPLv3 plugin and compiled-only shaders are not relicensed as MIT. Original Ringworld adapter code calls the public shader interface without embedding upstream C# or reconstructing shader source. See CREDITS.md and THIRD-PARTY-NOTICES.md. CKAN dependency ownership/license metadata still need review before indexing.
+`vendor/Cyla` retains the development reference for upstream 1.1.0.0, commit 92223648e0674212e488e6fb977b5cffc63be869. Since v1.1.3, release ZIPs do not contain Cyla binaries, shaders or source. Install Cyla separately from https://github.com/LGhassen/Cyla/releases. Its GPLv3 plugin and compiled-only shader notice remain the upstream author's terms. Original Ringworld adapter code calls the public shader interface without embedding upstream C# or reconstructing shader source. See CREDITS.md and THIRD-PARTY-NOTICES.md. Optional Cyla CKAN indexing awaits author/maintainer approval.
 
 ## Rendering
 

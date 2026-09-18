@@ -41,7 +41,7 @@ namespace NivenRingworld
             foreach(var scenario in node.GetNodes("SCENARIO"))if((scenario.GetValue("name")??"").StartsWith("Tutorial"))node.RemoveNode(scenario);
             var state=node.GetNode("FLIGHTSTATE");
             foreach(var vessel in state.GetNodes("VESSEL"))if(vessel.GetValue("type")=="SpaceObject")state.RemoveNode(vessel);
-            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-weather-only")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-residence-only")>=0)
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-multi-ring-only")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-weather-only")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-residence-only")>=0)
             {
                 // A single flat-bottomed command pod isolates rendering tests from articulated crash debris.
                 foreach(var vessel in state.GetNodes("VESSEL"))
@@ -54,6 +54,12 @@ namespace NivenRingworld
             var game=GamePersistence.LoadGameCfg(root,folder,true,false);
             if(game==null){Fail("Unable to load test fixture");yield break;}
             game.Mode=Game.Modes.SANDBOX;game.startScene=GameScenes.FLIGHT;HighLogic.SaveFolder=folder;HighLogic.CurrentGame=game;
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-science-only")>=0)
+            {
+                game.Mode=Game.Modes.CAREER;
+                foreach(var type in new[]{typeof(ResearchAndDevelopment),typeof(Funding),typeof(Reputation)})
+                    if(!game.scenarios.Exists(s=>s.moduleName==type.Name))game.AddProtoScenarioModule(type,GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION);
+            }
             game.Parameters.Flight.CanEVA=true;
             game.AddProtoScenarioModule(typeof(RingworldScenario),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION);
             game.AddProtoScenarioModule(typeof(Expansions.Serenity.DeployedScience.Runtime.DeployedScience),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION,GameScenes.EDITOR);
@@ -110,6 +116,9 @@ namespace NivenRingworld
             catch(Exception ex){Fail("Toolbar/API: "+ex);yield break;}
             var smokeOptions=RingworldScenario.Instance.GetOptions().CreateCopy();smokeOptions.SetValue("seed",-739779896,true);RingQualityPresets.Apply(smokeOptions,6);
             flight.ApplyOptions(smokeOptions,true);
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-multi-ring-only")>=0){yield return MultiRingSmoke.Run(flight,Fail);running=false;Application.Quit();yield break;}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-science-only")>=0){yield return ResearchSmoke.Run(flight,Fail);running=false;Application.Quit();yield break;}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-wall-only")>=0){yield return WallSmoke.Run(flight,Fail);running=false;Application.Quit();yield break;}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-visual-options-only")>=0){yield return VisualOptionsSmoke.Run(flight,Fail);running=false;Application.Quit();yield break;}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-reentry-only")>=0)
             {
@@ -550,7 +559,7 @@ namespace NivenRingworld
             var scienceRoutine=(IEnumerator)AccessTools.Method(typeof(ModuleScienceExperiment),"OnScienceCompleteDelay").Invoke(stockExperiment,null);
             while(scienceRoutine.MoveNext())yield return scienceRoutine.Current;
             var stockSubject=(ScienceSubject)AccessTools.Field(typeof(ModuleScienceExperiment),"subject").GetValue(stockExperiment);
-            if(stockSubject==null||!stockSubject.id.Contains("Ringworld_")||stockSubject.title.Contains("over the Sun")){Fail("Stock instrument did not get ring science subject");yield break;}
+            if(stockSubject==null||!stockSubject.id.Contains("RingworldV2_")||stockSubject.title.Contains("over the Sun")){Fail("Stock instrument did not get ring science subject");yield break;}
             Debug.Log("[RingworldSmoke] STOCK SCIENCE "+stockSubject.id+" title="+stockSubject.title);
             foreach(var dialog in UnityEngine.Object.FindObjectsOfType<KSP.UI.Screens.Flight.Dialogs.ExperimentsResultDialog>())UnityEngine.Object.Destroy(dialog.gameObject);
             saved.Save(Path.Combine(KSPUtil.ApplicationRootPath,"RingworldSmoke-scenario.cfg"));

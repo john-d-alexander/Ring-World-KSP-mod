@@ -12,8 +12,10 @@ import urllib.request
 
 root = pathlib.Path(__file__).resolve().parents[1]
 repo = 'theplatecrafter/Ring-World-KSP-mod'
-tag = 'Release-v1.1.2'
-archive = root / 'artifacts/NivenRingworld-1.1.2.zip'
+version_data=json.loads((root/'GameData/NivenRingworld/NivenRingworld.version').read_text())['VERSION']
+version='.'.join(str(version_data[k]) for k in ('MAJOR','MINOR','PATCH'))
+tag = 'Release-v'+version
+archive = root / f'artifacts/NivenRingworld-{version}.zip'
 checksum = archive.with_suffix('.zip.sha256')
 assert checksum.read_text().split()[0] == hashlib.sha256(archive.read_bytes()).hexdigest()
 assert subprocess.check_output(['git', 'branch', '--show-current'], cwd=root, text=True).strip() == 'main'
@@ -41,10 +43,10 @@ existing = next((release for release in releases if release['tag_name'] == tag),
 if existing and not existing['draft']:
     raise SystemExit('Release already published: ' + existing['html_url'])
 release = existing or request(base + '/releases', 'POST', {
-    'tag_name': tag, 'target_commitish': commit, 'name': 'Niven Ringworld Expedition v1.1.2',
-    'body': (root / 'docs/RELEASE-1.1.2.md').read_text(encoding='utf-8'),
+    'tag_name': tag, 'target_commitish': commit, 'name': 'Niven Ringworld Expedition v'+version,
+    'body': (root / f'docs/RELEASE-{version}.md').read_text(encoding='utf-8'),
     'draft': True, 'prerelease': False})
-for path in (archive, checksum):
+for path in (archive, checksum, root / f'distribution/NivenRingworld-{version}.ckan', root / 'distribution/NivenRingworld.netkan'):
     if any(asset['name'] == path.name for asset in release['assets']):
         raise SystemExit('Draft asset already present; verify it before retrying: ' + path.name)
     request(release['upload_url'].split('{')[0] + '?name=' + urllib.parse.quote(path.name),

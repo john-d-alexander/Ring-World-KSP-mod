@@ -12,6 +12,7 @@ static class Program
     static void Near(double actual,double expected,double tolerance,string text){Check(Math.Abs(actual-expected)<=tolerance,text+": "+actual+" != "+expected);}
     static void Main(string[] args)
     {
+        ResearchTests.Run(Check);
         var p=new RingParameters();var g=new RingGeometry(p);var t=new TerrainGenerator(g);
         foreach(double diameterKm in new[]{200000000.0,300000000.0,2000000000.0})
         {

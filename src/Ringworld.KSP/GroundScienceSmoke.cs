@@ -53,7 +53,7 @@ namespace NivenRingworld
             var experiment=UnityEngine.Object.FindObjectOfType<DeployedScienceExperiment>();
             if(experiment==null||!experiment.ExperimentSituationValid||!cluster.IsPowered||cluster.PowerAvailable<2||cluster.PowerRequired!=2){fail("Deployed science not powered/available: "+cluster.PowerAvailable+"/"+cluster.PowerRequired);yield break;}
             var subject=(ScienceSubject)AccessTools.Field(typeof(DeployedScienceExperiment),"subject").GetValue(experiment);
-            if(subject==null||!subject.id.Contains("Ringworld_")){fail("Deployed subject is solar science");yield break;}
+            if(subject==null||!subject.id.Contains("RingworldV2_")){fail("Deployed subject is solar science");yield break;}
             Debug.Log("[RingworldSmoke] DEPLOYED SCIENCE subject="+subject.id+" power="+cluster.PowerAvailable+" required="+cluster.PowerRequired);
         }
     }

@@ -17,7 +17,7 @@ namespace NivenRingworld
             float now=Time.fixedTime;
             if(now==last)return initialized&&now-since>=1;
             last=now;
-            var root=v.rootPart;var p=ConvertVector.Core((Vector3d)v.transform.position-f.Star.position);var q=root.transform.rotation;
+            var root=v.rootPart;var p=ConvertVector.Core((Vector3d)v.transform.position-f.Center);var q=root.transform.rotation;
             bool reset=!initialized||epoch!=f.FrameEpoch||parts.Count!=v.parts.Count;
             PositionError=initialized?(p-position).Length:0;
             AngleError=initialized?Quaternion.Angle(q,rotation):0;

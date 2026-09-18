@@ -3,7 +3,7 @@ namespace NivenRingworld
     /// <summary>Read-only integration point for flight instruments and other mods.</summary>
     public static class RingworldSurfaceApi
     {
-        public const int Version=1;
+        public const int Version=2;
 
         /// <summary>
         /// Returns false outside a restored, unpacked ring frame, including transfers.
@@ -20,7 +20,7 @@ namespace NivenRingworld
             var terrain=flight.Settings.Terrain.Sample(coordinates.Along,coordinates.Across);
             state=new RingworldSurfaceState
             {
-                HostBody=flight.Star,
+                HostBody=flight.Star,RingId=flight.Settings.RingId,RingName=flight.Settings.RingName,Center=flight.Center,
                 Along=coordinates.Along,Across=coordinates.Across,
                 Altitude=coordinates.Altitude,
                 TerrainElevation=terrain.Height,WaterElevation=terrain.WaterHeight,OverWater=terrain.Wet,
@@ -38,6 +38,9 @@ namespace NivenRingworld
     public struct RingworldSurfaceState
     {
         public CelestialBody HostBody { get; internal set; }
+        public string RingId { get; internal set; }
+        public string RingName { get; internal set; }
+        public Vector3d Center { get; internal set; }
         public double Along { get; internal set; }
         public double Across { get; internal set; }
         public double Altitude { get; internal set; }

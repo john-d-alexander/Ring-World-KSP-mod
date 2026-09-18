@@ -6,7 +6,6 @@ namespace NivenRingworld
 {
     internal static class RingResidence
     {
-        private static ConfigNode cachedOptions;private static Settings cachedSettings;
         internal static bool UpdateContact(RingworldFlight f,Vessel v)
         {
             if(!f.Owns(v))return false;
@@ -30,21 +29,20 @@ namespace NivenRingworld
         internal static void UpdateBookkeeping(Vessel v,Settings settings,CelestialBody star,DVec position,DVec velocity,double epoch)
         {
             double now=Planetarium.GetUniversalTime(),elapsed=now-epoch;var g=settings.Geometry;
-            v.orbit.UpdateFromStateVectors(ConvertVector.Orbit(ConvertVector.Ksp(g.ToInertialPosition(position,elapsed))),ConvertVector.Orbit(ConvertVector.Ksp(g.ToInertialVelocity(position,velocity,elapsed))),star,now);
+            v.orbit.UpdateFromStateVectors(ConvertVector.Orbit(ConvertVector.Ksp(g.ToInertialPosition(position,elapsed)+settings.CenterOffset)),ConvertVector.Orbit(ConvertVector.Ksp(g.ToInertialVelocity(position,velocity,elapsed))),star,now);
         }
         internal static void HoldSaved(Vessel v,VesselRecord r)
         {
             if(!r.Landed||v.orbitDriver==null)return;
             var s=RingworldScenario.Instance;var f=RingworldFlight.Instance;
-            if(cachedSettings==null||cachedOptions!=s.GetOptions()){cachedOptions=s.GetOptions();cachedSettings=Settings.Load();cachedSettings.Apply(cachedOptions);}
-            var settings=f!=null&&f.Settings!=null?f.Settings:cachedSettings;
-            var star=v.mainBody;if(star==null)return;
-            double epoch=f!=null&&f.FrameInUse?f.FrameEpoch:Planetarium.GetUniversalTime();
+            var settings=s.RingSettings(r.RingId);if(settings==null||settings.Body==null)return;
+            var star=settings.Body;
+            double epoch=f!=null&&f.Settings.RingId==r.RingId&&f.FrameInUse?f.FrameEpoch:Planetarium.GetUniversalTime();
             double angle=settings.Geometry.P.Omega*(epoch-r.Epoch);
             var p=RingGeometry.Rotate(r.Position,angle);
             UpdateBookkeeping(v,settings,star,p,new DVec(),epoch);
-            v.orbitDriver.pos=ConvertVector.Ksp(p);v.orbitDriver.vel=Vector3d.zero;
-            v.SetPosition(star.position+ConvertVector.Ksp(p),true);
+            v.orbitDriver.pos=ConvertVector.Ksp(p+settings.CenterOffset);v.orbitDriver.vel=Vector3d.zero;
+            v.SetPosition(settings.Center+ConvertVector.Ksp(p),true);
             v.SetRotation(Quaternion.AngleAxis((float)(angle*180/Math.PI),Vector3.up)*r.Rotation,false);
             v.Landed=true;v.situation=Vessel.Situations.LANDED;v.landedAt="Ringworld";v.displaylandedAt="Ringworld";
         }
@@ -69,7 +67,7 @@ namespace NivenRingworld
         {
             if(__state)__instance.Landed=true;
             VesselRecord r;var f=RingworldFlight.Instance;
-            if(!__instance.packed&&f!=null&&RingResidence.Saved(__instance,out r))
+            if(!__instance.packed&&f!=null&&RingResidence.Saved(__instance,out r)&&r.RingId==f.Settings.RingId)
             {
                 Krakensbane.ResetVelocityFrame(true);
                 __instance.SetWorldVelocity(ConvertVector.Ksp(RingGeometry.Rotate(r.Velocity,f.Settings.Geometry.P.Omega*(f.FrameEpoch-r.Epoch))));
@@ -108,7 +106,7 @@ namespace NivenRingworld
                 // Keep a valid inertial osculating orbit for stock persistence and spawned parts.
                 // A stationary rotating-frame velocity otherwise produces a degenerate solar orbit.
                 RingResidence.UpdateBookkeeping(v,f.Settings,f.Star,p,speed,f.FrameEpoch);
-                __instance.pos=ConvertVector.Ksp(p);__instance.vel=ConvertVector.Ksp(speed);return false;
+                __instance.pos=ConvertVector.Ksp(p+f.Settings.CenterOffset);__instance.vel=ConvertVector.Ksp(speed);return false;
             }
             if(!r.Landed)return true;
             if(f!=null&&f.surfaceWarp.Anchored(v))return true;

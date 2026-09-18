@@ -686,3 +686,42 @@ RingworldSmoke-20260917-132516.log passed normal and enlarged-ring ascent/re-ent
 `RingworldSmoke-20260917-185354.log` passed all eleven updated preset round-trips and all 21 advanced Cyla numeric settings, using detached Settings objects for higher tiers. Live rendering stayed at Slow. The water shader loaded successfully and camera clearance matched submerged ground instead of the water level. Photo captures at 512x341 and 1536x1024 passed pixel-content/aspect/dimension checks, cancellation and gameplay-setting restoration; both images were inspected. These are actual camera-stack output renders. 8K/16K were not attempted on this laptop. GPU memory checks are conservative estimates, not a guarantee against driver allocation failure.
 
 Follow-up `RingworldSmoke-20260917-190028.log` also passed. The GPU probe changed the surface behind the water from red to blue: quality 0 output changed from (0.714,0.071,0.086) to (0.012,0.071,0.788), and quality 1 from (1.000,0.443,0.416) to (0.439,0.443,1.000), confirming actual alpha blending. Both output resolutions, cancellation and restoration passed again with stock antialiasing applied to the capture target. The normal DLL was restored. Higher Cyla optical modes and high-resolution capture remain limited to static validation in this run; historical Cyla gameplay/render tests above predate the user's Slow-only testing restriction.
+
+### 2026-09-18: continuous rim-wall appearance
+
+The full-ring closed wall mesh already renders independently of terrain distance. The local wall used a separately lit Standard material after the Original atmosphere, whereas the scaled wall was composited behind the atmosphere. This made the nearby section appear as an isolated dark strip. Local walls now use the same dedicated dark-wall shader and render before the Original sky. Collision geometry is unchanged; no mesh density, streaming range or camera clip limits were increased.
+
+`./smoke-test.ps1 -WallOnly` adds a targeted Rotten Potato regression. Baseline `RingworldSmoke-20260918-010816.log` confirmed the existing scaled wall on both rims. After the fix, `RingworldSmoke-20260918-011314.log` passed six offscreen wall-centre pixel assertions (both rims, headings 0/75/88 degrees). Actual flight-camera captures with the local shell visible and hidden were inspected; both retain the continuous wall without the isolated strip. Their unobstructed wall region differs by less than 0.00004 per RGB channel on average on a 0–255 scale. Captures are `template_instance/Ringworld-wall-composite-joined.png` and `Ringworld-wall-composite-scaled-only.png`; the report is `artifacts/validation/wall-smoke.txt`.
+
+108,655 core checks passed; both test and normal builds completed with zero warnings/errors. The normal plugin was restored and installed. Live testing used Original atmosphere at Rotten Potato; higher presets/Cyla were not rendered in this regression. A stock KnowledgeBase target-change exception occurred during test-scene setup; no Ringworld exception was found. This is a local development fix, not a replacement for the published v1.1.2 ZIP.
+
+### 2026-09-18: stock research and expedition progression
+
+The development build now has 108,728 passing core checks, including 73 research checks: landed/air/space separation, terminal versus wall, all twenty shadow-square identities at three times, ordinary solar-space exclusion, distinct-location counting, prerequisites, experiment filters and one-time completion.
+
+`RingworldSmoke-20260918-020135.log` passed the initial isolated Career regression at Slow. `RingworldSmoke-20260918-020641.log` passed the expanded run:
+
+- The actual stock crew-report completion coroutine generated `crewReport@SunSrfLandedRingworldV2_surface_landmark_arrival`; its cap and full return were 70 science.
+- All ten standard stock experiment types produced distinct valuable Ringworld subjects. Generating a subject alone did not credit an objective.
+- Stock `SubmitScienceData` awarded science and Career progression rewards. Zero-data submissions, repeat receipts, and journal save/load did not duplicate funds. Science mode recorded completion without Career currency.
+- ScienceSubject save/load retained both the custom title and earned science; revisiting an experiment did not reset depletion. The initial Kerbin orbit retained stock subjects.
+- All 25 fixed architectural placements were recognized as research locations. A subsequent conservative circular-footprint refinement accommodates prefab yaw independently of renderer state; it compiled and passed core checks, but its outer edge was not separately flown in this run.
+- A real EVA settled and generated both stock `surfaceSample` and `evaReport` subjects with the Ringworld landed location.
+- Breaking Ground's central station, two RTGs and Goo observation part remained anchored and powered; the deployed experiment used `deployedGooObservation@SunSrfLandedRingworldV2_surface_landmark_arrival`.
+
+Tests use direct stock delivery calls rather than a flown return to Kerbin or a full antenna transmission. The approximate floating-water classification, every procedural colossus, and third-party science replacements have not received separate live end-to-end tests. Stock AlarmClock/PQS and teardown exceptions appeared; no Ringworld exception was found. Final normal compilation completed with zero warnings/errors and was installed into `template_instance`. No public ZIP was replaced by this development update.
+
+
+## v1.1.3 multi-habitat and unbundled-dependency validation — September 18, 2026
+
+- Core suite: 108,728 checks passed. Release builds target the installed KSP 1.12.5 assemblies with zero warnings/errors.
+- `RingworldSmoke-20260918-105735.log`: two habitats, second center offset Y = 400,000 km. Passed independent renderers, overlap rejection, natural-gravity pod landing, stock save permission, per-ring science identity, stock landed warp, KSC/save/reload, moving/deleting the unoccupied other ring without moving the resident.
+- `RingworldSmoke-20260918-110330.log`: Cyla folder temporarily moved outside GameData and restored afterward. No Cyla loader assembly present. Explicitly requesting Cyla safely fell back to Original; the full multi-ring landing/warp/save loop passed with only external Harmony required.
+- `RingworldSmoke-20260918-110703.log`: repeat with distant ring mesh budgets (2,048 segments vs 8,192 for the active habitat). Map capture shows both parallel habitats. Additional offset Tracking Station regression: 42 trajectory points, one encounter, unsafe warp rejected, automatic Flight handoff at 209,910.9 m altitude after 118.52 s UT; no rollback. Camera departure preserved the first-frame angle (0 degrees).
+- These runs used Slow or Rotten Potato, not higher presets. They used isolated test saves; collision immunity on the plain-pod fixture is not a certification of all craft impacts.
+- NetKAN source passes the official NetKAN JSON schema using the upstream CKAN schema for references. Metadata declares only required Harmony2 >= 2.2.1.0; optional Cyla has no invented CKAN identifier. Official indexing and a CKAN-client clean-install test have not been performed.
+- Stock PQS/AlarmClock teardown exceptions still appear during automatic scene changes; no Ringworld exception was observed in these passed runs. Planet-pack star selection is implemented but was not tested with an installed multi-star pack. Large offsets retain approximate lighting; see MULTIPLE-RINGS.md.
+
+- `RingworldSmoke-20260918-111139.log`: repeated stock science/Career regression after habitat-aware changes. Passed all ten stock experiment subjects, 70-point crew report, two milestones, no duplicate payout, receipt/subject persistence, Science-mode currency isolation, 25 structure envelopes, actual EVA sample/report, and deployed Goo with 2/2 power. This tests stock delivery APIs and deployment, not a fully flown antenna/recovery mission.
+
+- `RingworldSmoke-20260918-111626.log`: user eight-leg / 38-part craft, natural gravity and crash damage enabled after placement. All parts survived; all eight feet grounded; paused save allowed; 10×/1,000×/1,000× native warp passed with less than 0.7 mm measured displacement. KSC save/reload error 0.94 mm; warp remained available.

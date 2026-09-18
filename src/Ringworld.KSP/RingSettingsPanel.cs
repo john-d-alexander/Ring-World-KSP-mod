@@ -5,6 +5,7 @@ namespace NivenRingworld
 {
     internal sealed class RingSettingsPanel
     {
+        private readonly RingSandboxEditor rings=new RingSandboxEditor();
         private bool cylaAdvanced;private string[] cylaFields;private int cylaMode;
         private bool initialized,dynamicWeather,trajectory,particles,fullRingDetail,rainEnabled,lightningEnabled;
         private string seed,range,height,forest,day,haze,cloud,diameter,width,gravity,wall,density,prediction,warp,ponds,detailDistance,message="";
@@ -30,6 +31,7 @@ namespace NivenRingworld
                 weatherPeriod=N(s.WeatherPeriod/3600);weatherVariation=N(s.WeatherVariation);stormChance=N(s.StormChance);cloudWind=N(s.CloudWind);rainDensity=N(s.RainDensity);rainEnabled=s.RainEnabled;lightningEnabled=s.LightningEnabled;fullRingDetail=s.FullRingDetail;visualQuality=s.VisualQuality;waterQuality=s.WaterQuality;cloudSteps=N(s.CloudSteps);airSteps=N(s.AtmosphereSteps);cloudRange=N(s.CloudRange/1000);cloudShadow=N(s.CloudShadow);exposure=N(s.AtmosphereExposure);waveHeight=N(s.WaveHeight);photoSamples=N(s.PhotoSamples);
                 atmosphereBackend=s.AtmosphereBackend;cylaResolution=s.CylaDivisor==8?0:s.CylaDivisor==4?1:s.CylaDivisor==2?2:3;cylaDither=s.CylaDither;cylaLightSteps=N(s.CylaLightSteps);presetLabel=RingQualityPresets.Match(s);forestQuality=s.ForestQuality;quality=s.LodResolution==8?0:s.LodResolution==16?1:2;budget=s.GenerationBudget-1;initialized=true;
             }
+            rings.Draw(flight);
             GUILayout.Label("Settings are stored with this save.");
             if(GUILayout.Button("Quality preset: "+presetLabel+"  v"))presetOpen=!presetOpen;
             if(presetOpen)for(int i=0;i<RingQualityPresets.Names.Length;i++)
@@ -41,7 +43,7 @@ namespace NivenRingworld
             GUILayout.Label("No distance cutoff for this coarse surface layer. Photo mode enables it temporarily. Detailed terrain uses the horizon distance above.");
             GUILayout.Label(StockGraphics.Description);
             GUILayout.Label("Atmosphere backend");
-            atmosphereBackend=GUILayout.Toolbar(atmosphereBackend,new[]{"Original","Cyla (bundled)"});
+            atmosphereBackend=GUILayout.Toolbar(atmosphereBackend,new[]{"Original","Cyla (optional)"});
             GUILayout.Label("Cyla render resolution (depth-aware foreground preservation)");cylaResolution=GUILayout.Toolbar(cylaResolution,new[]{"1/8","1/4","1/2","Full"});
             cylaLightSteps=Field("Cyla light integration steps (1 to 50)",cylaLightSteps);
             cylaDither=GUILayout.Toggle(cylaDither,"Cyla temporal dithering (disabled during photo capture)");
@@ -71,7 +73,7 @@ namespace NivenRingworld
             GUILayout.Label("Biome features: forests");
             forestQuality=GUILayout.Toolbar(forestQuality,new[]{"Economy","Low","High","Ultra"});
             GUILayout.Label("Economy: quarter-count simple nearby crowns; distant canopy surface only. Low/High/Ultra add progressively denser distant crown meshes. Tree contacts and world generation are unchanged.");
-            bool worldUnlocked=state.Vessels.Count==0&&state.Discoveries.Count==0;
+            bool worldUnlocked=state.Vessels.Count==0&&state.Discoveries.Count==0&&state.Research.Receipts.Count==0;
             GUI.enabled=worldUnlocked;
             seed=Field("World seed (blank chooses a random seed)",seed);
             height=Field("Natural terrain height multiplier (0.25–3)",height);

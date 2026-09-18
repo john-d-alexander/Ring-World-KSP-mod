@@ -1,13 +1,28 @@
-param([int]$TimeoutSeconds=900,[switch]$MapOnly,[switch]$TerrainOnly,[switch]$WarpOnly,[switch]$UnmatchedOnly,[switch]$PhotoOnly,[switch]$DistantOnly,[switch]$WeatherOnly,[switch]$SceneryOnly,[switch]$GlobalCloudsOnly,[switch]$ResidenceOnly,[switch]$GuidanceOnly,[switch]$StabilityOnly,[switch]$LandmarksOnly,[switch]$GearOnly,[switch]$CylaOnly,[switch]$TrackingOnly,[switch]$ReentryOnly,[switch]$RenderOnly,[switch]$VisualOptionsOnly)
+param([int]$TimeoutSeconds=900,[switch]$MapOnly,[switch]$TerrainOnly,[switch]$WarpOnly,[switch]$UnmatchedOnly,[switch]$PhotoOnly,[switch]$DistantOnly,[switch]$WeatherOnly,[switch]$SceneryOnly,[switch]$GlobalCloudsOnly,[switch]$ResidenceOnly,[switch]$GuidanceOnly,[switch]$StabilityOnly,[switch]$LandmarksOnly,[switch]$GearOnly,[switch]$CylaOnly,[switch]$TrackingOnly,[switch]$ReentryOnly,[switch]$RenderOnly,[switch]$VisualOptionsOnly,[switch]$WallOnly,[switch]$ScienceOnly,[switch]$MultiRingOnly,[switch]$WithoutCyla)
 $ErrorActionPreference='Stop'
 $taskRoot=$PSScriptRoot
 $gameRoot=Join-Path $taskRoot 'template_instance'
 $logName='RingworldSmoke-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'.log'
 $logPath=Join-Path $gameRoot $logName
 $testProcess=$null
+$cylaBackup=$null
 try {
+    if ($WithoutCyla) {
+        $cylaPath=Join-Path $gameRoot 'GameData\Cyla'
+        if (Test-Path -LiteralPath $cylaPath) {
+            $resolvedCyla=(Resolve-Path -LiteralPath $cylaPath).Path
+            $expectedCyla=[System.IO.Path]::GetFullPath((Join-Path $gameRoot 'GameData\Cyla'))
+            if ($resolvedCyla -ne $expectedCyla) { throw 'Unexpected Cyla test path.' }
+            $cylaBackup=Join-Path $taskRoot ('artifacts\cyla-test-backup-' + [Guid]::NewGuid().ToString('N'))
+            Move-Item -LiteralPath $resolvedCyla -Destination $cylaBackup
+        }
+    }
     & (Join-Path $taskRoot 'build.ps1') -Install -SmokeTest
     $taskArguments=@('-ringworld-smoketest','-screen-fullscreen','0','-screen-width','1280','-screen-height','720','-popupwindow','-logFile',$logName)
+    if ($WithoutCyla) { $taskArguments += '-ringworld-no-cyla' }
+    if ($MultiRingOnly) { $taskArguments += '-ringworld-multi-ring-only' }
+    if ($ScienceOnly) { $taskArguments += '-ringworld-science-only' }
+    if ($WallOnly) { $taskArguments += '-ringworld-wall-only' }
     if ($VisualOptionsOnly) { $taskArguments += '-ringworld-visual-options-only' }
     if ($ReentryOnly -or $RenderOnly) { $taskArguments += '-ringworld-reentry-only' }
     if ($RenderOnly) { $taskArguments += '-ringworld-render-only' }
@@ -37,6 +52,9 @@ try {
     $reportDir=Join-Path $taskRoot 'artifacts\validation'
     New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
     $reportName='game-smoke.txt'
+    if ($MultiRingOnly) { $reportName='multi-ring-smoke.txt' }
+    if ($ScienceOnly) { $reportName='science-smoke.txt' }
+    if ($WallOnly) { $reportName='wall-smoke.txt' }
     if ($VisualOptionsOnly) { $reportName='visual-options-smoke.txt' }
     if ($ReentryOnly) { $reportName='reentry-smoke.txt' }
     if ($RenderOnly) { $reportName='render-smoke.txt' }
@@ -71,8 +89,10 @@ try {
     Write-Host "Game smoke test passed. Log: $logPath"
 }
 finally {
+    if ($cylaBackup -and (Test-Path -LiteralPath $cylaBackup)) {
+        if ($testProcess -and -not $testProcess.HasExited) { $testProcess.Kill();$testProcess.WaitForExit() }
+        Move-Item -LiteralPath $cylaBackup -Destination (Join-Path $gameRoot 'GameData\Cyla')
+    }
     if ($testProcess -and -not $testProcess.HasExited) { $testProcess.Kill(); $testProcess.WaitForExit() }
     & (Join-Path $taskRoot 'build.ps1') -Install
 }
-
-
