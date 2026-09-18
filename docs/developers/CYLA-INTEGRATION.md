@@ -32,4 +32,4 @@ September 16 diagnostic runs initially failed visual review (black sky, stretche
 
 190633: Adreno X1-85 at 2880x1920, frozen physics/clouds disabled, Original 22.3 FPS; Cyla 16/1 eighth-resolution 21.8 FPS, quarter 19.8; 32/4 half 12.1; 64/8 full 4.6. These isolate shader costs, not complete presets. 194949: revised Rotten Potato with live physics, clouds and camera motion measured 16.8 FPS. A 30 FPS gameplay target has not been demonstrated. The blue-dot/portrait corruption screenshot's exact cause remains unproven; no universal hardware or portrait fix is claimed.
 
-See VALIDATION.md for current regression logs and RELEASE-1.1.1.md for release scope.
+See [VALIDATION.md](../history/VALIDATION.md) for current regression logs and RELEASE-1.1.1.md for release scope.

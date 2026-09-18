@@ -50,7 +50,7 @@ The journal counts distinct research locations, not button presses. Two experime
 - Unmatched arrivals are still physically destructive. This update does not grant free velocity matching in Career. A later progression-gated transport-terminal system is planned to make stock-part expeditions practical. Remote reconnaissance is the first step; the surface campaign currently assumes you have an arrival solution.
 - The first release of this progression system does not add Kerbal XP rules, tourism, construction/resource processing, life support or operational megastructure machinery.
 
-See [the extension guide](MODDING-RESEARCH.md) for data-driven rewards, objectives and new research sites.
+See [the extension guide](../developers/MODDING-RESEARCH.md) for data-driven rewards, objectives and new research sites.
 
 ## Multiple habitats
 

@@ -29,7 +29,7 @@ The mod uses a ring-relative frame with centrifugal and Coriolis effects. Navbal
 
 Ordinary arrivals preserve your velocity. The default surface moves at approximately **386 km/s**, so approaching from a solar orbit without matching its motion is a very different problem from landing on Kerbin! Sandbox includes a spin-matched approach and relocation tools for anyone who wants to start exploring immediately.
 
-Once settled on dry ground, you can save, leave your expedition there and use **KSP's stock time warp**. Ringworld science subjects, the RW-1 Ringworld Surveyor and deployed-science anchoring support longer visits. Breaking Ground is needed only for that DLC's deployable equipment.
+Once settled on dry ground, you can save, leave your expedition there and use **KSP's stock time warp**. Stock science experiments, location-specific reports, expedition milestones and deployed-science anchoring support longer visits. Breaking Ground is needed only for that DLC's deployable equipment.
 
 ### Atmosphere, weather and night
 
@@ -39,7 +39,7 @@ Photo mode freezes the flight and lets you choose a separate quality preset and 
 
 ## Installation
 
-No Kopernicus, Blender or separate art download is required. Cyla and HarmonyKSP are included in the release.
+No Kopernicus, Blender or separate art download is required. Install **HarmonyKSP 2.2.1.0 or a compatible newer version** separately. **Cyla 1.1.0** is optional; without it the mod uses Original atmosphere. Neither dependency is bundled in v1.1.3.
 
 1. Close KSP and download the release ZIP.
 2. **Extract it into your KSP instance folder, beside `KSP_x64.exe`.** The ZIP's `GameData` folder should merge with the existing one.
@@ -50,8 +50,8 @@ Your KSP folder/
 ├── KSP_x64.exe
 └── GameData/
     ├── NivenRingworld/
-    ├── Cyla/
-    └── 000_Harmony/
+    ├── Cyla/          (optional, installed separately)
+    └── 000_Harmony/   (required, installed separately)
 ```
 
 Alternatively, open the ZIP and copy **the contents of its `GameData` folder** into your existing `GameData` folder.
@@ -100,7 +100,3 @@ Original mod code and assets use the MIT license. Harmony retains its MIT licens
 I'd love to see your expeditions, unusual discoveries and ambitious landers. Suggestions for biomes, exploration sites and future structures are welcome too.
 
 If something breaks, please include the mod version, quality preset, atmosphere backend, other installed mods and steps to reproduce it. A relevant `KSP.log` and a craft file or save, where practical, make investigation much easier. You can reply here or [open a GitHub issue](https://github.com/theplatecrafter/Ring-World-KSP-mod/issues).
-
-## Dependencies (v1.1.3 onward)
-
-Install [HarmonyKSP / Harmony 2](https://github.com/KSPModdingLibs/HarmonyKSP/releases) separately. [Cyla](https://github.com/LGhassen/Cyla/releases) is optional; without it the built-in Original atmosphere is used. Neither mod is bundled in the ZIP. CKAN metadata is prepared, but listing still awaits maintainer acceptance.

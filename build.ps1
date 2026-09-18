@@ -29,14 +29,11 @@ if ($Install) {
     Write-Host "Installed into $target"
 }
 if ($Package -and -not $SmokeTest) {
-    foreach ($doc in @('README.md','LICENSE','THIRD-PARTY-NOTICES.md','CREDITS.md','docs\RELEASE-1.1.3.md','docs\MULTIPLE-RINGS.md','docs\RELEASE-1.1.2.md','docs\RELEASE-1.1.1.md','docs\KNOWN-LIMITATIONS.md','docs\CANON-AND-SCALE.md','docs\VALIDATION.md','docs\ORBITAL-ARRIVAL.md','docs\GROUND-AND-EVA.md','docs\TERRAIN-LOD.md','docs\SETTINGS-AND-HORIZON.md','docs\ORBITS-WARP-AND-ASSETS.md','docs\BIOMES-AND-GRAPHICS.md','docs\ASSET-TRACKER.md','docs\BIOME-ASSET-CATALOG.md','docs\BIOME-FREQUENCY-SURVEY.txt','docs\STOCK-WARP-AND-RENDERING.md','docs\HIGH-END-VISUALS.md','docs\WEATHER-AND-NIGHT.md','docs\BLENDER-ASSETS.md','docs\GLOBAL-CLOUDS.md','docs\GRAPHICS-DIAGNOSIS.md','docs\RESIDENCE-AND-ENCOUNTERS.md','docs\HABITAT-LIBRARY.md','docs\MOD-INTEROPERABILITY.md','docs\LANDMARK-ASSETS.md','docs\LANDMARK-INVENTORY.md','docs\RELEASE-1.0.0.md','docs\RELEASE-1.0.1.md','docs\RELEASE-1.0.2.md','docs\RELEASE-1.0.3.md','docs\QUALITY-PRESETS.md','docs\CKAN-PUBLISHING.md','docs\CYLA-INTEGRATION.md','docs\COLOSSI-AND-FORESTS.md','docs\SCIENCE-AND-EXPEDITIONS.md','docs\MODDING-RESEARCH.md')) {
-        $source = Join-Path $taskRoot $doc
-        if (Test-Path -LiteralPath $source) {
-            $docTarget = Join-Path $distributionRoot $doc
-            New-Item -ItemType Directory -Path (Split-Path -Parent $docTarget) -Force | Out-Null
-            Copy-Item -LiteralPath $source -Destination $docTarget -Force
-        }
+    # Include the documentation tree automatically so reorganization cannot omit guides.
+    foreach ($doc in @('README.md','RELEASE-NOTES.md','LICENSE','THIRD-PARTY-NOTICES.md','CREDITS.md')) {
+        Copy-Item -LiteralPath (Join-Path $taskRoot $doc) -Destination (Join-Path $distributionRoot $doc) -Force
     }
+    Copy-Item -LiteralPath (Join-Path $taskRoot 'docs') -Destination (Join-Path $distributionRoot 'docs') -Recurse -Force
     $releaseVersion = ([xml](Get-Content -LiteralPath (Join-Path $taskRoot 'src\Ringworld.KSP\Ringworld.KSP.csproj') -Raw)).Project.PropertyGroup.Version
     $unexpected = Get-ChildItem -LiteralPath (Join-Path $distributionRoot 'GameData') | Where-Object Name -ne 'NivenRingworld'
     if ($unexpected) { throw 'Release contains an unexpected bundled mod.' }

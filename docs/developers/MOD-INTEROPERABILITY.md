@@ -2,13 +2,13 @@
 
 ## Decision: retain the ring-relative frame
 
-On 2026-09-14 the user chose to retain the existing frame and improve interoperability. No native-frame adapter is enabled, and no changes are made to the Sun's rotation threshold.
+The mod uses its own ring-relative frame. No native-frame adapter is enabled, and no changes are made to the Sun's rotation threshold.
 
 Inspection of the installed KSP 1.12.5 assemblies confirmed `CelestialBody.inverseRotThresholdAltitude`. `OrbitPhysicsManager.checkReferenceFrame` compares spherical altitude above the dominant rotating body against that threshold. Switching calls `setRotatingFrame`, changes `inverseRotation`, and adjusts unpacked vessel velocities using the body's rotating-frame velocity. Centrifugal and Coriolis calculations also depend on that body flag. Local inspection outputs are development tools, not redistributed KSP source.
 
 The ring already performs the analogous operation in `RingworldFlight`: arrival/exit converts loaded vessel positions, rotations and linear/angular velocities; saved vessel records carry frame state. Its cylindrical surface, rotation and surface acceleration cannot be represented by the Sun's spherical threshold. Changing that threshold alone would not implement a ring frame and could affect ordinary solar vessels.
 
-## Read-only API, version 1
+## Read-only API, version 2
 
 `RingworldSurfaceApi.TryGetSurfaceState(Vessel, out RingworldSurfaceState)` supplies surface-relative velocity, up direction, cylindrical location, terrain/water elevations, biome, frame epoch and physical tangential ring speed. Units are metres and seconds; vectors use the current Unity world axes. The API returns false for orbital/non-ring vessels, packed vessels and frame transitions. Call on the Unity main thread and refresh each physics tick. Do not use these rotating-frame velocities to construct stock Keplerian orbital elements.
 
@@ -26,9 +26,9 @@ Ring shaders, materials and bundles use ring-specific names. Existing scenery re
 
 ## Multiple configured rings: design status
 
-Since v1.1.3, multiple habitats are stored in the save's `RingworldScenario` RING nodes and managed by the Sandbox editor. `NIVEN_RINGWORLD` still supplies the initial defaults; duplicating that config node does not spawn another habitat. Only one rotating physics frame is loaded at a time. Surface API v2 adds `RingId`, `RingName` and `Center` to the existing snapshot; refresh it each physics tick and use the habitat center rather than HostBody.position. See MULTIPLE-RINGS.md for placement and lighting limits.
+Since v1.1.3, multiple habitats are stored in the save's `RingworldScenario` RING nodes and managed by the Sandbox editor. `NIVEN_RINGWORLD` still supplies the initial defaults; duplicating that config node does not spawn another habitat. Only one rotating physics frame is loaded at a time. Surface API v2 adds `RingId`, `RingName` and `Center` to the existing snapshot; refresh it each physics tick and use the habitat center rather than HostBody.position. See [MULTIPLE-RINGS.md](../guides/MULTIPLE-RINGS.md) for placement and lighting limits.
 
-A future catalog needs stable ring IDs, host-body names, individual geometry/seed/phase parameters, per-ring saved settings, and a ring ID in every vessel record. Scaled rendering can then instantiate each definition, while only one nearby ring owns the local physics chart at a time. Transfers must convert through an inertial state and preserve unloaded vessels. Overlapping capture volumes need deterministic selection and hysteresis. Save migration and interactions with third-party gravity solvers must be tested before enabling this feature. Kopernicus-style configurable definitions are a useful model, but its spherical body/SOI machinery does not directly supply these ring dynamics.
+Future extensions should preserve deterministic frame selection, inertial transfer states and saved residents. Overlapping capture volumes, tilted rings and third-party gravity solvers need dedicated handling.
 
 ## Landing-leg and instrument adapters (1.0.1)
 

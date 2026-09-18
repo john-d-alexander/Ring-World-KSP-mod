@@ -264,7 +264,7 @@ The legacy tutorial fixture can produce stock alarm-clock initialization, PQS te
 
 
 
-Not certified: all aircraft, all wheels, advanced EVA interactions (including swimming, boarding and long-distance traversal), full-game save/restart across arbitrary scenes, unloaded fleet simulation, docking/staging permutations, extreme-speed flight/impact, arbitrary interplanetary encounter trajectories, mod interoperability, science transmission interrupted by a lost connection, and performance across hardware. See `KNOWN-LIMITATIONS.md`.
+Not certified: all aircraft, all wheels, advanced EVA interactions (including swimming, boarding and long-distance traversal), full-game save/restart across arbitrary scenes, unloaded fleet simulation, docking/staging permutations, extreme-speed flight/impact, arbitrary interplanetary encounter trajectories, mod interoperability, science transmission interrupted by a lost connection, and performance across hardware. See [KNOWN-LIMITATIONS.md](../guides/KNOWN-LIMITATIONS.md).
 
 
 
@@ -528,7 +528,7 @@ Core verification: 72,985 checks passed; normal build completed with zero compil
 
 - Core suite: 90,859 checks. Ground meshes retain a sub-60,000 vertex bound and 64/128 merged asset budgets; no comparative FPS benchmark was performed for this density increase.
 
-- Research, current hardware observations and cautious screenshot diagnosis are in GRAPHICS-DIAGNOSIS.md. No hardware fault was established and no driver was changed.
+- Research, current hardware observations and cautious screenshot diagnosis are in [GRAPHICS-DIAGNOSIS.md](GRAPHICS-DIAGNOSIS.md). No hardware fault was established and no driver was changed.
 
 
 
@@ -651,7 +651,7 @@ Core verification: 72,985 checks passed; normal build completed with zero compil
 
 ## 2026-09-16: v1.1.0 Cyla integration
 
-- Cyla/photo run `RingworldSmoke-20260916-194949.log` passed camera isolation, visible sky, foreground depth, map return, all eleven preset round-trips and endpoint checks, selected low photo capture, high photo cancellation/completion, and restoration. Core checks: 108,648. High-photo preparation needed more than the earlier fixture's three-minute timeout; the successful run allowed ten minutes. Detailed measurements and optical limitations are recorded in CYLA-INTEGRATION.md.
+- Cyla/photo run `RingworldSmoke-20260916-194949.log` passed camera isolation, visible sky, foreground depth, map return, all eleven preset round-trips and endpoint checks, selected low photo capture, high photo cancellation/completion, and restoration. Core checks: 108,648. High-photo preparation needed more than the earlier fixture's three-minute timeout; the successful run allowed ten minutes. Detailed measurements and optical limitations are recorded in [CYLA-INTEGRATION.md](../developers/CYLA-INTEGRATION.md).
 - Combined run `RingworldSmoke-20260916-200752.log` passed the user's 38-part/eight-leg natural landing, paused save, stock 10x/1000x warp and Space Center/reload (6.5 mm position error, all parts intact). SAS targets matched the ring frame, but the trajectory refresh assertion failed at three updates in two seconds.
 - Diagnostic guidance run `RingworldSmoke-20260916-201716.log` reproduced three updates in ten rendered frames, with one valid encounter and 42 path points. The predictor's fixed 1.5 ms slices were spreading work across low-FPS frames. The scheduler now budgets 10% of the previous frame, bounded to 1.5–8 ms. Integration steps, physics and encounter detection are unchanged. The regression retains its original refresh assertion.
 
@@ -720,7 +720,7 @@ Tests use direct stock delivery calls rather than a flown return to Kerbin or a 
 - `RingworldSmoke-20260918-110703.log`: repeat with distant ring mesh budgets (2,048 segments vs 8,192 for the active habitat). Map capture shows both parallel habitats. Additional offset Tracking Station regression: 42 trajectory points, one encounter, unsafe warp rejected, automatic Flight handoff at 209,910.9 m altitude after 118.52 s UT; no rollback. Camera departure preserved the first-frame angle (0 degrees).
 - These runs used Slow or Rotten Potato, not higher presets. They used isolated test saves; collision immunity on the plain-pod fixture is not a certification of all craft impacts.
 - NetKAN source passes the official NetKAN JSON schema using the upstream CKAN schema for references. Metadata declares only required Harmony2 >= 2.2.1.0; optional Cyla has no invented CKAN identifier. Official indexing and a CKAN-client clean-install test have not been performed.
-- Stock PQS/AlarmClock teardown exceptions still appear during automatic scene changes; no Ringworld exception was observed in these passed runs. Planet-pack star selection is implemented but was not tested with an installed multi-star pack. Large offsets retain approximate lighting; see MULTIPLE-RINGS.md.
+- Stock PQS/AlarmClock teardown exceptions still appear during automatic scene changes; no Ringworld exception was observed in these passed runs. Planet-pack star selection is implemented but was not tested with an installed multi-star pack. Large offsets retain approximate lighting; see [MULTIPLE-RINGS.md](../guides/MULTIPLE-RINGS.md).
 
 - `RingworldSmoke-20260918-111139.log`: repeated stock science/Career regression after habitat-aware changes. Passed all ten stock experiment subjects, 70-point crew report, two milestones, no duplicate payout, receipt/subject persistence, Science-mode currency isolation, 25 structure envelopes, actual EVA sample/report, and deployed Goo with 2/2 power. This tests stock delivery APIs and deployment, not a fully flown antenna/recovery mission.
 

@@ -1,6 +1,6 @@
 # Habitat and city asset inventory
 
-Expanded by 31 assets in `art/landmark-kit/`; total library now 84 prefabs and 252 LOD meshes. See [the landmark catalog](LANDMARK-INVENTORY.md) and [placement/contact details](LANDMARK-ASSETS.md). The table below records the earlier habitat/city sets.
+Expanded by 31 assets in `art/landmark-kit/`; total library now 84 prefabs and 252 LOD meshes. See [the landmark catalog](LANDMARK-INVENTORY.md) and [placement/contact details](../developers/ASSET-AUTHORING.md#landmark-assets). The table below records the earlier habitat/city sets.
 
 Original Blender assets; three LOD meshes per prefab. First-pass stylized art, not final canonical replicas. Sources, FBX exports, manifests and review images are retained under art/.
 

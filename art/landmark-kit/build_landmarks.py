@@ -1,6 +1,6 @@
 """Original landmark architecture. Run in Blender through tools/blender_bridge.py.
 All scales in manifest are Unity metres (X, height, Z); export meshes are unit sized.
-No copyrighted meshes/textures are copied. See docs/LANDMARK-ASSETS.md for sources.
+No copyrighted meshes/textures are copied. See docs/developers/ASSET-AUTHORING.md for sources.
 """
 import ast, bpy, json, math, random
 from pathlib import Path

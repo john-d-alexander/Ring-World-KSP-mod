@@ -9,6 +9,7 @@ import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
+from release_notes import release_body
 
 root = pathlib.Path(__file__).resolve().parents[1]
 repo = 'theplatecrafter/Ring-World-KSP-mod'
@@ -44,7 +45,7 @@ if existing and not existing['draft']:
     raise SystemExit('Release already published: ' + existing['html_url'])
 release = existing or request(base + '/releases', 'POST', {
     'tag_name': tag, 'target_commitish': commit, 'name': 'Niven Ringworld Expedition v'+version,
-    'body': (root / f'docs/RELEASE-{version}.md').read_text(encoding='utf-8'),
+    'body': release_body(root / 'RELEASE-NOTES.md', version),
     'draft': True, 'prerelease': False})
 for path in (archive, checksum, root / f'distribution/NivenRingworld-{version}.ckan', root / 'distribution/NivenRingworld.netkan'):
     if any(asset['name'] == path.name for asset in release['assets']):

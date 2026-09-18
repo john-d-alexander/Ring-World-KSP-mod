@@ -9,3 +9,8 @@ Manual users must install Harmony separately. Cyla 1.1.0 is the supported option
 The GitHub release includes a separate version-specific .ckan asset for maintainer review/local installation; it is not embedded in the mod ZIP. The .netkan file supports automatic indexing of future releases. Official listing still requires maintainer acceptance. Windows x64 / D3D11 is the tested platform; cross-platform shader behavior is unverified.
 
 Sources: https://github.com/KSP-CKAN/CKAN/blob/master/Spec.md and https://raw.githubusercontent.com/KSP-CKAN/CKAN-meta/master/Harmony2/Harmony2-2.2.1.0.ckan .
+
+## Release documentation checklist
+
+For every release, update `RELEASE-NOTES.md` at the repository root before packaging. Record the supported KSP/platform target, required versus optional dependencies, exact tested dependency versions, declared minimum/range where applicable, bundling policy, installation/migration changes, gameplay changes, known limitations and validation performed. Keep the README and CKAN metadata consistent. Do not describe untested versions as supported. The build includes this document in future release ZIPs; existing published ZIPs are not rewritten by a documentation update.
+

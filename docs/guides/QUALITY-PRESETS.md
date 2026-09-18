@@ -1,4 +1,4 @@
-# Ringworld rendering presets and biome features
+# Graphics, performance and photo mode
 
 Presets are selected from the Settings dropdown and apply immediately to this save. Save the game to persist them. Manual edits still use Apply settings. The dropdown reads Custom when current settings do not match a preset. Presets do not change KSP graphics preferences, seed, biome/physical tree distribution, ring dimensions, gravity, weather timing, science or flight controls.
 
@@ -24,7 +24,7 @@ Forest LOD quality is independent of atmosphere and can be changed after an expe
 
 Economy significantly reduces forest mesh construction, memory and drawing; it does not skip all tree sampling or alter ground collision. It is deliberately coarse. Quality changes rebuild at most one existing scenery tile per frame. Terrain and distant canopy queues use their existing incremental budgets. This is not GPU instancing or an FPS guarantee.
 
-Near trunks remain limited to the existing contact radius. World forest density is a separate generation parameter, locked after visiting the ring; visual quality remains editable. New biome-specific controls should follow this section rather than changing physical generation when a graphics preset is selected.
+Near trunks remain limited to the existing contact radius. World forest density is a separate generation parameter, locked after visiting the ring; visual quality remains editable. 
 
 ## Atmosphere backend and photo selection
 

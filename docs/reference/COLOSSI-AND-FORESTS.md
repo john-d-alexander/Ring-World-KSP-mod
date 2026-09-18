@@ -37,4 +37,4 @@ Still larger blocks retain area-filtered forest colour and a 24–48 m canopy en
 
 Future special biomes can extend the `BiomeAppearance` descriptor and its sampling in `BiomePresentation`, while retaining the existing terrain streaming and material pipeline. Zero stock scatter or zero forest density disables added canopy relief.
 
-The defaults target the laptop preset, but measured frame time and memory depend on the view and hardware. See VALIDATION.md for actual in-game measurements rather than assuming a universal frame-rate guarantee.
+The defaults target the laptop preset, but measured frame time and memory depend on the view and hardware. See [VALIDATION.md](../history/VALIDATION.md) for actual in-game measurements rather than assuming a universal frame-rate guarantee.

@@ -1,6 +1,40 @@
-# Weather, warp and night visibility — 0.9
+# Clouds and weather renderer
 
-## The cloud jumps
+Technical reference for the shared local/distant cloud field, weather timing and day/night shading. For player controls, see [graphics settings](../guides/QUALITY-PRESETS.md). Numerical limits in older implementation notes are historical; the settings menu and current preset guide are authoritative.
+
+<a id="global-clouds"></a>
+
+## Full-ring clouds: seeded fBm coverage
+
+The distant cloud ribbon remains visible from flight, other planetary views, map and tracking station. It sits at a representative 5.5 km altitude, with 16,384 segments and 32,768 triangles. Atmosphere off or cloud amount zero disables it.
+
+### Generation and coverage
+
+Coverage now uses an original seeded gradient-Perlin implementation with quintic interpolation, five fBm octaves (4,000 km down to 250 km), and low-frequency domain warping. Hashes use the complete 32-bit world seed. It no longer tiles the previous 512 km or 32,768 km coverage textures. Longitude repeats only at the ring's actual circumference; the across-axis hash domain exceeds the physical ring width by orders of magnitude.
+
+Distant/fake clouds target approximately 50% coverage, measured as coverage-field values above 0.5. This is a statistical surface-area target, not a promise that half of every view is white. Smooth edges and translucent cloud shading reduce average opacity. Weather lightly shifts distant coverage; local weather is not capped at 50% and can remain clear or overcast. Across the existing handoff band, the field blends to the local weather's amount.
+
+Integer lattice cells and fractional offsets are carried separately, with double-precision CPU origins, so local movement does not lose precision at large ring longitudes. Both renderers evaluate the same field with universal-time wind and ring rotation. Fine 3-D erosion still uses the existing noise texture for volumetric cloud shape; that texture no longer determines repeated large cloud banks. Distant fBm octaves are filtered when smaller than a pixel.
+
+This follows the gradient-noise, multiscale fBm and frequency-filtering concepts in [PBRT: Noise](https://www.pbr-book.org/3ed-2018/Texture/Noise). [OpenSimplex2](https://github.com/KdotJPG/OpenSimplex2) was also reviewed as an alternative. No third-party noise implementation or art assets were copied; Perlin was chosen to retain explicit cylindrical seam handling and cell/fraction precision.
+
+### Map layering
+
+The cloud shell faces inward only. An analytic ray/hull test prevents far-side clouds and terrain bleeding through the outer hull when scaled-space depth values collapse together; views into the opening above the rim remain possible.
+
+The base ribbon renders first, streamed terrain second, transparent clouds afterward. The scaled terrain uses a small depth bias. Night shading is evaluated from the same shadow-square phase in each layer; matching shadow multipliers on terrain and clouds is algebraically equivalent to darkening their final composite. There is no extra coplanar shadow mesh to z-fight.
+
+Distant terrain no longer has deep crack-cover skirts. The quadtree limits cell curvature error and culls outside the ring before subdividing. Map/tracking use a shallower hull mesh without the extra flight-camera safety burial. Flight retains that margin to keep the distant fallback out of the local ground.
+
+### Validation
+
+Build shaders with `build-visuals.ps1`. `smoke-test.ps1 -GlobalCloudsOnly` samples a 128,000 km square coverage field on the GPU, checks roughly 45–55% cloudy samples, tests that offsets of 512 km and 32,768 km do not repeat it, and verifies ring seams, day/night shading and optical handoff. `-MapOnly` also checks skirt-free scaled chunks, large-distance save roundtrips and wall camera constraints, and captures inside/outside map views. These fixtures are not a guarantee of every camera/quality combination or constant laptop FPS.
+
+<a id="weather-and-night"></a>
+
+## Weather, warp and night visibility — 0.9
+
+### The cloud jumps
 
 The old Laptop renderer rebuilt an entire cloud mesh and 384×384 opacity image once per eight real seconds. High/Ultra replaced a 128×128 weather image on the same timer. At native 1,000× warp this advanced coverage by 8,000 game seconds in one step. The GPU detail used fractional frequencies (5.03 and 17.07) on a periodically wrapped coordinate, so the wrap also introduced a discontinuity. These were implementation issues; neither observation proves exhausted RAM.
 
@@ -8,7 +42,7 @@ Cloud motion now evaluates universal time every rendered frame. Both the lightwe
 
 Unity garbage collection can cause frame-time spikes, but collecting unreachable managed objects does not mean all physical RAM was full and then emptied. See [Unity's memory-management documentation](https://docs.unity3d.com/Manual/performance-managed-memory.html). The weather regression records frame-time percentile, GC collection count and managed-heap delta; those measurements do not substitute for a system-wide RAM/GPU/CPU profiler.
 
-## Weather controls
+### Weather controls
 
 Open Ringworld → Settings, apply changes, then save the game to persist them.
 
@@ -23,7 +57,7 @@ Open Ringworld → Settings, apply changes, then save the game to persist them.
 
 A continuous seeded regional front and time-varying severity drive fair skies, cloud cover, rain and thunderstorms. All quality tiers use the same state; their rendering detail differs. Rain/lightning are local visual effects below the cloud layer. There is no fluid weather simulation, precipitation accumulation, physical wind, thunder audio, lightning damage or global climate model. The far ring's cloud albedo remains a coarse separate representation; it does not show every local storm exactly.
 
-## Stars and night bands
+### Stars and night bands
 
 Only KSP's galaxy cube colour is attenuated in daylight near the ring atmosphere. It fades back with altitude or local night. Ring, shadow panels, Sun and planet renderers are not hidden or masked by this change. The ordinary atmosphere and real geometry can still obscure objects along a sightline. Map view uses the stock starfield. Stock updates restore their ordinary colour outside ring flight; stock planet skies are left to KSP.
 
@@ -32,3 +66,4 @@ The global ring now shades twenty moving night bands even with **Full-ring surfa
 The broad bands are analytical masks with a soft penumbra. They are not ray-traced shadows and do not model small-scale occlusion by terrain/clouds. Flight, map, space-centre and tracking-station ring geometry use the same mask. At extreme warp, a day/night boundary can still move a large distance between rendered frames; that is finite frame sampling rather than a texture-update pause.
 
 For a reproducible visual storm test, turn evolving fronts off and set the baseline to 100%. For clear skies, set it to zero. Re-enable evolving fronts afterward for ordinary weather.
+

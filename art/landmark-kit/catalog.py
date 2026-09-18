@@ -15,5 +15,5 @@ for a in assets:
     w,h,d=a['sizeMetres'];lift=2500 if a['kind'].startswith('palace_') or a['kind']=='levitation_citadel' else 0
     cfg.append(f'RINGWORLD_LANDMARK_ASSET\n{{\n    kind = {a["kind"]}\n    site = {site}\n    along = {da}\n    across = {db}\n    width = {w}\n    height = {h}\n    depth = {d}\n    aboveGround = {lift}\n    range = 60000\n}}')
 (ROOT/'GameData/NivenRingworld/Landmarks.cfg').write_text('\n\n'.join(cfg)+'\n')
-(ROOT/'docs/LANDMARK-INVENTORY.md').write_text('\n'.join(rows)+'\n')
+(ROOT/'docs/reference/LANDMARK-INVENTORY.md').write_text('\n'.join(rows)+'\n')
 print(f'{len(assets)} assets; {sum(groups.values())} configured architectural landmarks')

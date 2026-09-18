@@ -1,5 +1,6 @@
 """Check the distributable, rather than trusting the build directory."""
 import hashlib, json, pathlib, zipfile
+from release_notes import release_body
 root=pathlib.Path(__file__).resolve().parents[1]
 release=json.loads((root/'GameData/NivenRingworld/NivenRingworld.version').read_text(encoding='utf-8-sig'))['VERSION']
 version_text='.'.join(str(release[k]) for k in ('MAJOR','MINOR','PATCH'))
@@ -12,8 +13,13 @@ for name in ('gear','guidance','residence','scenery','landmarks','game','trackin
 with zipfile.ZipFile(archive) as package:
     assert package.testzip() is None,'ZIP CRC failure'
     names={n.replace('\\','/'):n for n in package.namelist()}
-    for required in ('GameData/NivenRingworld/Plugins/NivenRingworld.dll','GameData/NivenRingworld/Plugins/Ringworld.Core.dll','GameData/NivenRingworld/Assets/ringworldscenery','GameData/NivenRingworld/Landmarks.cfg','docs/LANDMARK-ASSETS.md','docs/LANDMARK-INVENTORY.md',f'docs/RELEASE-{version_text}.md','docs/COLOSSI-AND-FORESTS.md','GameData/NivenRingworld/Colossi.cfg','LICENSE'):
+    for required in ('GameData/NivenRingworld/Plugins/NivenRingworld.dll','GameData/NivenRingworld/Plugins/Ringworld.Core.dll','GameData/NivenRingworld/Assets/ringworldscenery','GameData/NivenRingworld/Landmarks.cfg','docs/developers/ASSET-AUTHORING.md','docs/reference/LANDMARK-INVENTORY.md','RELEASE-NOTES.md','docs/README.md','docs/reference/COLOSSI-AND-FORESTS.md','GameData/NivenRingworld/Colossi.cfg','LICENSE'):
         assert required in names,required
+    release_body(root/'RELEASE-NOTES.md', version_text)
+    for document in [root/'RELEASE-NOTES.md', *sorted((root/'docs').rglob('*'))]:
+        if document.is_file():
+            key=document.relative_to(root).as_posix()
+            assert key in names and package.read(names[key])==document.read_bytes(), 'Documentation mismatch: '+key
     assert not any(n.startswith(('GameData/000_Harmony/','GameData/Cyla/','ThirdParty/')) for n in names), 'Bundled dependency in release'
     assert {n.split('/')[1] for n in names if n.startswith('GameData/')} == {'NivenRingworld'}
     for item in ('Assets/ringworldvisuals','Expeditions.cfg','NivenRingworld.version'):
@@ -34,7 +40,7 @@ with zipfile.ZipFile(archive) as package:
     assert version['VERSION']==release
     if tuple(release[k] for k in ('MAJOR','MINOR','PATCH')) >= (1,0,3):
         assert 'GameData/NivenRingworld/LICENSE' in names
-        assert 'docs/QUALITY-PRESETS.md' in names and 'docs/CKAN-PUBLISHING.md' in names
+        assert 'docs/guides/QUALITY-PRESETS.md' in names and 'docs/publishing/CKAN-PUBLISHING.md' in names
         quality_report=(root/'artifacts/validation/landmarks-smoke.txt').read_text(encoding='utf-8-sig')
         assert 'QUALITY all 11 presets roundtrip' in quality_report
         assert 'QUALITY Economy near vertices=' in quality_report
