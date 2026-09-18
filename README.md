@@ -1,8 +1,12 @@
-# Niven Ringworld Expedition 1.1.1
+# Niven Ringworld Expedition 1.1.2
 
 A Larry Niven-inspired, star-encircling habitat with a landable rotating interior, procedural terrain, atmosphere, science and persistent expeditions. The default world uses one-tenth of the published linear ring dimensions. Original geography and architecture are interpretations of the setting.
 
+Spacedock page: https://spacedock.info/mod/4573/Niven's%20Ring%20World
+
 ## Install and play
+
+Extract the release ZIP into the KSP instance root, beside `KSP_x64.exe`. Its `GameData` folder merges with the existing one. Do not extract the entire ZIP inside `GameData`. Alternatively, open the ZIP and copy only its `GameData` contents into the existing `GameData` folder.
 
 Close KSP and copy all folders from the ZIP's `GameData` into your KSP `GameData`, including `NivenRingworld` and the bundled `Cyla` dependency. The included `GameData/000_Harmony` is the HarmonyKSP dependency; keep a single compatible installation if other mods already provide it. Restart after updating DLLs. No Kopernicus or downloaded art pack is required. The supported release target is KSP 1.12.5 on Windows x64 / Direct3D 11.
 
@@ -21,7 +25,7 @@ When settled on dry ground, use **KSP's stock time-warp controls**. Universal ti
 - A full scaled ring with closed dark rim walls, moving night bands and sparse procedural cloud coverage; optional high-quality local volumetric clouds, water waves and frozen photo rendering.
 - **92 Blender-authored scenery prefabs / 276 LOD meshes**. Thirty-three architectural placements include floating palaces, ruined cities and eight new colossi: an **80 km rim gate**, **120 km causeway** and **48 km floating city plate**. Machinery is scenery, not an operational simulation.
 
-See [release notes](docs/RELEASE-1.1.1.md), [colossi and continuous forests](docs/COLOSSI-AND-FORESTS.md), [landmark designs and placement](docs/LANDMARK-ASSETS.md), [dimensions/triangle inventory](docs/LANDMARK-INVENTORY.md), and the [combined biome catalog](docs/BIOME-ASSET-CATALOG.md).
+See [release notes](docs/RELEASE-1.1.2.md), [colossi and continuous forests](docs/COLOSSI-AND-FORESTS.md), [landmark designs and placement](docs/LANDMARK-ASSETS.md), [dimensions/triangle inventory](docs/LANDMARK-INVENTORY.md), and the [combined biome catalog](docs/BIOME-ASSET-CATALOG.md).
 
 ## Settings and performance
 

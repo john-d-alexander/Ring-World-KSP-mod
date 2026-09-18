@@ -5,7 +5,7 @@ import pathlib
 import zipfile
 
 root = pathlib.Path(__file__).resolve().parents[1]
-archive = root / 'artifacts/NivenRingworld-1.1.1.zip'
+archive = root / 'artifacts/NivenRingworld-1.1.2.zip'
 report = (root / 'artifacts/validation/cyla-smoke.txt').read_text(encoding='utf-8-sig')
 assert '[RingworldSmoke] PASS cyla-only' in report and '[RingworldSmoke] FAIL' not in report
 provenance = json.loads((root / 'vendor/Cyla/PROVENANCE.json').read_text(encoding='utf-8-sig'))
@@ -21,7 +21,7 @@ with zipfile.ZipFile(archive) as package:
                  'GameData/Cyla/License.md', 'ThirdParty/Cyla/Source/License.md',
                  'ThirdParty/Cyla/Source/Cyla/AtmosphereRenderer.cs',
                  'ThirdParty/Cyla/PROVENANCE.json', 'THIRD-PARTY-NOTICES.md',
-                 'docs/CYLA-INTEGRATION.md', 'CREDITS.md', 'docs/RELEASE-1.1.1.md'):
+                 'docs/CYLA-INTEGRATION.md', 'CREDITS.md', 'docs/RELEASE-1.1.2.md'):
         assert name in names, name
     assert b'Ghassen Lahmar' in read('CREDITS.md')
     assert read('GameData/Cyla/License.md') == (root / 'vendor/Cyla/Source/License.md').read_bytes()

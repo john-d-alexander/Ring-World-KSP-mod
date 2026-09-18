@@ -12,8 +12,8 @@ import urllib.request
 
 root = pathlib.Path(__file__).resolve().parents[1]
 repo = 'theplatecrafter/Ring-World-KSP-mod'
-tag = 'Release-v1.1.1'
-archive = root / 'artifacts/NivenRingworld-1.1.1.zip'
+tag = 'Release-v1.1.2'
+archive = root / 'artifacts/NivenRingworld-1.1.2.zip'
 checksum = archive.with_suffix('.zip.sha256')
 assert checksum.read_text().split()[0] == hashlib.sha256(archive.read_bytes()).hexdigest()
 assert subprocess.check_output(['git', 'branch', '--show-current'], cwd=root, text=True).strip() == 'main'
@@ -41,8 +41,8 @@ existing = next((release for release in releases if release['tag_name'] == tag),
 if existing and not existing['draft']:
     raise SystemExit('Release already published: ' + existing['html_url'])
 release = existing or request(base + '/releases', 'POST', {
-    'tag_name': tag, 'target_commitish': commit, 'name': 'Niven Ringworld Expedition v1.1.1',
-    'body': (root / 'docs/RELEASE-1.1.1.md').read_text(encoding='utf-8'),
+    'tag_name': tag, 'target_commitish': commit, 'name': 'Niven Ringworld Expedition v1.1.2',
+    'body': (root / 'docs/RELEASE-1.1.2.md').read_text(encoding='utf-8'),
     'draft': True, 'prerelease': False})
 for path in (archive, checksum):
     if any(asset['name'] == path.name for asset in release['assets']):
