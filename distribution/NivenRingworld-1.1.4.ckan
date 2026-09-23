@@ -5,8 +5,6 @@
   "abstract": "Landable rotating habitats with procedural terrain, ring-relative flight and exploration science.",
   "author": "theplatecrafter",
   "license": "MIT",
-  "$kref": "#/ckan/github/theplatecrafter/Ring-World-KSP-mod",
-  "$vref": "#/ckan/ksp-avc",
   "depends": [
     {
       "name": "Harmony2",
@@ -23,11 +21,19 @@
     "repository": "https://github.com/theplatecrafter/Ring-World-KSP-mod",
     "bugtracker": "https://github.com/theplatecrafter/Ring-World-KSP-mod/issues"
   },
-  "x_netkan_note": "Harmony is required; indexed Cyla is optional. Install only GameData/NivenRingworld from this archive. The upstream NetKAN dependency stanza must also be changed from depends to suggests for Cyla.",
   "suggests": [
     {
       "name": "Cyla",
       "min_version": "1.1.0.0"
     }
-  ]
+  ],
+  "version": "1.1.4",
+  "ksp_version": "1.12.5",
+  "download": "https://github.com/theplatecrafter/Ring-World-KSP-mod/releases/download/Release-v1.1.4/NivenRingworld-1.1.4.zip",
+  "download_size": 5074113,
+  "download_hash": {
+    "sha256": "b851f3298607e637b6f9c96ab12464a7feff54bdc78197dadfda96a6450175b2"
+  },
+  "download_content_type": "application/zip",
+  "install_size": 9209926
 }

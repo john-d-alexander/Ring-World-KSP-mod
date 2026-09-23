@@ -36,10 +36,15 @@ namespace NivenRingworld
             foreach(var dialog in UnityEngine.Object.FindObjectsOfType<WhatsNewDialog>())HarmonyLib.AccessTools.Method(typeof(WhatsNewDialog),"Dismiss").Invoke(dialog,null);
             folder="RingworldSmoke-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
             Directory.CreateDirectory(Path.Combine(KSPUtil.ApplicationRootPath,"saves",folder));
-            var root=ConfigNode.Load(Path.Combine(KSPUtil.ApplicationRootPath,"saves","training","C_Orbit101.sfs"));
+            bool cylaSaveProbe=Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-cyla-save-probe")>=0;
+            if(cylaSaveProbe&&File.Exists(Path.Combine(KSPUtil.ApplicationRootPath,"CylaNoNativeRenderer.flag")))
+                new Harmony("NivenRingworld.CylaIsolationTest").Patch(AccessTools.Method("Cyla.CylindricalAtmosphereModule:OnStart"),prefix:new HarmonyMethod(typeof(SmokeTest),"SkipNativeCylaStart"));
+            var root=ConfigNode.Load(cylaSaveProbe?Path.Combine(KSPUtil.ApplicationRootPath,"CylaFriend.sfs"):Path.Combine(KSPUtil.ApplicationRootPath,"saves","training","C_Orbit101.sfs"));
             var node=root.GetNode("GAME");node.SetValue("Mode","0");node.SetValue("Title",folder);node.SetValue("scene","7");
             foreach(var scenario in node.GetNodes("SCENARIO"))if((scenario.GetValue("name")??"").StartsWith("Tutorial"))node.RemoveNode(scenario);
             var state=node.GetNode("FLIGHTSTATE");
+            if(cylaSaveProbe&&File.Exists(Path.Combine(KSPUtil.ApplicationRootPath,"CylaNoNativeRenderer.flag")))
+                foreach(var vessel in state.GetNodes("VESSEL"))foreach(var part in vessel.GetNodes("PART"))foreach(var module in part.GetNodes("MODULE"))if(module.GetValue("name")=="CylindricalAtmosphereModule")part.RemoveNode(module);
             foreach(var vessel in state.GetNodes("VESSEL"))if(vessel.GetValue("type")=="SpaceObject")state.RemoveNode(vessel);
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-multi-ring-only")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-weather-only")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-residence-only")>=0)
             {
@@ -50,7 +55,9 @@ namespace NivenRingworld
                     if(parts.Length>0)parts[0].RemoveValues("attN");
                 }
             }
-            state.SetValue("activeVessel","0",true);
+            int probeVessel=0;
+            if(cylaSaveProbe){var vessels=state.GetNodes("VESSEL");for(int i=0;i<vessels.Length;i++)foreach(var part in vessels[i].GetNodes("PART"))if(part.GetValue("name")=="cylindricalAtmo")probeVessel=i;}
+            state.SetValue("activeVessel",probeVessel.ToString(),true);
             var game=GamePersistence.LoadGameCfg(root,folder,true,false);
             if(game==null){Fail("Unable to load test fixture");yield break;}
             game.Mode=Game.Modes.SANDBOX;game.startScene=GameScenes.FLIGHT;HighLogic.SaveFolder=folder;HighLogic.CurrentGame=game;
@@ -61,7 +68,7 @@ namespace NivenRingworld
                     if(!game.scenarios.Exists(s=>s.moduleName==type.Name))game.AddProtoScenarioModule(type,GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION);
             }
             game.Parameters.Flight.CanEVA=true;
-            game.AddProtoScenarioModule(typeof(RingworldScenario),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION);
+            if(!cylaSaveProbe)game.AddProtoScenarioModule(typeof(RingworldScenario),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION);
             game.AddProtoScenarioModule(typeof(Expansions.Serenity.DeployedScience.Runtime.DeployedScience),GameScenes.FLIGHT,GameScenes.SPACECENTER,GameScenes.TRACKSTATION,GameScenes.EDITOR);
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-gear-only")>=0)
             {
@@ -83,6 +90,7 @@ namespace NivenRingworld
             }
             while(RingworldScenario.Instance==null)yield return null;
             Debug.Log("[RingworldSmoke] SCENARIO READY");
+            if(cylaSaveProbe){yield return CylaBlackSkySmoke.RunSave(RingworldFlight.Instance,Fail);running=false;Application.Quit();yield break;}
             // This harness tests an unpowered impact with a damage-immune fixture.
             CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;
             deadline=Time.realtimeSinceStartup+1200;
@@ -138,6 +146,7 @@ namespace NivenRingworld
                 {CheatOptions.NoCrashDamage=true;CheatOptions.UnbreakableJoints=true;yield return LandmarkSmoke.Run(RingworldFlight.Instance,Fail);if(running)Debug.Log("[RingworldSmoke] PASS landmarks-only");}
                 if(running){Debug.Log("[RingworldSmoke] PASS combined gear regression");running=false;Application.Quit();}yield break;
             }
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-cyla-diagnostic")>=0){yield return CylaBlackSkySmoke.Run(flight,Fail);running=false;Application.Quit();yield break;}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-cyla-only")>=0){yield return CylaSmoke.Run(flight,Fail);if(running){Debug.Log("[RingworldSmoke] PASS cyla-only");running=false;Application.Quit();}yield break;}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-landmarks-only")>=0&&Array.IndexOf(Environment.GetCommandLineArgs(),"-ringworld-guidance-only")>=0)
             {
@@ -823,6 +832,7 @@ namespace NivenRingworld
             if(ringCount!=1){Fail("Duplicate tracking-station ring: "+ringCount);yield break;}
             Debug.Log("[RingworldSmoke] TRACKING STATION night shader active; ringCount="+ringCount);
         }
+        private static bool SkipNativeCylaStart(){return false;}
         private void Fail(string message){EvaTrace.Dump();Debug.LogError("[RingworldSmoke] FAIL: "+message);running=false;Application.Quit();}
     }
     [HarmonyPatch]

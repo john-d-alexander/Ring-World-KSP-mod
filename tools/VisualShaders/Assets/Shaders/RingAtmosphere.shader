@@ -6,7 +6,7 @@ Shader "NivenRingworld/VolumetricAtmosphere"
   Cull Off ZWrite Off ZTest Always
   CGINCLUDE
   #include "UnityCG.cginc"
-  sampler2D _CylaBlack,_CylaWhite;float4 _CylaTexel;
+  sampler2D _CylaBlack,_CylaWhite;float4 _CylaTexel;float _CylaUnitScale;
   sampler2D _MainTex,_Weather,_Volume,_Previous,_SavedDepth;
   UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
   #include "CloudField.cginc"
@@ -153,6 +153,11 @@ Shader "NivenRingworld/VolumetricAtmosphere"
    return float4(tex2D(_MainTex,i.uv).rgb*(transmission/total)+scatter/total,1);
   }
   float4 copyDepth(v2f i):SV_Target{return LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture,i.uv));}
+  float4 cylaDepth(v2f i):SV_Target
+  {
+   float d=max(1e-8,LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture,i.uv))*_CylaUnitScale);
+   return (rcp(d)-_ZBufferParams.w)/_ZBufferParams.z;
+  }
   ENDCG
   Pass { CGPROGRAM
    #pragma vertex vert
@@ -172,6 +177,11 @@ Shader "NivenRingworld/VolumetricAtmosphere"
   Pass { CGPROGRAM
    #pragma vertex vert
    #pragma fragment cylaComposite
+   #pragma target 3.0
+  ENDCG }
+  Pass { CGPROGRAM
+   #pragma vertex vert
+   #pragma fragment cylaDepth
    #pragma target 3.0
   ENDCG }
  }

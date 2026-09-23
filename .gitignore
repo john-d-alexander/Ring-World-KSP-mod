@@ -13,3 +13,6 @@ tools/VisualShaders/Logs/
 tools/VisualShaders/Temp/
 tools/VisualShaders/obj/
 tools/VisualShaders/UserSettings/
+
+# Python caches from release tooling
+**/__pycache__/

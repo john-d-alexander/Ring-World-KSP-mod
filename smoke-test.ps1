@@ -1,4 +1,4 @@
-param([int]$TimeoutSeconds=900,[switch]$MapOnly,[switch]$TerrainOnly,[switch]$WarpOnly,[switch]$UnmatchedOnly,[switch]$PhotoOnly,[switch]$DistantOnly,[switch]$WeatherOnly,[switch]$SceneryOnly,[switch]$GlobalCloudsOnly,[switch]$ResidenceOnly,[switch]$GuidanceOnly,[switch]$StabilityOnly,[switch]$LandmarksOnly,[switch]$GearOnly,[switch]$CylaOnly,[switch]$TrackingOnly,[switch]$ReentryOnly,[switch]$RenderOnly,[switch]$VisualOptionsOnly,[switch]$WallOnly,[switch]$ScienceOnly,[switch]$MultiRingOnly,[switch]$WithoutCyla)
+param([int]$TimeoutSeconds=900,[switch]$MapOnly,[switch]$TerrainOnly,[switch]$WarpOnly,[switch]$UnmatchedOnly,[switch]$PhotoOnly,[switch]$DistantOnly,[switch]$WeatherOnly,[switch]$SceneryOnly,[switch]$GlobalCloudsOnly,[switch]$ResidenceOnly,[switch]$GuidanceOnly,[switch]$StabilityOnly,[switch]$LandmarksOnly,[switch]$GearOnly,[switch]$CylaOnly,[switch]$CylaDiagnosticOnly,[switch]$CylaSaveProbe,[switch]$TrackingOnly,[switch]$ReentryOnly,[switch]$RenderOnly,[switch]$VisualOptionsOnly,[switch]$WallOnly,[switch]$ScienceOnly,[switch]$MultiRingOnly,[switch]$WithoutCyla)
 $ErrorActionPreference='Stop'
 $taskRoot=$PSScriptRoot
 $gameRoot=Join-Path $taskRoot 'template_instance'
@@ -27,6 +27,8 @@ try {
     if ($ReentryOnly -or $RenderOnly) { $taskArguments += '-ringworld-reentry-only' }
     if ($RenderOnly) { $taskArguments += '-ringworld-render-only' }
     if ($TrackingOnly) { $taskArguments += '-ringworld-tracking-only' }
+    if ($CylaSaveProbe) { $taskArguments += '-ringworld-cyla-save-probe' }
+    if ($CylaDiagnosticOnly) { $taskArguments += '-ringworld-cyla-diagnostic' }
     if ($CylaOnly) { $taskArguments += '-ringworld-cyla-only' }
     if ($GearOnly) { $taskArguments += '-ringworld-gear-only' }
     if ($LandmarksOnly) { $taskArguments += '-ringworld-landmarks-only' }
@@ -59,6 +61,7 @@ try {
     if ($ReentryOnly) { $reportName='reentry-smoke.txt' }
     if ($RenderOnly) { $reportName='render-smoke.txt' }
     if ($TrackingOnly) { $reportName='tracking-smoke.txt' }
+    if ($CylaDiagnosticOnly) { $reportName='cyla-diagnostic.txt' }
     if ($CylaOnly) { $reportName='cyla-smoke.txt' }
     if ($GearOnly) { $reportName='gear-smoke.txt' }
     if ($LandmarksOnly) { $reportName='landmarks-smoke.txt' }

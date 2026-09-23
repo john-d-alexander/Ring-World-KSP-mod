@@ -148,7 +148,7 @@ The lander fixture uses damage immunity and a test-only descent controller. Befo
 
 | Automatic arrival altitude / relative speed | 209,923.4 m / 2,095.98 m/s |
 
-| Air density / pressure around 30 km | 0.02903 kg/mÂ³ / 1.806 kPa |
+| Air density / pressure around 30 km | 0.02903 kg/m³ / 1.806 kPa |
 
 | Mach / dynamic pressure around 30 km | 0.4044 / 0.2067 kPa |
 
@@ -196,9 +196,9 @@ The lander fixture uses damage immunity and a test-only descent controller. Befo
 
 | Rapid reversals | Alive; 0.06747 m/s; 301.60 K |
 
-| Free camera, maximum rendered frame rotation over 120 comparisons | 0Â° |
+| Free camera, maximum rendered frame rotation over 120 comparisons | 0° |
 
-| Chase camera, maximum rendered frame rotation over 120 comparisons | 0Â° |
+| Chase camera, maximum rendered frame rotation over 120 comparisons | 0° |
 
 
 
@@ -725,3 +725,60 @@ Tests use direct stock delivery calls rather than a flown return to Kerbin or a 
 - `RingworldSmoke-20260918-111139.log`: repeated stock science/Career regression after habitat-aware changes. Passed all ten stock experiment subjects, 70-point crew report, two milestones, no duplicate payout, receipt/subject persistence, Science-mode currency isolation, 25 structure envelopes, actual EVA sample/report, and deployed Goo with 2/2 power. This tests stock delivery APIs and deployment, not a fully flown antenna/recovery mission.
 
 - `RingworldSmoke-20260918-111626.log`: user eight-leg / 38-part craft, natural gravity and crash damage enabled after placement. All parts survived; all eight feet grounded; paused save allowed; 10×/1,000×/1,000× native warp passed with less than 0.7 mm measured displacement. KSC save/reload error 0.94 mm; warp remained available.
+
+## Cyla black-sky investigation - September 18, 2026 (unreleased)
+
+A player report on an RTX 4060 Laptop GPU loaded Cyla 1.1.0 and Ringworld 1.1.3 successfully but showed a black daylight sky. The supplied KSP.log did not establish the cause. A separate clean install on the development Adreno X1-85 worked. No NVIDIA reproduction or driver diagnosis has been completed.
+
+The live framebuffer diagnostic in `RingworldSmoke-20260918-172152.log` reproduced a black sky by moving the optical floor close to the camera. At the default 100 Mm optical radius, a 0.25 m requested clearance produced a zero mean blue value in the sampled sky region. Smaller optical radii also failed. This is an optical-offset probe with frozen physics, not a reproduction of the affected player's entire flight.
+
+A camera-clearance candidate in `RingworldSmoke-20260918-172841.log` restored the default-radius case but failed smaller radii. Raising its minimum to 64 m in `RingworldSmoke-20260918-173245.log` also restored the 10 Mm case, but the 1 Mm case remained black on visual inspection. Neither run establishes a complete fix. The diagnostic's PASS means capture completion, not visual correctness.
+
+`RingworldSmoke-20260918-173606.log`: the 256 m clearance candidate restored nonblack sampled skies in all 12 near-floor probes across 100 Mm, 10 Mm and 1 Mm optical radii. Sampled blue means were approximately 0.112, 0.094 and 0.093. Visual inspection confirmed a blue sky at the default and smallest radius; the smallest still had substantial low-sample banding. Dither off/on and Original captures also rendered. Tests used 16 view steps, one light step, eighth resolution and no clouds. This is not an FPS benchmark, full-resolution/photo regression or NVIDIA validation.
+
+The normal build was restored after testing, with 108,728 core checks and zero compilation warnings/errors. The final guard caps clearance at a quarter of optical thickness; the default 60 km thickness used in the live run is unaffected by that cap. Custom extremely thin atmospheres remain unvalidated. A separately labelled experimental DLL patch is staged under artifacts/diagnostics; no public release was replaced.
+
+### Affected-save reproduction and native Cyla part isolation
+
+The reporting player subsequently confirmed that the experimental clearance patch, Unlit, disabling dithering and Full resolution did not resolve the black sky. The new log confirmed the experimental DLL loaded. The supplied save retained nonzero default optical coefficients, haze and exposure; it was last saved with Original selected.
+
+Using a private copy of that save on Adreno also produced a dark Cyla sky, while Original remained visible. Runs 181746, 182248, 182727 and 183146 compared the native part renderer, optical radii/across centering, depth overrides, explicit view/projection matrices, quad transforms/winding and manual sky renders. None established a fix. The test camera was close to the craft; these captures are not identical to the player's screenshot.
+
+Run 183555 attempted to remove the saved native atmosphere module, but KSP recreated it from the part definition (two renderers remained), so it was NOT a valid no-native-renderer test. Run 183958 used a smoke-build-only OnStart prefix to prevent creation and verified zero native Cyla renderers. The sky remained dark at both eighth and full resolution. Thus the native part is not necessary for the reproduced failure. This test prefix is not present in normal builds, and no user save was edited.
+
+### Optical-unit and foreground-depth correction (test patch 2)
+
+Run 184402 rendered a bright sky with a small optical cylinder in the failing scene. Run 184834 restored the sky by scaling the complete optical model but incorrectly hazed foreground parts. Run 185543 added a Ringworld-owned depth-conversion pass, restoring stock foreground occlusion. Its initial Unlit marker lacked a suitable depth pass and was replaced with an emissive Standard material for the final regression.
+
+`RingworldSmoke-20260918-190116.log`: affected-save copy, native Cyla atmosphere component present (count 1), Slow terrain, 16 view steps, one light step, clouds disabled. Both top/side and Unlit lighting rendered blue skies at eighth, half and full resolution; sampled sky blue means were 0.404–0.405. Visual inspection confirmed the sky and dark foreground craft geometry. The central automated colour sample landed on a black strut, so an additional PNG check sampled the unobstructed marker at normalized image coordinates (0.54, 0.52): all six Cyla captures and the Original baseline were exactly RGB(255,0,255). The harness now samples that unobstructed location for future runs.
+
+The shader bundle built successfully. Normal compilation and 108,728 core checks passed with zero warnings/errors; the harness restored the normal plugin. The second experimental patch includes both the normal DLL and matching Ringworld shader bundle. No Cyla/Harmony binaries or private saves are included, and the public release is unchanged.
+
+This is a frozen-scene rendering regression on Adreno/DX11, not a moving-flight FPS benchmark. Native part coexistence was tested with the part loaded, not every unloaded-vessel transition. NVIDIA, other graphics APIs, photo capture and extreme custom optical settings have not been revalidated with this patch. Friend confirmation is still required.
+
+## Published-baseline atmosphere and loose-debris investigation — September 19, 2026
+
+The experimental black-sky renderer and shader bundle were backed up under `artifacts/diagnostics/patch2-source-backup-*` and reverted to Release-v1.1.3 before this investigation. The restored visual bundle's SHA-256 matched the separate clean CKAN installation. These changes do not update any public release or the CKAN instance.
+
+Run 044349 reproduced the structured dithering pattern using the published renderer. Run 044802 reproduced broad atmosphere bands from a 20 km camera altitude at optical radii of 100, 10 and 1 Mm; reducing proxy radius alone is not a fix. Camera poses were overridden in the diagnostic while vessel physics was frozen; these are visual diagnostics, not flight tests.
+
+Stock `FlightIntegrator.IntegratePhysicalObjects` applies reference-body forces to jettisoned objects independently of vessel parts. A scoped replacement now supplies the ring-frame acceleration for those objects while that frame is active, retaining the stock drag and lifecycle. Run 044802 created an object using stock `physicalObject.ConvertToPhysicalObject`, disabled drag and measured -9.715399 m/s² along local up across 20 physics steps. This validates the stock loose-object integration path; it does not test every fairing/cargo module. Normal builds and 108,728 core checks passed.
+
+## v1.1.4 development regressions — September 22, 2026
+
+`RingworldSmoke-20260922-180131.log` compared 24, 128 and 500 Cyla view samples at 2 km and 20 km camera altitude, one-eighth optical resolution and two light samples, with Slow terrain and clouds disabled. Visual review of the 20 km captures confirms much smoother broad gradients at 500 samples than at 24. Faint residual steps remain. This establishes a sampling contribution; it does not establish a laptop-performance fix or explain NVIDIA daytime black skies. The stock loose-object acceleration test again measured about -9.7154 m/s².
+
+`RingworldSmoke-20260922-181109.log` passed the science/career regression and new live EVA environment checks. A landed Kerbal's stock `CanSafelyRemoveHelmet` accepted the ring air, and `WillDieWithoutHelmet` returned false. Disabling ring atmosphere reversed both checks. Reference-body atmosphere/oxygen flags were unchanged. Existing stock experiment delivery, deployed science, career rewards, duplicate-payout protection, save/load, Science mode and Kerbin-isolation checks also passed. This tests stock safety decisions, not a visual helmet-animation assertion. Normal build and 108,728 core checks passed with zero warnings/errors, and the non-test plugin was restored.
+
+`RingworldSmoke-20260922-181623.log`: new environment/readback instrumentation passed locally on Adreno X1-85, D3D11, Gamma, Forward, 8x MSAA, HDR disabled. The 2 km probe returned zero non-finite values in 2,048 samples of each target. Scattering mean was 0.327, white response 0.775. This verifies instrumentation, not NVIDIA behaviour.
+
+`RingworldSmoke-20260922-230858.log`: published-baseline private affected-save probe remained visually black (reviewed PNG), although the old >0.04 blue-mean threshold incorrectly passed at 0.043. The threshold was tightened to 0.10; this historical PASS must not be treated as correct sky rendering. Output was finite: scattering mean 0.0196, white response approximately 1.0. This local reproduction therefore does not require NaN output. Camera altitude was 136 m, otherwise the same Adreno/D3D11/8x MSAA path. An eye-relative optical-coordinate candidate is under test; it is not yet a verified replacement.
+
+
+## v1.1.4 optical-unit selection and panel-flare regression
+
+`RingworldSmoke-20260922-232405.log` compared eye-origin overrides, scaling around the actual camera, and metre-unit baseline, with and without a 256 m floor guard. Only the scaled model around the actual camera restored the local affected-save sky (blue mean approximately 0.304 versus 0.04–0.05). The foreground marker remained intact. This comparison's completion PASS does not mean all candidates passed. Unsuccessful camera overrides and the unnecessary floor guard were removed.
+
+`RingworldSmoke-20260922-232953.log` compared optical scales 0.00001, 0.0001, 0.0005 and 0.001, at one-eighth and full optical resolution, normal lighting, 16 view/1 light samples, Slow terrain and no clouds. All restored the affected-save sky (blue mean 0.304–0.305), preserving the foreground marker, with a native Cyla component present. Selected 0.001 for production. This is local Adreno validation, not NVIDIA or Proton confirmation.
+
+`RingworldSmoke-20260922-233349.log` compared those scales at 2 km and 20 km camera altitude, 128 view/2 light samples and one-eighth resolution. Reviewed captures show fewer precision steps with 0.001 than 0.00001; broad banding remains. Stock loose-object gravity passed again. Stock Sun-flare brightness was 0 under a night panel and 1.576891 in daylight. Camera motion, Sun-disc silhouettes and custom flares were not asserted. Normal compilation and 108,728 core checks passed, with zero warnings/errors; the normal v1.1.4 plugin was restored.

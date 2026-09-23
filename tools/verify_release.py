@@ -46,7 +46,7 @@ with zipfile.ZipFile(archive) as package:
         assert 'QUALITY Economy near vertices=' in quality_report
 
     dll=package.read(names['GameData/NivenRingworld/Plugins/NivenRingworld.dll'])
-    for forbidden in (b'GearSmoke',b'StabilitySmoke',b'LandmarkSmoke',b'GuidanceSmoke',b'SmokeTest',b'StabilityExplosionTrace',b'MultiRingSmoke',b'ResearchSmoke'):
+    for forbidden in (b'GearSmoke',b'StabilitySmoke',b'LandmarkSmoke',b'GuidanceSmoke',b'SmokeTest',b'StabilityExplosionTrace',b'MultiRingSmoke',b'ResearchSmoke',b'CylaBlackSkySmoke'):
         assert forbidden not in dll,'Test harness in release DLL: '+repr(forbidden)
     for n in names:
         assert not any(s in n.lower() for s in ('assembly-csharp','unityengine','.analysis/','template_instance/','.blend','persistent.sfs')),'Non-distributable file: '+n

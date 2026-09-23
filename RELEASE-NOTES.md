@@ -1,8 +1,8 @@
 # Niven Ringworld — release notes
 
-Consolidated release history, newest first. Historical installation and dependency instructions apply only to the version in their section; use the current requirements below for v1.1.3. This is the single release-note source used by the release publisher.
+Consolidated release history, newest first. Historical installation and dependency instructions apply only to the version in their section; use the current requirements below for v1.1.4. This is the single release-note source used by the release publisher.
 
-## Current requirements — v1.1.3
+## Current requirements — v1.1.4
 
 | Component | Requirement | Tested / supported version | Installation |
 | --- | --- | --- | --- |
@@ -11,13 +11,37 @@ Consolidated release history, newest first. Historical installation and dependen
 | [Cyla](https://github.com/LGhassen/Cyla/releases) | Optional atmosphere backend | 1.1.0 | Install separately to use Cyla atmosphere |
 
 
-Neither Harmony nor Cyla is bundled in v1.1.3. Missing Cyla falls back to Original atmosphere. The Harmony minimum is declared in CKAN metadata; it is not a promise that every future Harmony version is compatible. Cyla 1.1.0 is the supported/tested integration target; compatibility with other Cyla versions is not certified. CKAN metadata currently requires Harmony only; Cyla indexing awaits its author's and CKAN's approval.
+Neither Harmony nor Cyla is bundled in v1.1.4. Missing Cyla falls back to Original atmosphere. The Harmony minimum is declared in CKAN metadata; it is not a promise that every future Harmony version is compatible. Cyla 1.1.0 is the supported/tested integration target; compatibility with other Cyla versions is not certified. The release metadata requires Harmony and suggests indexed Cyla >= 1.1.0.0. CKAN's central NetKAN recipe must also accept the optional-dependency update; supplying metadata in a release does not by itself update CKAN.
 
 Extract the mod ZIP into the KSP instance root beside `KSP_x64.exe`, preserving `GameData/NivenRingworld`. See [installation instructions](README.md#install-and-play).
 
 ## Release history
 
 The sections below preserve the available local release notes and nonempty published GitHub descriptions. Some descriptions overlap. Missing notes are explicitly identified rather than reconstructed from guesses. GitHub descriptions were retrieved on 2026-09-18.
+
+## Release-v1.1.4
+
+KSP 1.12.5; tested on Windows x64 / Direct3D 11. Install HarmonyKSP 2.2.1.0 or a compatible newer version separately. Optional Cyla: upstream release 1.1.0.0 (archive named Cyla-1.1.0.zip). No dependencies are bundled. Extract into the KSP root, preserving `GameData/NivenRingworld`.
+
+### Cyla atmosphere fixes and diagnostics
+
+Optical distances are now passed to Cyla in kilometre units, with matching scattering coefficients and a Ringworld-owned scene-depth conversion. This corrects the black sky reproduced from an affected save on the development machine while preserving foreground spacecraft. It does not change physical ring dimensions or atmospheric flight forces. Confirmation from the affected NVIDIA and Proton/Wine machines is still pending; this release is available for that retest.
+
+Quality presets now leave Cyla dithering off, avoiding the structured pattern observed with unfiltered dithering. Existing custom settings are preserved; reselect a preset to take its revised defaults. Broad bands can still appear at low view-sample counts when zoomed far out. The complete high-altitude/motion-quality investigation is ongoing.
+
+The first daytime Cyla session logs its graphics environment and small render-target sample statistics to KSP.log. This helps compare API, colour space, MSAA, camera settings and finite/dark shader output. It does not upload data. Unsupported or absent Cyla continues to use Original atmosphere. Presets select the backend automatically; the manual override is retained under Advanced Cyla optics and diagnostics for troubleshooting.
+
+The stock Sun flare now follows the shadow-panel daylight mask in ring flight views. A live test confirmed zero flare brightness under a night panel and restoration in daylight. Custom flares from other mods and the separate Sun disc need further validation.
+
+### Physics and EVA
+
+Stock loose physical objects, such as jettisoned covers, now receive the rotating ring frame's acceleration instead of the reference body's gravity. Stock drag and object lifetime remain intact. A stock-converted loose-object test measured about 9.7154 m/s² toward the floor.
+
+Stock EVA helmet safety checks use ring air, oxygen availability and temperature. Pressure and temperature safety limits remain in force, and disabling the atmosphere prevents helmet removal. The Sun's atmosphere properties are not changed. The live EVA safety and existing science/career regression checks passed.
+
+### Optional mods and remaining work
+
+Harmony remains required. The version-specific CKAN metadata lists Cyla as optional (`suggests`); the [central NetKAN update](https://github.com/KSP-CKAN/NetKAN/pull/11604) is submitted and awaits maintainer acceptance. EVE, Scatterer, Parallax, TUFX and Waterfall research is documented, but this release does not claim new cylindrical EVE/Scatterer/Parallax rendering or a Kopernicus rebuild. Native-Linux rendering, NVIDIA confirmation and additional installed-mod tests remain outstanding.
 
 ## Release-v1.1.3
 

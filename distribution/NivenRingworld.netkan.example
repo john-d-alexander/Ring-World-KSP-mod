@@ -1,1 +1,33 @@
-# Superseded by NivenRingworld.netkan (v1.1.3, external Harmony; optional Cyla).
+{
+  "spec_version": "v1.4",
+  "identifier": "NivenRingworld",
+  "name": "Niven Ringworld Expedition",
+  "abstract": "Landable rotating habitats with procedural terrain, ring-relative flight and exploration science.",
+  "author": "theplatecrafter",
+  "license": "MIT",
+  "$kref": "#/ckan/github/theplatecrafter/Ring-World-KSP-mod",
+  "$vref": "#/ckan/ksp-avc",
+  "depends": [
+    {
+      "name": "Harmony2",
+      "min_version": "2.2.1.0"
+    }
+  ],
+  "install": [
+    {
+      "file": "GameData/NivenRingworld",
+      "install_to": "GameData"
+    }
+  ],
+  "resources": {
+    "repository": "https://github.com/theplatecrafter/Ring-World-KSP-mod",
+    "bugtracker": "https://github.com/theplatecrafter/Ring-World-KSP-mod/issues"
+  },
+  "x_netkan_note": "Harmony is required; indexed Cyla is optional. Install only GameData/NivenRingworld from this archive. The upstream NetKAN dependency stanza must also be changed from depends to suggests for Cyla.",
+  "suggests": [
+    {
+      "name": "Cyla",
+      "min_version": "1.1.0.0"
+    }
+  ]
+}

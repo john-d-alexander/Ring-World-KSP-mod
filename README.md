@@ -1,4 +1,4 @@
-# Niven Ringworld Expedition 1.1.3
+# Niven Ringworld Expedition 1.1.4
 
 A Larry Niven-inspired, star-encircling habitat with a landable rotating interior, procedural terrain, atmosphere, science and persistent expeditions. The default world uses one-tenth of the published linear ring dimensions. Original geography and architecture are interpretations of the setting.
 
@@ -22,12 +22,12 @@ When settled on dry ground, use **KSP's stock time-warp controls**. Universal ti
 
 Open the Ringworld panel → Settings → **Sandbox: manage ring worlds**. Select an existing star or no designated star, enter the center offset in km, dimensions and seed, then spawn a new ring. The list selects a ring for editing; **Visit selected ring** transfers the active vessel. All rings have distant outlines, while detailed terrain runs around the current habitat. Moving/deleting an occupied ring is blocked; at least one ring must remain. See [multiple-ring behavior and limits](docs/guides/MULTIPLE-RINGS.md).
 
-## v1.1.3
+## v1.1.4
 
-- Sandbox multi-ring catalog, offset placement, saved habitat identities and protected move/delete controls.
-- Stock science contexts for biomes, landmarks, structures, walls, panels and flight regions; expedition journal with Science/Career progression and one-time Career rewards.
-- Dependency-free ZIP packaging: required Harmony and optional Cyla are installed separately. CKAN metadata is supplied for maintainer review.
-- Near/far rim-wall material consistency fix carried forward from the development build.
+- Cyla optical-distance and scene-depth scaling corrects a locally reproduced near-surface black sky. Confirmation on affected NVIDIA/Proton machines is pending; please report the new session's KSP.log if it persists.
+- Quality presets disable the unfiltered Cyla dithering that produced patterned skies. Low sample counts can still show broad gradients from high camera altitudes; further improvements are tracked.
+- Stock jettisoned physical objects receive ring-frame acceleration. Stock EVA helmet safety checks recognize breathable ring air while retaining pressure/temperature limits.
+- Cyla is an optional CKAN suggestion in this release's metadata; Harmony remains required. Mid and higher presets select installed Cyla automatically, with an advanced diagnostic override and Original fallback.
 
 ## Release contents
 
@@ -39,7 +39,7 @@ Open the Ringworld panel → Settings → **Sandbox: manage ring worlds**. Selec
 - A full scaled ring with closed dark rim walls, moving night bands and sparse procedural cloud coverage; optional high-quality local volumetric clouds, water waves and frozen photo rendering.
 - **92 Blender-authored scenery prefabs / 276 LOD meshes**. Twenty-five landmark placements and eight rare colossus templates include floating palaces, ruined cities and eight new colossi: an **80 km rim gate**, **120 km causeway** and **48 km floating city plate**. Machinery is scenery, not an operational simulation.
 
-See [release notes](RELEASE-NOTES.md#release-v113), [colossi and continuous forests](docs/reference/COLOSSI-AND-FORESTS.md), [landmark designs and placement](docs/developers/ASSET-AUTHORING.md#landmark-assets), [dimensions/triangle inventory](docs/reference/LANDMARK-INVENTORY.md), and the [combined biome catalog](docs/reference/BIOME-ASSET-CATALOG.md).
+See [release notes](RELEASE-NOTES.md#release-v114), [colossi and continuous forests](docs/reference/COLOSSI-AND-FORESTS.md), [landmark designs and placement](docs/developers/ASSET-AUTHORING.md#landmark-assets), [dimensions/triangle inventory](docs/reference/LANDMARK-INVENTORY.md), and the [combined biome catalog](docs/reference/BIOME-ASSET-CATALOG.md).
 
 ## Settings and performance
 
@@ -114,3 +114,7 @@ See [release notes](RELEASE-NOTES.md) for version changes, dependency requiremen
 10. Kerbal expedition experience and awards on safe return; avoid granting repeated XP for the same destination.
 11. Add-on content validation for duplicate research IDs, missing prerequisites/cycles and generation migrations; localisation of journal/config text.
 12. Science-overhaul adapters (especially Kerbalism), research-driven map markers and saved discovery coordinates for individual procedural colossi.
+
+### Active visual compatibility work
+
+Continue NVIDIA/Proton verification, high-altitude Cyla banding/motion tests, native-Linux shader builds, and installed-mod tests for Waterfall, TUFX and other visual frameworks. EVE, Scatterer and Parallax do not currently replace the ring's clouds, water or terrain. Geometry-aware adapters need further work; see docs/developers/MOD-INTEROPERABILITY.md. These are not advertised as completed v1.1.4 features.

@@ -42,13 +42,13 @@ namespace NivenRingworld
             fullRingDetail=GUILayout.Toggle(fullRingDetail,"Full-ring surface detail: distant land, oceans and clouds");
             GUILayout.Label("No distance cutoff for this coarse surface layer. Photo mode enables it temporarily. Detailed terrain uses the horizon distance above.");
             GUILayout.Label(StockGraphics.Description);
-            GUILayout.Label("Atmosphere backend");
-            atmosphereBackend=GUILayout.Toolbar(atmosphereBackend,new[]{"Original","Cyla (optional)"});
+            GUILayout.Label("Atmosphere follows the quality preset: Mid and above use installed Cyla automatically; Slow and below use Original. Missing or unsupported Cyla uses Original.");
             GUILayout.Label("Cyla render resolution (depth-aware foreground preservation)");cylaResolution=GUILayout.Toolbar(cylaResolution,new[]{"1/8","1/4","1/2","Full"});
             cylaLightSteps=Field("Cyla light integration steps (1 to 50)",cylaLightSteps);
             cylaDither=GUILayout.Toggle(cylaDither,"Cyla temporal dithering (disabled during photo capture)");
             GUILayout.Label("Cyla by Ghassen Lahmar (LGhassen / blackrack). GPLv3 plugin; see GameData/Cyla/License.md. Cyla has separate view steps under Advanced optics. Clouds and photo capture remain Ringworld systems. Missing/unsupported Cyla falls back to Original.");
-            cylaAdvanced=GUILayout.Toggle(cylaAdvanced,"Advanced Cyla optics and geometry");
+            cylaAdvanced=GUILayout.Toggle(cylaAdvanced,"Advanced Cyla optics and diagnostics");
+            if(cylaAdvanced){GUILayout.Label("Diagnostic atmosphere override (presets reset this)");atmosphereBackend=GUILayout.Toolbar(atmosphereBackend,new[]{"Original","Cyla if installed"});}
             if(cylaAdvanced){GUILayout.Label("Optical geometry only: radius is a precision-limited proxy; width follows the ring. Inner radius = proxy radius minus thickness. These controls do not change flight physics. Nonzero offsets/tilt deliberately misalign the optical cylinder.");for(int i=0;i<cylaFields.Length;i++)cylaFields[i]=Field(CylaOptions.Definitions[i].Label,cylaFields[i]);GUILayout.Label("Lighting boundary");cylaMode=GUILayout.Toolbar(cylaMode,new[]{"Top / side","Floor","Unlit"});}
             GUILayout.Label(atmosphereBackend==1?"Ringworld cloud rendering quality (Cyla scattering uses its controls above)":"Ringworld atmosphere quality (independent of stock planets)");
             int chosen=GUILayout.Toolbar(visualQuality,new[]{"Simple","Half-resolution","Full-resolution"});

@@ -72,6 +72,13 @@ namespace NivenRingworld
             if(eva.OnALadder)eva.fsm.RunEvent(eva.On_ladderLetGo);
             while(!eva.vessel.Landed&&Time.realtimeSinceStartup<deadline)yield return null;
             if(!eva.vessel.Landed){fail("Research EVA did not settle");yield break;}
+            bool stockAtmo=eva.vessel.mainBody.atmosphere,stockOxygen=eva.vessel.mainBody.atmosphereContainsOxygen;
+            if(!eva.CanSafelyRemoveHelmet()||eva.WillDieWithoutHelmet()){fail("Breathable ring air rejected helmet removal: "+eva.HelmetUnsafeReason);yield break;}
+            f.Settings.Atmosphere=false;
+            if(eva.CanSafelyRemoveHelmet()||!eva.WillDieWithoutHelmet()){f.Settings.Atmosphere=true;fail("Helmet safety ignored disabled ring atmosphere");yield break;}
+            f.Settings.Atmosphere=true;
+            if(eva.vessel.mainBody.atmosphere!=stockAtmo||eva.vessel.mainBody.atmosphereContainsOxygen!=stockOxygen){fail("Helmet adapter mutated reference body");yield break;}
+            Debug.Log("[RingworldSmoke] HELMET breathable ring allowed; disabled atmosphere rejected; body flags unchanged");
             foreach(var instrument in eva.vessel.FindPartModulesImplementing<ModuleScienceExperiment>())
             {
                 if(instrument.experimentID!="evaReport"&&instrument.experimentID!="surfaceSample")continue;
